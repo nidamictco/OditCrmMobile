@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
+import 'package:odit_crm_mobile/feature/menu/profile_bottom_sheet.dart';
+import 'package:odit_crm_mobile/feature/menu/logout_dialog.dart';
+import 'package:odit_crm_mobile/feature/change_password/presentation/change_password_screen.dart';
 import 'package:sizer/sizer.dart';
-
-// ---------------------------------------------------------------------------
-// Save this file as: lib/widgets/oxdo_drawer.dart
-// ---------------------------------------------------------------------------
 
 class OxdoDrawer extends StatelessWidget {
   const OxdoDrawer({super.key});
@@ -39,10 +38,36 @@ class OxdoDrawer extends StatelessWidget {
                       );
                     },
                   ),
-                  _DrawerMenuItem(icon: Icons.person_outline, title: 'Profile'),
+                  _DrawerMenuItem(
+                    icon: Icons.people_outline,
+                    title: 'Staff Management',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CustomBottomNavScreen(index: CustomBottomNavScreen.staffIndex),
+                        ),
+                      );
+                    },
+                  ),
+                  _DrawerMenuItem(
+                    icon: Icons.person_outline,
+                    title: 'Profile',
+                    onTap: () => ProfileBottomSheet.show(context),
+                  ),
                   _DrawerMenuItem(
                     icon: Icons.lock_outline,
                     title: 'Change Password',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _DrawerMenuItem(
                     icon: Icons.privacy_tip_outlined,
@@ -65,6 +90,10 @@ class OxdoDrawer extends StatelessWidget {
                   _DrawerMenuItem(
                     icon: Icons.power_settings_new,
                     title: 'Logout',
+                    onTap: () {
+                      Navigator.pop(context);
+                      LogoutDialog.show(context);
+                    },
                   ),
                 ],
               ),

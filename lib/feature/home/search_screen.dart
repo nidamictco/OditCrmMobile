@@ -1,77 +1,252 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
+import 'package:odit_crm_mobile/feature/lead_details/presentation/lead_details_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_card.dart';
 import 'package:sizer/sizer.dart';
 
-// ---------------------------------------------------------------------------
-// Save as: lib/feature/search/search_screen.dart
-// ---------------------------------------------------------------------------
-
-class SearchScreen extends StatelessWidget {
+class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
   @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  List<ValueNotifier<bool>> _closeNotifiers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    final leadCubit = context.read<AddLeadCubit>();
+    if (leadCubit.state.listStatus != LeadListStatus.loaded) {
+      leadCubit.fetchLeads();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    for (final n in _closeNotifiers) {
+      n.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncCloseNotifiers(int length) {
+    if (_closeNotifiers.length != length) {
+      for (final n in _closeNotifiers) {
+        n.dispose();
+      }
+      _closeNotifiers = List.generate(length, (_) => ValueNotifier(false));
+    }
+  }
+
+  void _onSwipeOpen(int index) {
+    for (int i = 0; i < _closeNotifiers.length; i++) {
+      if (i != index) {
+        _closeNotifiers[i].value = true;
+        Future.microtask(() => _closeNotifiers[i].value = false);
+      }
+    }
+  }
+
+  List<AddLeadModel> _filterLeads(List<AddLeadModel> leads, String query) {
+    if (query.trim().isEmpty) return leads;
+    final q = query.toLowerCase().trim();
+    return leads.where((lead) {
+      return lead.clientName.toLowerCase().contains(q) ||
+          lead.contactNumber.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  String _getFollowUpText(AddLeadModel lead) {
+    if (lead.followUp == null || lead.followUp!.isEmpty) return '--';
+    DateTime? latestDate;
+    for (final f in lead.followUp!) {
+      if (latestDate == null || f.nextFollowUpDate.isAfter(latestDate)) {
+        latestDate = f.nextFollowUpDate;
+      }
+    }
+    if (latestDate == null) return '--';
+    return DateFormat('dd-MM-yyyy').format(latestDate);
+  }
+
+  String _formatDate(DateTime? dt) {
+    if (dt == null) return '--';
+    return DateFormat('dd-MM-yyyy').format(dt);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: AppColors.bottomNavBlue, // AppColors.bottomNvgtnBlue
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        // centerTitle: true,
-        title: Text(
-          'Search',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: () {
+        for (final n in _closeNotifiers) {
+          n.value = true;
+          Future.microtask(() => n.value = false);
+        }
+      },
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        appBar: AppBar(
+          backgroundColor: AppColors.bottomNavBlue,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            'Search',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Search Bar ──────────────────────────────────────────────
-            const SearchBarWidget(),
-            SizedBox(height: 2.h),
+        body: BlocBuilder<AddLeadCubit, AddLeadState>(
+          builder: (context, state) {
+            if (state.listStatus == LeadListStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // ── Leads Header Card ────────────────────────────────────────
-            const LeadHeaderCard(title: 'Leads', subtitle: '10 records found'),
-            SizedBox(height: 2.h),
+            if (state.listStatus == LeadListStatus.failure) {
+              return Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  child: Text(
+                    state.listError ?? 'Failed to load leads',
+                    style: TextStyle(color: Colors.red, fontSize: 16.sp),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
 
-            // ── Lead Cards ───────────────────────────────────────────────
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3,
-              separatorBuilder: (_, __) => SizedBox(height: 2.h),
-              itemBuilder: (_, __) => SearchLeadCard(
-                name: 'Noushifa',
-                phone: '+917902207315',
-                tag: 'May Visit',
-                assignedTo: 'Visited (HR)',
-                status: 'Follow Up',
-                nextFollowUp: '09-06-2026',
-                lastCall: '08-06-2026',
+            final filteredLeads = _filterLeads(state.leads, _searchQuery);
+            _syncCloseNotifiers(filteredLeads.length);
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SearchBarWidget(
+                    controller: _searchController,
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 2.h),
+
+                  LeadHeaderCard(
+                    title: 'Leads',
+                    subtitle: '${filteredLeads.length} records found',
+                  ),
+                  SizedBox(height: 2.h),
+
+                  if (filteredLeads.isEmpty) ...[
+                    SizedBox(height: 8.h),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 18.w,
+                            color: Colors.grey.shade400,
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'No leads found',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 1.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w),
+                            child: Text(
+                              'Try searching with another name or phone number',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.grey.shade500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredLeads.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 2.h),
+                      itemBuilder: (_, index) {
+                        final lead = filteredLeads[index];
+                        return SearchLeadCard(
+                          id: lead.id ?? '',
+                          name: lead.clientName.isEmpty
+                              ? 'Unknown'
+                              : lead.clientName,
+                          phone: lead.contactNumber,
+                          tag: lead.leadCategory.isEmpty
+                              ? 'General'
+                              : lead.leadCategory,
+                          assignedTo: lead.assignedStaff.isEmpty
+                              ? 'Unassigned'
+                              : lead.assignedStaff,
+                          status: lead.leadStage.isEmpty
+                              ? 'New'
+                              : lead.leadStage,
+                          nextFollowUp: _getFollowUpText(lead),
+                          lastCall: _formatDate(lead.calledDate),
+                          leadSource: lead.leadSource.isEmpty
+                              ? 'Direct Entry'
+                              : lead.leadSource,
+                          priority: lead.priority.isEmpty
+                              ? 'Normal'
+                              : lead.priority,
+                          closeNotifier: _closeNotifiers[index],
+                          onSwipeOpen: () => _onSwipeOpen(index),
+                        );
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 2.h),
+                ],
               ),
-            ),
-            SizedBox(height: 2.h),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// SEARCH BAR WIDGET
-// ---------------------------------------------------------------------------
 class SearchBarWidget extends StatelessWidget {
-  const SearchBarWidget({super.key});
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const SearchBarWidget({
+    super.key,
+    required this.controller,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +270,8 @@ class SearchBarWidget extends StatelessWidget {
           SizedBox(width: 2.w),
           Expanded(
             child: TextField(
+              controller: controller,
+              onChanged: onChanged,
               style: TextStyle(
                 fontSize: 14.5.sp,
                 color: const Color(0xFF333333),
@@ -112,13 +289,12 @@ class SearchBarWidget extends StatelessWidget {
             ),
           ),
           SizedBox(width: 2.w),
-          // Blue search button
           Padding(
             padding: EdgeInsets.only(right: 2.5.w),
             child: Container(
               width: 10.w,
               height: 10.w,
-              padding: EdgeInsets.all(0.5),
+              padding: const EdgeInsets.all(0.5),
               decoration: BoxDecoration(
                 color: AppColors.bottomNavBlue,
                 borderRadius: BorderRadius.circular(12),
@@ -132,9 +308,6 @@ class SearchBarWidget extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// LEAD HEADER CARD
-// ---------------------------------------------------------------------------
 class LeadHeaderCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -163,7 +336,6 @@ class LeadHeaderCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Mint icon box
           Container(
             width: 11.w,
             height: 11.w,
@@ -178,7 +350,6 @@ class LeadHeaderCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 3.w),
-          // Title + subtitle
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,10 +384,200 @@ class LeadHeaderCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// LEAD CARD
-// ---------------------------------------------------------------------------
-class SearchLeadCard extends StatelessWidget {
+double get _kSearchActionPanelWidth => 28.w;
+const double _kSearchSnapThreshold = 0.35;
+
+class SearchLeadCard extends StatefulWidget {
+  final String id;
+  final String name;
+  final String phone;
+  final String tag;
+  final String assignedTo;
+  final String status;
+  final String nextFollowUp;
+  final String lastCall;
+  final String leadSource;
+  final String priority;
+  final VoidCallback? onSwipeOpen;
+  final ValueNotifier<bool>? closeNotifier;
+
+  const SearchLeadCard({
+    super.key,
+    required this.id,
+    required this.name,
+    required this.phone,
+    required this.tag,
+    required this.assignedTo,
+    required this.status,
+    required this.nextFollowUp,
+    required this.lastCall,
+    required this.leadSource,
+    required this.priority,
+    this.onSwipeOpen,
+    this.closeNotifier,
+  });
+
+  @override
+  State<SearchLeadCard> createState() => _SearchLeadCardState();
+}
+
+class _SearchLeadCardState extends State<SearchLeadCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _slideAnim;
+  bool _isOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _slideAnim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    widget.closeNotifier?.addListener(_onCloseRequested);
+  }
+
+  @override
+  void didUpdateWidget(SearchLeadCard old) {
+    super.didUpdateWidget(old);
+    if (old.closeNotifier != widget.closeNotifier) {
+      old.closeNotifier?.removeListener(_onCloseRequested);
+      widget.closeNotifier?.addListener(_onCloseRequested);
+    }
+  }
+
+  void _onCloseRequested() {
+    if (widget.closeNotifier?.value == true && _isOpen) {
+      _close();
+    }
+  }
+
+  void _open() {
+    setState(() => _isOpen = true);
+    _controller.animateTo(1.0);
+    widget.onSwipeOpen?.call();
+  }
+
+  void _close() {
+    _controller.animateTo(0.0).then((_) {
+      if (mounted) setState(() => _isOpen = false);
+    });
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails d) {
+    if (d.primaryDelta == null) return;
+    final delta = -d.primaryDelta! / _kSearchActionPanelWidth;
+    _controller.value = (_controller.value + delta).clamp(0.0, 1.0);
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails d) {
+    final velocity = d.primaryVelocity ?? 0;
+    if (velocity < -300) {
+      _open();
+    } else if (velocity > 300) {
+      _close();
+    } else if (_controller.value >= _kSearchSnapThreshold) {
+      _open();
+    } else {
+      _close();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.closeNotifier?.removeListener(_onCloseRequested);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _isOpen ? _close : null,
+      behavior: HitTestBehavior.translucent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedBuilder(
+          animation: _slideAnim,
+          builder: (context, _) {
+            final slideOffset = _slideAnim.value * _kSearchActionPanelWidth;
+
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: _kSearchActionPanelWidth,
+                      child: GestureDetector(
+                        onTap: () {
+                          _close();
+                          LeadDetailsScreen.show(
+                            context,
+                            lead: AddLeadModel(
+                              id: widget.id,
+                              clientName: widget.name,
+                              leadStage: widget.status,
+                              leadCategory: widget.tag,
+                              contactNumber: widget.phone,
+                              assignedStaff: widget.assignedTo,
+                              createdAt: DateTime.now(),
+                              leadSource: widget.leadSource,
+                              priority: widget.priority,
+                              contactDialCode: '',
+                              assignedStaffId: '',
+                              createdBy: '',
+                              createdById: '',
+                            ),
+                            showFollowupForm: true,
+                          );
+                        },
+                        child: Container(
+                          color: const Color(0xFF2196F3),
+                          child: Center(
+                            child: Icon(
+                              Icons.person_add_alt_1_rounded,
+                              color: Colors.white,
+                              size: 6.w,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Transform.translate(
+                  offset: Offset(-slideOffset, 0),
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: _onHorizontalDragUpdate,
+                    onHorizontalDragEnd: _onHorizontalDragEnd,
+                    onTap: () {
+                      if (_isOpen) {
+                        _close();
+                      }
+                    },
+                    child: _SearchLeadCardBody(
+                      name: widget.name,
+                      phone: widget.phone,
+                      tag: widget.tag,
+                      assignedTo: widget.assignedTo,
+                      status: widget.status,
+                      nextFollowUp: widget.nextFollowUp,
+                      lastCall: widget.lastCall,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchLeadCardBody extends StatelessWidget {
   final String name;
   final String phone;
   final String tag;
@@ -225,8 +586,7 @@ class SearchLeadCard extends StatelessWidget {
   final String nextFollowUp;
   final String lastCall;
 
-  const SearchLeadCard({
-    super.key,
+  const _SearchLeadCardBody({
     required this.name,
     required this.phone,
     required this.tag,
@@ -252,13 +612,11 @@ class SearchLeadCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Top: Avatar + Name + Tag ───────────────────────────────────
           Padding(
             padding: EdgeInsets.fromLTRB(4.w, 2.h, 4.w, 1.5.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Avatar with red dot
                 Stack(
                   children: [
                     CircleAvatar(
@@ -280,8 +638,9 @@ class SearchLeadCard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 SizedBox(width: 3.w),
-                // Name + Phone
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +674,7 @@ class SearchLeadCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Tag pill
+
                 StatusChip(
                   label: tag,
                   textColor: const Color(0xFF2F80ED),
@@ -327,15 +686,12 @@ class SearchLeadCard extends StatelessWidget {
             ),
           ),
 
-          // ── Divider ───────────────────────────────────────────────────
           Divider(height: 1, thickness: 1, color: const Color(0xFFF0F0F0)),
 
-          // ── Middle: Chips ─────────────────────────────────────────────
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
             child: Row(
               children: [
-                // Assigned chip
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 3.w,
@@ -364,7 +720,6 @@ class SearchLeadCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                // Status chip
                 StatusChip(
                   label: status,
                   textColor: const Color(0xFFE6A817),
@@ -375,52 +730,59 @@ class SearchLeadCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Info Box ─────────────────────────────────────────────────
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 4.w),
             child: InfoBox(nextFollowUp: nextFollowUp, lastCall: lastCall),
           ),
           SizedBox(height: 1.5.h),
 
-          // ── Contact Now Button ────────────────────────────────────────
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            child: SizedBox(
-              width: double.infinity,
-              height: 6.h,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3DAA5C),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            child: GestureDetector(
+              onTap: () {
+                launchPhoneCall(context, phone);
+                print('ffffffffffff');
+              },
+              child: SizedBox(
+                height: 5.5.h,
+                child: ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3DAA5C),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
                   ),
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 7.w,
-                      height: 7.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
-                        shape: BoxShape.circle,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 7.w,
+                        height: 7.w,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.phone,
+                          color: Colors.white,
+                          size: 5.w,
+                        ),
                       ),
-                      child: Icon(Icons.phone, color: Colors.white, size: 5.w),
-                    ),
-                    SizedBox(width: 2.w),
-                    Text(
-                      'Contact Now',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+
+                      SizedBox(width: 2.w),
+                      Text(
+                        'Contact Now',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -432,9 +794,6 @@ class SearchLeadCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// INFO BOX
-// ---------------------------------------------------------------------------
 class InfoBox extends StatelessWidget {
   final String nextFollowUp;
   final String lastCall;
@@ -456,7 +815,6 @@ class InfoBox extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(
           children: [
-            // Left: Next Follow-Up
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 3.w),
@@ -485,13 +843,11 @@ class InfoBox extends StatelessWidget {
                 ),
               ),
             ),
-            // Vertical divider
             VerticalDivider(
               thickness: 1,
               color: const Color(0xFFDDDDDD),
               width: 1,
             ),
-            // Right: Last Call
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 3.w),
@@ -527,9 +883,6 @@ class InfoBox extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// STATUS CHIP
-// ---------------------------------------------------------------------------
 class StatusChip extends StatelessWidget {
   final String label;
   final Color textColor;

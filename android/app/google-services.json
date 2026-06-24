@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "71617127087",
+    "project_id": "odit-crm",
+    "storage_bucket": "odit-crm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:71617127087:android:dca71685e9b8ec2a6aaa5a",
+        "android_client_info": {
+          "package_name": "com.example.odit_crm_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3-fj4CpIBi8szwybjdKTmAqkYVm8kMTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:71617127087:android:05cccd1ecd6a50936aaa5a",
+        "android_client_info": {
+          "package_name": "com.example.oxdo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3-fj4CpIBi8szwybjdKTmAqkYVm8kMTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

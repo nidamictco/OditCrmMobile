@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:sizer/sizer.dart';
+import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
 
 // ---------------------------------------------------------------------------
 // Save as: lib/widgets/filter_bottom_sheet.dart
@@ -14,6 +19,21 @@ const _kRightBg = Color(0xFFF8F8FC);
 const _kTextDark = Color(0xFF222222);
 const _kTextGrey = Color(0xFF888888);
 
+// ── Filter Result Model ──────────────────────────────────────────────────────
+class FilterResult {
+  final String fromDate;
+  final String toDate;
+  final Map<String, Set<String>> selectedItems;
+  final bool isCleared;
+
+  const FilterResult({
+    required this.fromDate,
+    required this.toDate,
+    required this.selectedItems,
+    this.isCleared = false,
+  });
+}
+
 // ── Filter Category Model ────────────────────────────────────────────────────
 class FilterCategory {
   final String label;
@@ -26,34 +46,35 @@ const List<FilterCategory> kFilterCategories = [
   FilterCategory(label: 'Assigned Staff', icon: Icons.group_outlined),
   FilterCategory(label: 'Category', icon: Icons.category_outlined),
   FilterCategory(label: 'Priority', icon: Icons.sort_outlined),
-  FilterCategory(label: 'Products', icon: Icons.shopping_bag_outlined),
 ];
 
 // ── Default checkbox items per category ──────────────────────────────────────
 const Map<String, List<String>> kCheckboxItems = {
-  'Assigned Staff': ['John', 'Alex', 'Staff 1', 'Staff 2', 'Staff 3'],
-  'Category': [
-    'Need Further Followup',
-    'Not Contacted',
-    'Fake',
-    'Visited',
-    'May Visit',
-    'Converted',
-  ],
-  'Priority': ['High', 'Medium', 'Normal', 'Low'],
-  'Products': ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+  'Assigned Staff': [],
+  'Category': [],
+  'Priority': ['High', 'Normal', 'Low', 'negative'],
 };
 
 // ── Show helper ──────────────────────────────────────────────────────────────
-void showFilterBottomSheet(BuildContext context) {
-  showModalBottomSheet(
+Future<FilterResult?> showFilterBottomSheet(
+  BuildContext context, {
+  FilterResult? initialFilters,
+  bool isReportFilter = false,
+}) {
+  return showModalBottomSheet<FilterResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
     ),
-    builder: (_) => const FilterBottomSheet(),
+    builder: (_) => BlocProvider.value(
+      value: context.read<AddLeadCubit>(),
+      child: FilterBottomSheet(
+        initialFilters: initialFilters,
+        isReportFilter: isReportFilter,
+      ),
+    ),
   );
 }
 
@@ -61,7 +82,14 @@ void showFilterBottomSheet(BuildContext context) {
 // MAIN BOTTOM SHEET
 // ===========================================================================
 class FilterBottomSheet extends StatefulWidget {
-  const FilterBottomSheet({super.key});
+  final FilterResult? initialFilters;
+  final bool isReportFilter;
+
+  const FilterBottomSheet({
+    super.key,
+    this.initialFilters,
+    this.isReportFilter = false,
+  });
 
   @override
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
@@ -69,10 +97,13 @@ class FilterBottomSheet extends StatefulWidget {
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
   int _selectedIndex = 0;
+  bool _isCleared = false;
+  StaffModel? _loggedInUser;
+  bool _isLoadingUser = true;
 
   // Date state
-  String _fromDate = '09-06-2026';
-  String _toDate = '09-06-2026';
+  late String _fromDate;
+  late String _toDate;
 
   // Checkbox state: category label → set of selected items
   final Map<String, Set<String>> _selectedItems = {
@@ -90,65 +121,131 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     'Products': '',
   };
 
+  @override
+  void initState() {
+    super.initState();
+    final todayStr = _formatDate(DateTime.now());
+    _fromDate = todayStr;
+    _toDate = todayStr;
+    if (widget.initialFilters != null) {
+      _fromDate = widget.initialFilters!.fromDate;
+      _toDate = widget.initialFilters!.toDate;
+      _isCleared = widget.initialFilters!.isCleared;
+      widget.initialFilters!.selectedItems.forEach((key, val) {
+        if (_selectedItems.containsKey(key)) {
+          _selectedItems[key] = Set<String>.from(val);
+        }
+      });
+    }
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await SessionService().getSavedUser();
+    if (mounted) {
+      setState(() {
+        _loggedInUser = user;
+        _isLoadingUser = false;
+      });
+    }
+  }
+
   void _clearAll() {
     setState(() {
-      _fromDate = '09-06-2026';
-      _toDate = '09-06-2026';
+      final todayStr = _formatDate(DateTime.now());
+      _fromDate = todayStr;
+      _toDate = todayStr;
       for (final key in _selectedItems.keys) {
         _selectedItems[key]!.clear();
       }
       for (final key in _searchQuery.keys) {
         _searchQuery[key] = '';
       }
+      _isCleared = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 65.h,
-      child: Column(
-        children: [
-          // ── Header ──────────────────────────────────────────────────────
-          _FilterHeader(onClose: () => Navigator.of(context).pop()),
+    return BlocBuilder<AddLeadCubit, AddLeadState>(
+      builder: (context, state) {
+        return SizedBox(
+          height: 65.h,
+          child: Column(
+            children: [
+              // ── Header ──────────────────────────────────────────────────────
+              _FilterHeader(onClose: () => Navigator.of(context).pop()),
 
-          // ── Body ────────────────────────────────────────────────────────
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Left menu
-                SizedBox(
-                  width: 34.w,
-                  child: _LeftMenu(
-                    selectedIndex: _selectedIndex,
-                    onSelect: (i) => setState(() => _selectedIndex = i),
-                  ),
+              // ── Body ────────────────────────────────────────────────────────
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Left menu
+                    SizedBox(
+                      width: 34.w,
+                      child: _LeftMenu(
+                        selectedIndex: _selectedIndex,
+                        onSelect: (i) => setState(() => _selectedIndex = i),
+                        categories: widget.isReportFilter
+                            ? const [
+                                FilterCategory(
+                                  label: 'Leads Date',
+                                  icon: Icons.calendar_today_outlined,
+                                ),
+                                FilterCategory(
+                                  label: 'Assigned Staff',
+                                  icon: Icons.group_outlined,
+                                ),
+                              ]
+                            : kFilterCategories,
+                      ),
+                    ),
+                    // Right content
+                    Expanded(
+                      child: Container(
+                        color: _kRightBg,
+                        padding: EdgeInsets.all(4.w),
+                        child: _buildRightContent(state),
+                      ),
+                    ),
+                  ],
                 ),
-                // Right content
-                Expanded(
-                  child: Container(
-                    color: _kRightBg,
-                    padding: EdgeInsets.all(4.w),
-                    child: _buildRightContent(),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
 
-          // ── Bottom Buttons ───────────────────────────────────────────────
-          BottomActionButtons(
-            onClear: _clearAll,
-            onApply: () => Navigator.of(context).pop(),
+              // ── Bottom Buttons ───────────────────────────────────────────────
+              BottomActionButtons(
+                onClear: _clearAll,
+                onApply: () {
+                  Navigator.of(context).pop(FilterResult(
+                    fromDate: _fromDate,
+                    toDate: _toDate,
+                    selectedItems: _selectedItems,
+                    isCleared: _isCleared,
+                  ));
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildRightContent() {
-    final category = kFilterCategories[_selectedIndex];
+  Widget _buildRightContent(AddLeadState state) {
+    final categories = widget.isReportFilter
+        ? const [
+            FilterCategory(
+              label: 'Leads Date',
+              icon: Icons.calendar_today_outlined,
+            ),
+            FilterCategory(
+              label: 'Assigned Staff',
+              icon: Icons.group_outlined,
+            ),
+          ]
+        : kFilterCategories;
+    final category = categories[_selectedIndex];
     switch (category.label) {
       case 'Leads Date':
         return DateSelectionView(
@@ -156,22 +253,37 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           toDate: _toDate,
           onFromDateTap: () async {
             final picked = await _pickDate(context, _fromDate);
-            if (picked != null) setState(() => _fromDate = picked);
+            if (picked != null) {
+              setState(() {
+                _fromDate = picked;
+                _isCleared = false;
+              });
+            }
           },
           onToDateTap: () async {
             final picked = await _pickDate(context, _toDate);
-            if (picked != null) setState(() => _toDate = picked);
+            if (picked != null) {
+              setState(() {
+                _toDate = picked;
+                _isCleared = false;
+              });
+            }
           },
-          onClear: () => setState(() {
-            _fromDate = '09-06-2026';
-            _toDate = '09-06-2026';
-          }),
+          onClear: () {
+            final todayStr = _formatDate(DateTime.now());
+            setState(() {
+              _fromDate = todayStr;
+              _toDate = todayStr;
+              _isCleared = false;
+            });
+          },
           onToday: () {
             final now = DateTime.now();
             final fmt = _formatDate(now);
             setState(() {
               _fromDate = fmt;
               _toDate = fmt;
+              _isCleared = false;
             });
           },
           onThisMonth: () {
@@ -180,12 +292,36 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             setState(() {
               _fromDate = _formatDate(first);
               _toDate = _formatDate(now);
+              _isCleared = false;
             });
           },
         );
       default:
         final label = category.label;
-        final items = kCheckboxItems[label] ?? [];
+        List<String> items = [];
+        if (label == 'Assigned Staff') {
+          if (_isLoadingUser) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          if (_loggedInUser?.staffType == 'Admin') {
+            items = state.staffList.map((e) => e.name).toList();
+          } else {
+            items = state.staffList
+                .where((e) => e.name == _loggedInUser?.name)
+                .map((e) => e.name)
+                .toList();
+          }
+        } else if (label == 'Category') {
+          items = state.categories.map((e) => e.name).toList();
+        } else {
+          items = kCheckboxItems[label] ?? [];
+        }
+
         final selected = _selectedItems[label] ?? {};
         final query = _searchQuery[label] ?? '';
         final filtered = items
@@ -213,6 +349,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                         } else {
                           selected.remove(item);
                         }
+                        _isCleared = false;
                       });
                     },
                   );
@@ -287,8 +424,13 @@ class _FilterHeader extends StatelessWidget {
 class _LeftMenu extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
+  final List<FilterCategory> categories;
 
-  const _LeftMenu({required this.selectedIndex, required this.onSelect});
+  const _LeftMenu({
+    required this.selectedIndex,
+    required this.onSelect,
+    required this.categories,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -297,9 +439,9 @@ class _LeftMenu extends StatelessWidget {
         color: _kLightGrey,
         child: Column(
           children: List.generate(
-            kFilterCategories.length,
+            categories.length,
             (i) => FilterMenuItem(
-              category: kFilterCategories[i],
+              category: categories[i],
               isSelected: selectedIndex == i,
               onTap: () => onSelect(i),
             ),

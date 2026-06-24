@@ -1,8 +1,44 @@
-
 import 'package:flutter/material.dart';
-import 'package:odit_crm_mobile/feature/leads/lead_managment/lead_management.dart';
+import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
+import 'package:odit_crm_mobile/feature/lead_details/presentation/lead_details_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_list.dart';
 import 'package:sizer/sizer.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+Future<void> launchPhoneCall(BuildContext context, String phoneNumber) async {
+  try {
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'\s+|-'), '');
+    final Uri phoneUri = Uri(scheme: 'tel', path: cleanNumber);
+    await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open application')),
+      );
+    }
+  }
+}
+
+Future<void> launchWhatsApp(BuildContext context, String phoneNumber) async {
+  try {
+    var cleanNumber = phoneNumber.replaceAll(RegExp(r'\s+|-|\+'), '');
+    if (!cleanNumber.startsWith('91') && cleanNumber.length == 10) {
+      cleanNumber = '91$cleanNumber';
+    }
+    final Uri whatsappUri = Uri.parse('https://wa.me/$cleanNumber');
+    await launchUrl(
+      whatsappUri,
+      mode: LaunchMode.externalNonBrowserApplication,
+    );
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open application')),
+      );
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Save as: lib/core/utils/lead_card.dart  (replaces your existing file)
@@ -13,18 +49,6 @@ double get _kActionPanelWidth => 55.w;
 
 // ── Swipe snap threshold (fraction of panel width) ──────────────────────────
 const double _kSnapThreshold = 0.35;
-
-// ── Action panel items ───────────────────────────────────────────────────────
-class _SwipeAction {
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _SwipeAction({
-    required this.color,
-    required this.icon,
-    required this.onTap,
-  });
-}
 
 // ===========================================================================
 // SWIPEABLE LEAD CARD  (public API — drop-in replacement)
@@ -61,6 +85,7 @@ class _LeadCardState extends State<LeadCard>
   late final Animation<double> _slideAnim;
 
   bool _isOpen = false;
+  bool _hasCalledThisSwipe = false;
 
   @override
   void initState() {
@@ -69,10 +94,7 @@ class _LeadCardState extends State<LeadCard>
       vsync: this,
       duration: const Duration(milliseconds: 280),
     );
-    _slideAnim = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
+    _slideAnim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
     widget.closeNotifier?.addListener(_onCloseRequested);
   }
@@ -92,19 +114,18 @@ class _LeadCardState extends State<LeadCard>
     }
   }
 
-  void _open() {
-    setState(() => _isOpen = true);
-    _controller.animateTo(1.0);
-    widget.onSwipeOpen?.call();
-  }
 
   void _close() {
     _controller.animateTo(0.0).then((_) {
-      if (mounted) setState(() => _isOpen = false);
+      if (mounted) {
+        setState(() {
+          _isOpen = false;
+          _hasCalledThisSwipe = false;
+        });
+      }
     });
   }
 
-  void _toggle() => _isOpen ? _close() : _open();
 
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     // Only respond to leftward drag
@@ -115,12 +136,12 @@ class _LeadCardState extends State<LeadCard>
 
   void _onHorizontalDragEnd(DragEndDetails d) {
     final velocity = d.primaryVelocity ?? 0;
-    if (velocity < -300) {
-      _open();
-    } else if (velocity > 300) {
+    if (_controller.value >= _kSnapThreshold || velocity < -300) {
+      if (!_hasCalledThisSwipe) {
+        _hasCalledThisSwipe = true;
+        widget.onCall();
+      }
       _close();
-    } else if (_controller.value >= _kSnapThreshold) {
-      _open();
     } else {
       _close();
     }
@@ -135,29 +156,6 @@ class _LeadCardState extends State<LeadCard>
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      _SwipeAction(
-        color: const Color(0xFF2196F3),
-        icon: Icons.person_add_alt_1_rounded,
-        onTap: () {},
-      ),
-      _SwipeAction(
-        color: const Color(0xFF4CAF50),
-        icon: Icons.call_rounded,
-        onTap: widget.onCall,
-      ),
-      _SwipeAction(
-        color: const Color(0xFF25D366),
-        icon: Icons.chat_rounded,
-        onTap: widget.onMessage,
-      ),
-      _SwipeAction(
-        color: const Color(0xFF607D8B),
-        icon: Icons.refresh_rounded,
-        onTap: () {},
-      ),
-    ];
-
     return GestureDetector(
       // Close on tap-outside when open
       onTap: _isOpen ? _close : null,
@@ -173,13 +171,24 @@ class _LeadCardState extends State<LeadCard>
 
               return Stack(
                 children: [
-                  // ── Action panel (behind the card) ──────────────────────
+                  // ── Action background (behind the card) ─────────────────
                   Positioned.fill(
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: SizedBox(
-                        width: _kActionPanelWidth,
-                        child: _ActionPanel(actions: actions),
+                        width: slideOffset,
+                        child: ClipRect(
+                          child: Container(
+                            color: const Color(0xFF4CAF50),
+                            child: const Center(
+                              child: Icon(
+                                Icons.call_rounded,
+                                color: Colors.white,
+                                size: 36,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -188,10 +197,32 @@ class _LeadCardState extends State<LeadCard>
                   Transform.translate(
                     offset: Offset(-slideOffset, 0),
                     child: GestureDetector(
+                      onHorizontalDragStart: (_) {
+                        _hasCalledThisSwipe = false;
+                      },
                       onHorizontalDragUpdate: _onHorizontalDragUpdate,
                       onHorizontalDragEnd: _onHorizontalDragEnd,
                       // Prevent tap-close from firing on card body
-                      onTap: () {},
+                      onTap: () {
+                        LeadDetailsScreen.show(
+                          context,
+                          lead: AddLeadModel(
+                            id: widget.data.id,
+                            clientName: widget.data.name,
+                            leadStage: widget.data.status,
+                            leadCategory: widget.data.category,
+                            contactNumber: widget.data.phone,
+                            assignedStaff: widget.data.assignedTo,
+                            createdAt: widget.data.createdAt,
+                            leadSource: widget.data.source,
+                            priority: widget.data.priority,
+                            contactDialCode: '+91',
+                            assignedStaffId: '',
+                            createdBy: '',
+                            createdById: '',
+                          ),
+                        );
+                      },
                       child: _LeadCardBody(
                         data: widget.data,
                         onToggleExpand: widget.onToggleExpand,
@@ -210,39 +241,6 @@ class _LeadCardState extends State<LeadCard>
   }
 }
 
-// ===========================================================================
-// ACTION PANEL
-// ===========================================================================
-class _ActionPanel extends StatelessWidget {
-  final List<_SwipeAction> actions;
-
-  const _ActionPanel({required this.actions});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: actions
-          .map(
-            (a) => Expanded(
-              child: GestureDetector(
-                onTap: a.onTap,
-                child: Container(
-                  color: a.color,
-                  child: Center(
-                    child: Icon(
-                      a.icon,
-                      color: Colors.white,
-                      size: 6.w,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
 
 // ===========================================================================
 // LEAD CARD BODY  (your original LeadCard UI — untouched)
@@ -284,7 +282,7 @@ class _LeadCardBody extends StatelessWidget {
               Container(
                 width: 1.w,
                 decoration: BoxDecoration(
-                  color: data.statusDotColor,
+                  color: getStatusColor(data.status),
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(4.w),
                     bottomLeft: Radius.circular(4.w),
@@ -306,7 +304,7 @@ class _LeadCardBody extends StatelessWidget {
                             width: 2.2.w,
                             height: 1.1.h,
                             decoration: BoxDecoration(
-                              color: data.statusDotColor,
+                              color: getStatusColor(data.status),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -359,7 +357,7 @@ class _LeadCardBody extends StatelessWidget {
                         children: [
                           _StatusChip(
                             label: data.status,
-                            color: data.statusDotColor,
+                            color: getStatusColor(data.status),
                           ),
                           const Spacer(),
                           _CircleActionButton(
@@ -370,7 +368,7 @@ class _LeadCardBody extends StatelessWidget {
                           ),
                           SizedBox(width: 2.w),
                           _CircleActionButton(
-                            icon: Icons.chat_bubble_outline_rounded,
+                            icon: AssetResources.whatsapp,
                             bgColor: const Color(0xFFDCFCE7),
                             iconColor: const Color(0xFF16A34A),
                             onTap: onMessage,
@@ -493,7 +491,7 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _CircleActionButton extends StatelessWidget {
-  final IconData icon;
+  final dynamic icon;
   final Color bgColor;
   final Color iconColor;
   final VoidCallback onTap;
@@ -513,7 +511,16 @@ class _CircleActionButton extends StatelessWidget {
         width: 9.w,
         height: 4.5.h,
         decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-        child: Icon(icon, size: 4.3.w, color: iconColor),
+        child: icon is IconData
+            ? Icon(icon as IconData, size: 4.3.w, color: iconColor)
+            : Center(
+                child: Image.asset(
+                  icon as String,
+                  width: 6.w,
+                  height: 6.w,
+                  // color: iconColor,
+                ),
+              ),
       ),
     );
   }

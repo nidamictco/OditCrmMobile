@@ -5,4 +5,5 @@ class AssetResources {
   static const String stateMngmnt = "assets/icons/lead_managment.png";
   static const String staffMngmnt = "assets/icons/staff_managment.png";
   static const String report = "assets/icons/reports.png";
+  static const String whatsapp = 'assets/icons/whtspp.png';
 }

@@ -1,10 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
+import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
+import 'package:odit_crm_mobile/feature/reports/presentation/report_selection_dialog.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/staff_management_screen.dart';
 import 'package:sizer/sizer.dart';
 import 'package:odit_crm_mobile/core/utils/app_bar.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,8 +20,6 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: CommonAppBar(
-        companyName: 'OXDO TECHNOLOGIES PVT LTD',
-        role: 'COMPANY ADMIN',
         avatarImagePath: null,
         onAvatarTap: () {},
         onNotificationTap: () {},
@@ -130,48 +134,76 @@ class _FeatureGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      _FeatureItem(
-        label: 'LEAD\nMANAGEMENT',
-        assetsPath: AssetResources.stateMngmnt,
-        iconBgColor: Color(0xFFE8F4FD),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CustomBottomNavScreen(index: 1),
-            ),
-          );
-        },
-      ),
-      _FeatureItem(
-        label: 'STAFF\nMANAGEMENT',
-        assetsPath: AssetResources.staffMngmnt,
-        iconBgColor: Color(0xFFF0EAFF),
-        onTap: () {},
-      ),
-      _FeatureItem(
-        label: 'REPORTS',
-        assetsPath: AssetResources.report,
-        iconBgColor: Color(0xFFFFF3E0),
-        onTap: () {},
-      ),
-    ];
+    // return FutureBuilder<StaffModel?>(
+    //   future: SessionService().getSavedUser(),
+    //   builder: (context, snapshot) {
+    //     if (snapshot.connectionState == ConnectionState.waiting) {
+    //       return Center(
+    //         child: SizedBox(
+    //           height: 16.h,
+    //           child: const Center(child: CircularProgressIndicator()),
+    //         ),
+    //       );
+    //     }
 
-    return Row(
-      children: items
-          .map(
-            (item) => Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 1.5.w,
-                ), // list screen uses 1.5.w gaps
-                child: _FeatureCard(item: item),
-              ),
+        // final user = snapshot.data;
+        // final isAdmin = user?.staffType == 'Admin';
+        final perm = context.read<PermissionCubit>(); 
+
+        final items = [
+          if(perm.canViewDashboard || perm.canViewLeadsReport|| perm.canAddLead||perm.canTransferLeads || perm.canAddLeadCategory|| perm.canAddLeadSource||perm.canViewLeadStages||perm.canViewLeadCategory||perm.canViewLeadSource)
+          _FeatureItem(
+            label: 'LEAD\nMANAGEMENT',
+            assetsPath: AssetResources.stateMngmnt,
+            iconBgColor: const Color(0xFFE8F4FD),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CustomBottomNavScreen(index: 1),
+                ),
+              );
+            },
+          ),
+          if(perm.canViewStaff || perm.canAddStaff || perm.canEditStaff || perm.canDeleteStaff)
+            _FeatureItem( 
+              label: 'STAFF\nMANAGEMENT',
+              assetsPath: AssetResources.staffMngmnt,
+              iconBgColor: const Color(0xFFF0EAFF),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StaffManagementScreen(),
+                  ),
+                );
+              },
             ),
-          )
-          .toList(),
-    );
+          if(perm.canViewRejectedReport|| perm.canViewStaffReport|| perm.canViewTransferReport)
+            _FeatureItem(
+              label: 'REPORTS\n    ',
+              assetsPath: AssetResources.report,
+              iconBgColor: const Color(0xFFFFF3E0),
+              onTap: () => ReportSelectionDialog.show(context),
+            ),
+        ];
+
+        return Row(
+          children: items
+              .map(
+                (item) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 1.5.w,
+                    ), // list screen uses 1.5.w gaps
+                    child: _FeatureCard(item: item),
+                  ),
+                ),
+              )
+              .toList(),
+        );
+      // },
+    // );
   }
 }
 
@@ -191,7 +223,7 @@ class _FeatureCard extends StatelessWidget {
       child: GestureDetector(
         onTap: item.onTap,
         child: Container(
-          height: 16.h,
+          // height: 16.h,
           padding: EdgeInsets.symmetric(vertical: 2.5.h, horizontal: 2.5.w),
           decoration: BoxDecoration(
             color: Colors.white,

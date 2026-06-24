@@ -1,41 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/feature/home/search_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:sizer/sizer.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
 
-/// A reusable gradient AppBar for the Oxdo CRM app.
-///
-/// Usage:
-/// ```dart
-/// Scaffold(
-///   appBar: OxdoAppBar(
-///     companyName: 'OXDO TECHNOLOGIES PVT LTD',
-///     role: 'COMPANY ADMIN',
-///     avatarImagePath: null, // or 'assets/images/profile.jpg'
-///     onNotificationTap: () { ... },
-///     onMoreTap: () { ... },
-///   ),
-/// )
-/// ```
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String companyName;
-  final String role;
+  
 
-  /// Asset path or network URL for the avatar. Pass null to show placeholder.
   final String? avatarImagePath;
 
   final VoidCallback? onAvatarTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onMoreTap;
 
-  /// Unread notification count. Pass 0 to hide badge.
   final int notificationCount;
 
   const CommonAppBar({
     super.key,
-    this.companyName = 'OXDO TECHNOLOGIES PVT LTD',
-    this.role = 'COMPANY ADMIN',
     this.avatarImagePath,
     this.onAvatarTap,
     this.onNotificationTap,
@@ -48,88 +33,105 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
-      child: Container(
-        decoration: const BoxDecoration(
-          // gradient: LinearGradient(
+    return FutureBuilder<StaffModel?>(
+      future: SessionService().getSavedUser(),
+      builder: (context, snapshot) {
+        final String displayName;
+        final String displayRole;
 
-          //   begin: Alignment.centerLeft,
-          //   end: Alignment.centerRight,
-          // ),
-          color: AppColors.bottomNavBlue,
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: SizedBox(
-            height: 80,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  // ── Avatar ──────────────────────────────
-                  GestureDetector(
-                    onTap: onAvatarTap,
-                    child: _Avatar(imagePath: avatarImagePath),
-                  ),
-                  const SizedBox(width: 12),
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          displayName = 'Loading...';
+          displayRole = 'Loading...';
+        } else {
+          final user = snapshot.data;
+          displayName = user?.name ?? 'Guest';
+          displayRole = user?.staffType ?? 'Unknown';
+        }
 
-                  // ── Company name + role ──────────────────
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          companyName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.2,
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.bottomNavBlue,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: 80,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      // ── Avatar ──────────────────────────────
+                      GestureDetector(
+                        onTap: onAvatarTap,
+                        child: _Avatar(imagePath: avatarImagePath),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // ── Company name + role ──────────────────
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                                height: 1.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              displayRole,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.75),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          role,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.75),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  // ── Action icons ────────────────────────
-                  _AppBarIconButton(
-                    icon: Icons.notifications_none_rounded,
-                    onTap: onNotificationTap,
-                    badgeCount: notificationCount,
+                      // ── Action icons ────────────────────────
+                      _AppBarIconButton(
+                        icon: Icons.notifications_none_rounded,
+                        onTap: onNotificationTap,
+                        badgeCount: notificationCount,
+                      ),
+                      const SizedBox(width: 4),
+                      _AppBarIconButton(
+                        icon: Icons.search,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BlocProvider.value(
+                                value: context.read<AddLeadCubit>(),
+                                child: const SearchScreen(),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  _AppBarIconButton(
-                    icon: Icons.search,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SearchScreen()),
-                      );
-                    },
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

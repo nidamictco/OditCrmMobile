@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/feature/home/home_screen.dart';
-import 'package:odit_crm_mobile/feature/leads/lead_managment/lead_management.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/lead_management.dart';
 import 'package:odit_crm_mobile/feature/menu/menu_drawer.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/staff_management_screen.dart';
 
 class CustomBottomNavScreen extends StatefulWidget {
   final int index;
+  static const int staffIndex = 2;
   const CustomBottomNavScreen({super.key, this.index = 0});
 
   @override
@@ -28,8 +30,12 @@ class _CustomBottomNavScreenState extends State<CustomBottomNavScreen> {
     selectedIndex = widget.index;
   }
 
-  // Only 2 real pages now — menu tap opens the drawer instead
-  final List<Widget> pages = const [HomeScreen(), LeadManagmentScreen()];
+  // 3 pages now — home, dashboard, and staff management
+  final List<Widget> pages = const [
+    HomeScreen(),
+    LeadManagmentScreen(),
+    StaffManagementScreen(),
+  ];
 
   void onTap(int index) {
     setState(() => selectedIndex = index);
@@ -66,6 +72,9 @@ class _CustomBottomNavScreenState extends State<CustomBottomNavScreen> {
                 children: [
                   // Home tab
                   _navItem(Icons.home, _homeIndex),
+
+                  // // Staff tab
+                  // _navItem(Icons.people_rounded, _staffIndex),
 
                   // Gap for the floating center button
                   const SizedBox(width: 70),

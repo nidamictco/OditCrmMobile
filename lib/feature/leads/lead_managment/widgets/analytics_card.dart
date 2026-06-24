@@ -22,7 +22,7 @@ const _kProgressBg = Color(0xFFEEEEEE);
 class AnalyticsItem {
   final String label;
   final int count;
-  final double percentage; // 0.0 – 1.0
+  final double percentage;
   final Color progressColor;
 
   const AnalyticsItem({
@@ -320,7 +320,7 @@ class AnalyticsSummaryTile extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 18.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.bold,
               color: _kBlue,
             ),
