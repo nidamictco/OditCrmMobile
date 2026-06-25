@@ -5,16 +5,14 @@ import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/feature/home/search_screen.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
+import 'package:odit_crm_mobile/feature/notification/screen/notification_screen.dart';
 import 'package:sizer/sizer.dart';
 import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
 
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
-  
-
   final String? avatarImagePath;
 
   final VoidCallback? onAvatarTap;
-  final VoidCallback? onNotificationTap;
   final VoidCallback? onMoreTap;
 
   final int notificationCount;
@@ -23,7 +21,6 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     this.avatarImagePath,
     this.onAvatarTap,
-    this.onNotificationTap,
     this.onMoreTap,
     this.notificationCount = 0,
   });
@@ -53,9 +50,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
             statusBarColor: Colors.transparent,
           ),
           child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.bottomNavBlue,
-            ),
+            decoration: const BoxDecoration(color: AppColors.bottomNavBlue),
             child: SafeArea(
               bottom: false,
               child: SizedBox(
@@ -106,7 +101,14 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                       // ── Action icons ────────────────────────
                       _AppBarIconButton(
                         icon: Icons.notifications_none_rounded,
-                        onTap: onNotificationTap,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NotificationScreen(),
+                            ),
+                          );
+                        },
                         badgeCount: notificationCount,
                       ),
                       const SizedBox(width: 4),

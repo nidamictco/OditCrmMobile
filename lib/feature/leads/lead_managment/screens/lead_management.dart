@@ -33,7 +33,6 @@ class _LeadManagmentScreenBodyState extends State<LeadManagmentScreenBody> {
       appBar: CommonAppBar(
         avatarImagePath: null,
         onAvatarTap: () {},
-        onNotificationTap: () {},
         onMoreTap: () {},
       ),
       body: Column(

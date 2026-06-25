@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:odit_crm_mobile/feature/lead_details/data/activity_repo.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/data/activity_repo.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/activity_model.dart';
 
 abstract class ActivityState {}

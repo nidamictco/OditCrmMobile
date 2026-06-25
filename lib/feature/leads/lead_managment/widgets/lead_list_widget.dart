@@ -19,6 +19,22 @@ class LeadListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (leads.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          child: Text(
+            'No Data Found',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.fromLTRB(4.w, 0, 4.w, 3.h),
       child: ListView.separated(

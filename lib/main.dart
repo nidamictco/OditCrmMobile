@@ -8,6 +8,9 @@ import 'package:odit_crm_mobile/feature/auth/cubit/auth_cubit.dart';
 import 'package:odit_crm_mobile/feature/auth/data/auth_data.dart';
 import 'package:odit_crm_mobile/feature/auth/login_screen.dart';
 import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
+import 'package:odit_crm_mobile/feature/general_settings/data/general_setting_repo.dart';
+import 'package:odit_crm_mobile/feature/notification/cubit/notification_cubit.dart';
+import 'package:odit_crm_mobile/feature/notification/data/notification_repo.dart';
 import 'package:odit_crm_mobile/firebase_options.dart';
 import 'package:sizer/sizer.dart';
 
@@ -64,6 +67,12 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<PermissionCubit>.value(value: _permissionCubit),
         BlocProvider<AuthCubit>.value(value: _authCubit),
         BlocProvider<AddLeadCubit>.value(value: _addLeadCubit),
+         BlocProvider<NotificationCubit>(
+      create: (_) => NotificationCubit(
+        NotificationRepo(),
+        GeneralSettingsRepository(staffId: ''), // updated via initSettings later
+      ),
+    ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

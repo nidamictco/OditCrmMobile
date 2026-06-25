@@ -330,23 +330,3 @@ class AnalyticsSummaryTile extends StatelessWidget {
     );
   }
 }
-
-// ===========================================================================
-// DEMO USAGE — drop this anywhere in your screen
-// ===========================================================================
-//
-// AnalyticsCard(
-//   agentItems: const [
-//     AnalyticsItem(label: 'Fairooza', count: 37, percentage: 0.92, progressColor: Color(0xFF2F80ED)),
-//     AnalyticsItem(label: 'Farsana',  count: 2,  percentage: 0.05, progressColor: Color(0xFF2F80ED)),
-//     AnalyticsItem(label: 'Shahid',   count: 1,  percentage: 0.02, progressColor: Color(0xFFFFC107)),
-//   ],
-//   categoryItems: const [
-//     AnalyticsItem(label: 'Not Contacted',        count: 29, percentage: 0.72, progressColor: Color(0xFFE53935)),
-//     AnalyticsItem(label: 'Need Further Followup',count: 8,  percentage: 0.20, progressColor: Color(0xFF43A047)),
-//     AnalyticsItem(label: 'Uncategorized',        count: 2,  percentage: 0.05, progressColor: Color(0xFFE53935)),
-//     AnalyticsItem(label: 'Fake',                 count: 1,  percentage: 0.02, progressColor: Color(0xFF8E24AA)),
-//   ],
-//   summaryLabel: 'Total New Generated',
-//   summaryValue: '40 Leads',
-// )

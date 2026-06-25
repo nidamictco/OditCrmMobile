@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
-import 'package:odit_crm_mobile/feature/lead_details/presentation/lead_details_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/presentation/lead_details_screen.dart';
 import 'package:sizer/sizer.dart';
 
 class LeadReportCard extends StatelessWidget {
@@ -67,7 +68,10 @@ class LeadReportCard extends StatelessWidget {
               pinCode: lead.pinCode,
               postOffice: lead.postOffice,
               createdBy: lead.createdBy,
-              remarks: lead.remarks, contactDialCode: '', assignedStaffId: '', createdById: '',
+              remarks: lead.remarks,
+              contactDialCode: '',
+              assignedStaffId: '',
+              createdById: '',
             ),
           );
         },
@@ -96,7 +100,7 @@ class LeadReportCard extends StatelessWidget {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: statusIndicatorColor,
+                        color: getPriorityColor(lead.priority),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -178,7 +182,9 @@ class LeadReportCard extends StatelessWidget {
                                 SizedBox(width: 1.w),
                                 Expanded(
                                   child: Text(
-                                    'Called: ${lead.calledDate}',
+                                    lead.calledDate == null
+                                        ? 'Called: _'
+                                        : 'Called: ${lead.calledDate}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -215,7 +221,9 @@ class LeadReportCard extends StatelessWidget {
                                 SizedBox(width: 1.w),
                                 Expanded(
                                   child: Text(
-                                    'Next: ${lead.followUpDate}',
+                                    lead.leadStage == 'NEW'
+                                        ? 'Next:_'
+                                        : 'Next: ${lead.followUpDate}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -310,23 +318,24 @@ class LeadReportCard extends StatelessWidget {
                             ),
                           )
                         else
-                          ElevatedButton(
-                            onPressed: onFollowUp,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFF9E6),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 4.w,
-                                vertical: 1.h,
-                              ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: getStatusColor(
+                                lead.leadStage.toUpperCase(),
+                              ).withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(14),
                             ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 4.w,
+                              vertical: 1.h,
+                            ),
+
                             child: Text(
-                              'Follow Up',
+                              lead.leadStage,
                               style: TextStyle(
-                                color: const Color(0xFFF2C94C),
+                                color: getStatusColor(
+                                  lead.leadStage.toUpperCase(),
+                                ),
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.bold,
                               ),

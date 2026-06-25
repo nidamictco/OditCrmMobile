@@ -3,18 +3,9 @@ import 'package:odit_crm_mobile/feature/reports/presentation/lead_report_screen.
 import 'package:sizer/sizer.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stat card variant enum
-// ─────────────────────────────────────────────────────────────────────────────
-
 enum StatCardVariant {
-  /// Shows two bottom labels (e.g. "Today's / Missed") with a watermark icon
   twoLabel,
-
-  /// Shows three small circular action icon buttons at the bottom
   actionIcons,
-
-  /// Shows two bottom labels with a filter icon in the top-right corner
-  /// and a watermark icon
   twoLabelWithFilter,
 }
 
@@ -27,19 +18,14 @@ class DashboardStatCard extends StatelessWidget {
   final String count;
   final Color backgroundColor;
   final IconData watermarkIcon;
-
-  // Used for twoLabel and twoLabelWithFilter variants
   final String? leftLabel;
   final String? leftValue;
   final String? rightLabel;
   final String? rightValue;
 
-  // Used for actionIcons variant
   final List<IconData>? actionIcons;
   final VoidCallback? onActionTap;
   final List<VoidCallback>? onActionTaps;
-
-  // Shows a small filter icon button top-right (twoLabelWithFilter)
   final bool showFilterButton;
   final VoidCallback? onFilterTap;
 

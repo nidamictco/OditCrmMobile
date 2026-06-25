@@ -14,13 +14,13 @@ class FollowupFormCard extends StatelessWidget {
   final ValueChanged<String?> onLeadStageChanged;
   final List<String> leadStagesList;
 
-  final String selectedCategory;
+  final String? selectedCategory;
   final ValueChanged<String?> onCategoryChanged;
   final List<String> categoryList;
 
   final String? selectedTag;
- 
- final ValueChanged<String?> onTagChanged;
+
+  final ValueChanged<String?> onTagChanged;
 
   final String? selectedSubCategory;
   final List<String> subCategoryList;
@@ -163,13 +163,25 @@ class FollowupFormCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Next Followup Date',
-                  style: TextStyle(
-                    fontSize: 13.5.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF333333),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Next Followup Date',
+                      style: TextStyle(
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF333333),
+                      ),
+                    ),
+                    Text(
+                      '*',
+                      style: TextStyle(
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.red,
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 1.h),
                 GestureDetector(
@@ -192,7 +204,7 @@ class FollowupFormCard extends StatelessWidget {
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          nextFollowupDate ?? 'Select Date & Time',
+                          nextFollowupDate ?? '-',
                           style: TextStyle(
                             color: nextFollowupDate != null
                                 ? const Color(0xFF333333)
@@ -231,7 +243,6 @@ class FollowupFormCard extends StatelessWidget {
             label: 'Category',
             value: selectedCategory,
             hintText: 'Select Category',
-            isRequired: true,
             items: categoryList,
             onChanged: onCategoryChanged,
           ),
@@ -362,6 +373,13 @@ class _ExpandableMoreDetailsSectionState
                   isLabel: false,
                   keyboardType: TextInputType.number,
                   suffixIcon: Icons.phone_outlined,
+                  validator: (value) {
+                     if (value == null || value.trim().isEmpty) return null; // optional
+  if (value.trim().length != 10) {
+    return 'WhatsApp Number must be 10 digits';
+  }
+  return null;
+                  },
                 ),
               ),
               SizedBox(height: 1.2.h),
@@ -383,6 +401,14 @@ class _ExpandableMoreDetailsSectionState
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   suffixIcon: Icons.email_outlined,
+                  validator: (value) {
+                     if (value == null || value.trim().isEmpty) return null; // optional
+  final emailRegex = RegExp(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$');
+  if (!emailRegex.hasMatch(value.trim())) {
+    return 'Enter a valid email address';
+  }
+  return null;
+                  },
                 ),
               ),
               SizedBox(height: 1.h),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:odit_crm_mobile/feature/lead_details/widgets/info_row.dart';
-import 'package:odit_crm_mobile/feature/lead_details/widgets/lead_details_info_card.dart';
-import 'package:odit_crm_mobile/feature/lead_details/widgets/lead_handled_staff_card.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/info_row.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/lead_details_info_card.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/lead_handled_staff_card.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:sizer/sizer.dart';
 

@@ -5,26 +5,18 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/le
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/filtering.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_card.dart';
 import 'package:odit_crm_mobile/feature/reports/widgets/filter_button.dart';
 import 'package:odit_crm_mobile/feature/reports/widgets/lead_report_card.dart';
 import 'package:odit_crm_mobile/feature/reports/widgets/report_appbar.dart';
 import 'package:sizer/sizer.dart';
 
-enum LeadReportType {
-  all,
-  newLead,
-  followup,
-  closed,
-  rejected,
-}
+enum LeadReportType { all, newLead, followup, closed, rejected, transferred }
 
 class LeadReportScreen extends StatelessWidget {
   final LeadReportType reportType;
 
-  const LeadReportScreen({
-    super.key,
-    this.reportType = LeadReportType.all,
-  });
+  const LeadReportScreen({super.key, this.reportType = LeadReportType.all});
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +54,8 @@ class _LeadReportContentState extends State<LeadReportContent> {
         return 'Closed Leads';
       case LeadReportType.rejected:
         return 'Rejected Leads';
+      case LeadReportType.transferred:
+        return 'Transfered Leads';
       default:
         return 'All Leads';
     }
@@ -85,7 +79,11 @@ class _LeadReportContentState extends State<LeadReportContent> {
     try {
       final parts = dateStr.split('-');
       if (parts.length == 3) {
-        return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
       }
     } catch (_) {}
     return null;
@@ -93,7 +91,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
 
   List<AddLeadModel> _applyFilters(List<AddLeadModel> leads) {
     if (_appliedFilters == null) {
-      debugPrint('[Filter Debug] No filters applied. Total leads count: ${leads.length}');
+      debugPrint(
+        '[Filter Debug] No filters applied. Total leads count: ${leads.length}',
+      );
       return leads;
     }
 
@@ -105,8 +105,12 @@ class _LeadReportContentState extends State<LeadReportContent> {
     final start = _parseDate(fromStr);
     final end = _parseDate(toStr);
 
-    final startOfDay = start != null ? DateTime(start.year, start.month, start.day, 0, 0, 0) : null;
-    final endOfDay = end != null ? DateTime(end.year, end.month, end.day, 23, 59, 59) : null;
+    final startOfDay = start != null
+        ? DateTime(start.year, start.month, start.day, 0, 0, 0)
+        : null;
+    final endOfDay = end != null
+        ? DateTime(end.year, end.month, end.day, 23, 59, 59)
+        : null;
 
     final filteredList = leads.where((lead) {
       // 1. Date Filter (createdAt)
@@ -124,7 +128,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
         }
       }
 
-      debugPrint('[Filter Debug] Lead clientName: ${lead.clientName}, Lead Created Date: $createdAt');
+      debugPrint(
+        '[Filter Debug] Lead clientName: ${lead.clientName}, Lead Created Date: $createdAt',
+      );
 
       if (startOfDay != null && endOfDay != null) {
         if (createdAt == null) return false;
@@ -136,7 +142,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
       // 2. Assigned Staff Filter
       final selectedStaff = _appliedFilters!.selectedItems['Assigned Staff'];
       if (selectedStaff != null && selectedStaff.isNotEmpty) {
-        if (!selectedStaff.any((staff) => lead.assignedStaff.toLowerCase() == staff.toLowerCase())) {
+        if (!selectedStaff.any(
+          (staff) => lead.assignedStaff.toLowerCase() == staff.toLowerCase(),
+        )) {
           return false;
         }
       }
@@ -144,7 +152,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
       // 3. Category Filter
       final selectedCategory = _appliedFilters!.selectedItems['Category'];
       if (selectedCategory != null && selectedCategory.isNotEmpty) {
-        if (!selectedCategory.any((cat) => lead.leadCategory.toLowerCase() == cat.toLowerCase())) {
+        if (!selectedCategory.any(
+          (cat) => lead.leadCategory.toLowerCase() == cat.toLowerCase(),
+        )) {
           return false;
         }
       }
@@ -152,7 +162,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
       // 4. Priority Filter
       final selectedPriority = _appliedFilters!.selectedItems['Priority'];
       if (selectedPriority != null && selectedPriority.isNotEmpty) {
-        if (!selectedPriority.any((prio) => lead.priority.toLowerCase() == prio.toLowerCase())) {
+        if (!selectedPriority.any(
+          (prio) => lead.priority.toLowerCase() == prio.toLowerCase(),
+        )) {
           return false;
         }
       }
@@ -236,16 +248,29 @@ class _LeadReportContentState extends State<LeadReportContent> {
 
           switch (widget.reportType) {
             case LeadReportType.newLead:
-              leads = leads.where((e) => e.leadStage.toUpperCase() == 'NEW').toList();
+              leads = leads
+                  .where((e) => e.leadStage.toUpperCase() == 'NEW')
+                  .toList();
               break;
             case LeadReportType.followup:
-              leads = leads.where((e) => e.leadStage.toUpperCase() == 'FOLLOWUP').toList();
+              leads = leads
+                  .where((e) => e.leadStage.toUpperCase() == 'FOLLOWUP')
+                  .toList();
               break;
             case LeadReportType.closed:
-              leads = leads.where((e) => e.leadStage.toUpperCase() == 'CLOSED').toList();
+              leads = leads
+                  .where((e) => e.leadStage.toUpperCase() == 'CLOSED')
+                  .toList();
               break;
             case LeadReportType.rejected:
-              leads = leads.where((e) => e.leadStage.toUpperCase() == 'REJECTED').toList();
+              leads = leads
+                  .where((e) => e.leadStage.toUpperCase() == 'REJECTED')
+                  .toList();
+              break;
+            case LeadReportType.transferred:
+              leads = leads
+                  .where((e) => e.leadStage.toUpperCase() == 'TRANSFFERED')
+                  .toList();
               break;
             case LeadReportType.all:
               break;
@@ -326,7 +351,10 @@ class _LeadReportContentState extends State<LeadReportContent> {
                     FilterButton(
                       icon: Icons.filter_alt_outlined,
                       onTap: () async {
-                        final result = await showFilterBottomSheet(context, initialFilters: _appliedFilters);
+                        final result = await showFilterBottomSheet(
+                          context,
+                          initialFilters: _appliedFilters,
+                        );
                         if (result != null) {
                           setState(() {
                             if (result.isCleared) {
@@ -362,7 +390,11 @@ class _LeadReportContentState extends State<LeadReportContent> {
                 child: _showSearchBar
                     ? Container(
                         height: 6.h,
-                        margin: EdgeInsets.only(left: 4.w, right: 4.w, bottom: 1.h),
+                        margin: EdgeInsets.only(
+                          left: 4.w,
+                          right: 4.w,
+                          bottom: 1.h,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(15),
@@ -380,7 +412,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
                             hintText: 'Search leads...',
                             prefixIcon: const Icon(Icons.search_rounded),
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 1.5.h),
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 1.5.h,
+                            ),
                           ),
                         ),
                       )
@@ -404,13 +438,26 @@ class _LeadReportContentState extends State<LeadReportContent> {
                           bottom: MediaQuery.of(context).padding.bottom + 2.h,
                         ),
                         itemCount: leads.length,
-                        separatorBuilder: (context, index) => SizedBox(height: 2.h),
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 2.h),
                         itemBuilder: (context, index) {
                           return LeadReportCard(
                             lead: leads[index],
                             onFollowUp: () {},
-                            onCall: () {},
-                            onWhatsApp: () {},
+                            onCall: () {
+                              launchPhoneCall(
+                                context,
+                                leads[index].contactNumber,
+                              );
+                            },
+                            onWhatsApp: () {
+                              launchWhatsApp(
+                                context,
+                                leads[index].whatsappNumber.isNotEmpty
+                                    ? leads[index].whatsappNumber
+                                    : leads[index].contactNumber,
+                              );
+                            },
                           );
                         },
                       ),

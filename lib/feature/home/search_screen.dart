@@ -5,7 +5,7 @@ import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
-import 'package:odit_crm_mobile/feature/lead_details/presentation/lead_details_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/presentation/lead_details_screen.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_card.dart';
 import 'package:sizer/sizer.dart';
 

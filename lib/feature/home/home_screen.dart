@@ -22,7 +22,6 @@ class HomeScreen extends StatelessWidget {
       appBar: CommonAppBar(
         avatarImagePath: null,
         onAvatarTap: () {},
-        onNotificationTap: () {},
         onMoreTap: () {},
       ),
       body: SingleChildScrollView(

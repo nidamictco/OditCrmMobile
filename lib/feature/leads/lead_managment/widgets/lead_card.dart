@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
-import 'package:odit_crm_mobile/feature/lead_details/presentation/lead_details_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/presentation/lead_details_screen.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
-import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_list.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_list.dart' hide getStatusColor;
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -114,7 +115,6 @@ class _LeadCardState extends State<LeadCard>
     }
   }
 
-
   void _close() {
     _controller.animateTo(0.0).then((_) {
       if (mounted) {
@@ -125,7 +125,6 @@ class _LeadCardState extends State<LeadCard>
       }
     });
   }
-
 
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     // Only respond to leftward drag
@@ -241,7 +240,6 @@ class _LeadCardState extends State<LeadCard>
   }
 }
 
-
 // ===========================================================================
 // LEAD CARD BODY  (your original LeadCard UI — untouched)
 // ===========================================================================
@@ -304,7 +302,7 @@ class _LeadCardBody extends StatelessWidget {
                             width: 2.2.w,
                             height: 1.1.h,
                             decoration: BoxDecoration(
-                              color: getStatusColor(data.status),
+                              color: getPriorityColor(data.priority),
                               shape: BoxShape.circle,
                             ),
                           ),

@@ -5,6 +5,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/additional_m
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/leads_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
 
+
 enum AddLeadStatus { initial, loading, success, failure }
 
 enum LeadListStatus { initial, loading, loaded, failure }

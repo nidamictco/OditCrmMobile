@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
-import 'package:odit_crm_mobile/feature/lead_details/widgets/status_badge.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/status_badge.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:sizer/sizer.dart';
 

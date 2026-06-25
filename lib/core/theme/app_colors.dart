@@ -5,7 +5,7 @@ class AppColors {
   static const Color backgroundBlue = Color(0xFFd2e8f9);
   static const Color bottomNavBlue = Color(0xFF002660);
   static const Color skyBlue = Color(0xFF2b85c7);
-  static const Color red =Color(0xFFb66158);
+  static const Color red = Color(0xFFb66158);
   static const Color lightRed = Color(0xFFb66158);
   static const Color orange = Color(0xFFff9700);
   static const Color yellow = Color(0xFFfec51d);
@@ -14,10 +14,9 @@ class AppColors {
   static const Color green = Color(0xFF60b563);
   // gradient
 
-static const List<Color> blueGradient = [
-   Color(0xFF2a83c5),
+  static const List<Color> blueGradient = [
+    Color(0xFF2a83c5),
     Color(0xFF1b5d91),
-   
   ];
 
   static const List<Color> lightblueGradient = [
@@ -35,7 +34,7 @@ static const List<Color> blueGradient = [
     Color(0xFFf9f2fa),
   ];
 
-    static const List<Color> lightGreenGradient = [
+  static const List<Color> lightGreenGradient = [
     Color(0xFFdcf0ee),
     Color(0xFFeff9fa),
   ];
@@ -48,4 +47,37 @@ static const List<Color> blueGradient = [
       const Color(0xFFE56B0F).withOpacity(0.35);
   static Color get opacityerror => const Color(0xFFE74C3C).withOpacity(0.14);
   static Color get opacitysuccess => const Color(0xff2ECC71).withOpacity(0.14);
+}
+
+Color getStatusColor(String stage) {
+  switch (stage.toLowerCase()) {
+    case 'new':
+      return AppColors.skyBlue;
+    case 'followup':
+      return const Color(0xFFF59E0B);
+    case 'transferred':
+      return AppColors.teal;
+    case 'closed':
+      return const Color(0xFF22C55E);
+    case 'rejected':
+      return const Color(0xFFE74C3C);
+    default:
+      return Colors.grey;
+  }
+}
+
+Color getPriorityColor(String priority) {
+  switch (priority) {
+    case 'High':
+      return const Color(0xffEF4444);
+    case 'Normal':
+      return const Color(0xff22C55E);
+    case 'Low':
+      return Color.fromARGB(255, 226, 249, 22);
+    case 'Negative':
+      return const Color(0xff9CA3AF);
+
+    default:
+      return Colors.grey;
+  }
 }
