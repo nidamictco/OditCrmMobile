@@ -14,7 +14,7 @@ class ProfileBottomSheet extends StatelessWidget {
   //     backgroundColor: Colors.transparent,
   //     builder: (context) => const ProfileBottomSheet(),
   //   );
-  // }
+  // } 
 
   static Future<void> show(BuildContext context, StaffModel user) async {
     showModalBottomSheet(
