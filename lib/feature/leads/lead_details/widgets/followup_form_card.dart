@@ -22,9 +22,7 @@ class FollowupFormCard extends StatelessWidget {
 
   final ValueChanged<String?> onTagChanged;
 
-  final String? selectedSubCategory;
-  final List<String> subCategoryList;
-  final ValueChanged<String?> onSubCategoryChanged;
+  
 
   // More Details fields
   final TextEditingController remarksController;
@@ -52,9 +50,6 @@ class FollowupFormCard extends StatelessWidget {
     required this.selectedCategory,
     required this.onCategoryChanged,
     required this.categoryList,
-    this.selectedSubCategory,
-    required this.subCategoryList,
-    required this.onSubCategoryChanged,
     required this.remarksController,
     required this.whtsppController,
     required this.addressController,
@@ -187,7 +182,7 @@ class FollowupFormCard extends StatelessWidget {
                 GestureDetector(
                   onTap: onPickNextFollowupDate,
                   child: Container(
-                    height: 7.5.h,
+                    height: 6.5.h,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),

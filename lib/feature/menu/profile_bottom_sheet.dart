@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
 import 'package:sizer/sizer.dart';
 
 class ProfileBottomSheet extends StatelessWidget {
-  const ProfileBottomSheet({super.key});
+  final StaffModel user;
+  const ProfileBottomSheet({super.key, required this.user});
 
-  static void show(BuildContext context) {
+  // static void show(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (context) => const ProfileBottomSheet(),
+  //   );
+  // }
+
+  static Future<void> show(BuildContext context, StaffModel user) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const ProfileBottomSheet(),
+      builder: (context) => ProfileBottomSheet(user: user),
     );
   }
 
@@ -68,9 +79,11 @@ class ProfileBottomSheet extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'O',
+                user.name.isNotEmpty == true
+                    ? user.name![0].toUpperCase()
+                    : 'U',
                 style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.bold,
@@ -83,7 +96,8 @@ class ProfileBottomSheet extends StatelessWidget {
 
           // Company Name
           Text(
-            'Oxdo technologies pvt ltd',
+            // 'Oxdo technologies pvt ltd',
+            user.name?.isNotEmpty == true ? user.name.toUpperCase() : 'U',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 18.sp,
@@ -95,7 +109,9 @@ class ProfileBottomSheet extends StatelessWidget {
 
           // Designation
           Text(
-            'COMPANY ADMIN',
+            user.designation == 'Company_Admin'
+                ? "Company Admin"
+                : user.staffType!,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15.sp,
@@ -117,7 +133,7 @@ class ProfileBottomSheet extends StatelessWidget {
             iconColor: const Color(0xFFF39C12),
             iconBgColor: const Color(0xFFFEF5E7),
             label: 'Email',
-            value: 'test@gmail.com',
+            value: user.email!,
           ),
           SizedBox(height: 1.h),
 
@@ -128,7 +144,7 @@ class ProfileBottomSheet extends StatelessWidget {
             iconColor: const Color(0xFF2ECC71),
             iconBgColor: const Color(0xFFEAFAF1),
             label: 'Phone',
-            value: '9207554433',
+            value: user.phone,
           ),
           SizedBox(height: 4.h),
 

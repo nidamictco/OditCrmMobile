@@ -1,12 +1,16 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/presentation/lead_details_screen.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_card.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/models/lead_data.dart';
 import 'package:sizer/sizer.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -18,16 +22,26 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  String _lastSearchQuery = ''; // Track the last executed search query
   List<ValueNotifier<bool>> _closeNotifiers = [];
+  final Set<String> _expandedLeadIds = {};
+
+  void _onToggleExpand(String id) {
+    setState(() {
+      if (_expandedLeadIds.contains(id)) {
+        _expandedLeadIds.remove(id);
+      } else {
+        _expandedLeadIds.add(id);
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    final leadCubit = context.read<AddLeadCubit>();
-    if (leadCubit.state.listStatus != LeadListStatus.loaded) {
-      leadCubit.fetchLeads();
-    }
+    // DO NOT fetch leads on screen init
+    // DO NOT set up any search listeners
+    // Wait for user to manually trigger search via button
   }
 
   @override
@@ -57,13 +71,29 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  List<AddLeadModel> _filterLeads(List<AddLeadModel> leads, String query) {
-    if (query.trim().isEmpty) return leads;
-    final q = query.toLowerCase().trim();
-    return leads.where((lead) {
-      return lead.clientName.toLowerCase().contains(q) ||
-          lead.contactNumber.toLowerCase().contains(q);
-    }).toList();
+  /// Execute search when user taps the Search button
+  void _executeSearch(String query) {
+    if (query.trim().isEmpty) {
+      // Show error message if search text is empty
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please enter a name or phone number'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Update the last search query
+    setState(() {
+      _lastSearchQuery = query;
+    });
+
+    // Trigger search in cubit
+    context.read<AddLeadCubit>().searchLeads(query);
+
+    log('Search executed for: $query');
   }
 
   String _getFollowUpText(AddLeadModel lead) {
@@ -113,16 +143,18 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         body: BlocBuilder<AddLeadCubit, AddLeadState>(
           builder: (context, state) {
+            // Show loading state
             if (state.listStatus == LeadListStatus.loading) {
               return const Center(child: CircularProgressIndicator());
             }
 
+            // Show error state
             if (state.listStatus == LeadListStatus.failure) {
               return Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6.w),
                   child: Text(
-                    state.listError ?? 'Failed to load leads',
+                    state.listError ?? 'Failed to search leads',
                     style: TextStyle(color: Colors.red, fontSize: 16.sp),
                     textAlign: TextAlign.center,
                   ),
@@ -130,8 +162,8 @@ class _SearchScreenState extends State<SearchScreen> {
               );
             }
 
-            final filteredLeads = _filterLeads(state.leads, _searchQuery);
-            _syncCloseNotifiers(filteredLeads.length);
+            final searchResults = state.leads;
+            _syncCloseNotifiers(searchResults.length);
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -139,23 +171,61 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Search bar with manual search button
                   SearchBarWidget(
                     controller: _searchController,
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val;
-                      });
+                    onSearchPressed: () {
+                      _executeSearch(_searchController.text);
                     },
                   ),
                   SizedBox(height: 2.h),
 
                   LeadHeaderCard(
                     title: 'Leads',
-                    subtitle: '${filteredLeads.length} records found',
+                    subtitle: _lastSearchQuery.isEmpty
+                        ? 'Search results will appear here'
+                        : '${searchResults.length} records found',
                   ),
                   SizedBox(height: 2.h),
 
-                  if (filteredLeads.isEmpty) ...[
+                  if (_lastSearchQuery.isEmpty) ...[
+                    // Initial empty state - no search performed yet
+                    SizedBox(height: 8.h),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            size: 18.w,
+                            color: Colors.grey.shade400,
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Search for leads',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 1.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w),
+                            child: Text(
+                              'Enter a customer name or phone number and tap Search',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.grey.shade500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (searchResults.isEmpty) ...[
+                    // No results found after search
                     SizedBox(height: 8.h),
                     Center(
                       child: Column(
@@ -191,38 +261,41 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                     ),
                   ] else ...[
+                    // Search results - display matching leads
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filteredLeads.length,
+                      itemCount: searchResults.length,
                       separatorBuilder: (_, __) => SizedBox(height: 2.h),
                       itemBuilder: (_, index) {
-                        final lead = filteredLeads[index];
-                        return SearchLeadCard(
+                        final lead = searchResults[index];
+                        final leadData = LeadData(
                           id: lead.id ?? '',
-                          name: lead.clientName.isEmpty
-                              ? 'Unknown'
-                              : lead.clientName,
+                          name: lead.clientName,
                           phone: lead.contactNumber,
-                          tag: lead.leadCategory.isEmpty
-                              ? 'General'
+                          assignedTo: lead.assignedStaff,
+                          category: lead.leadCategory.isEmpty
+                              ? 'Uncategorized'
                               : lead.leadCategory,
-                          assignedTo: lead.assignedStaff.isEmpty
-                              ? 'Unassigned'
-                              : lead.assignedStaff,
-                          status: lead.leadStage.isEmpty
-                              ? 'New'
-                              : lead.leadStage,
-                          nextFollowUp: _getFollowUpText(lead),
-                          lastCall: _formatDate(lead.calledDate),
-                          leadSource: lead.leadSource.isEmpty
-                              ? 'Direct Entry'
+                          status: lead.leadStage,
+                          notificationCount: 0,
+                          source: lead.leadSource.isEmpty
+                              ? ''
                               : lead.leadSource,
-                          priority: lead.priority.isEmpty
-                              ? 'Normal'
-                              : lead.priority,
+                          priority: lead.priority,
+                          createdAt: lead.createdAt,
+                          isExpanded: _expandedLeadIds.contains(lead.id ?? ''),
+                        );
+
+                        return LeadCard(
+                          data: leadData,
                           closeNotifier: _closeNotifiers[index],
                           onSwipeOpen: () => _onSwipeOpen(index),
+                          onToggleExpand: () => _onToggleExpand(lead.id ?? ''),
+                          onCall: () =>
+                              launchPhoneCall(context, lead.contactNumber),
+                          onMessage: () =>
+                              launchWhatsApp(context, lead.contactNumber),
                         );
                       },
                     ),
@@ -240,12 +313,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
 class SearchBarWidget extends StatelessWidget {
   final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+  final VoidCallback onSearchPressed;
 
   const SearchBarWidget({
     super.key,
     required this.controller,
-    required this.onChanged,
+    required this.onSearchPressed,
   });
 
   @override
@@ -271,7 +344,6 @@ class SearchBarWidget extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              onChanged: onChanged,
               style: TextStyle(
                 fontSize: 14.5.sp,
                 color: const Color(0xFF333333),
@@ -286,20 +358,25 @@ class SearchBarWidget extends StatelessWidget {
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
               ),
+              // Allow user to search by pressing Enter key
+              onSubmitted: (_) => onSearchPressed(),
             ),
           ),
           SizedBox(width: 2.w),
           Padding(
             padding: EdgeInsets.only(right: 2.5.w),
-            child: Container(
-              width: 10.w,
-              height: 10.w,
-              padding: const EdgeInsets.all(0.5),
-              decoration: BoxDecoration(
-                color: AppColors.bottomNavBlue,
-                borderRadius: BorderRadius.circular(12),
+            child: GestureDetector(
+              onTap: onSearchPressed,
+              child: Container(
+                width: 10.w,
+                height: 10.w,
+                padding: const EdgeInsets.all(0.5),
+                decoration: BoxDecoration(
+                  color: AppColors.bottomNavBlue,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.search, color: Colors.white, size: 5.w),
               ),
-              child: Icon(Icons.search, color: Colors.white, size: 5.w),
             ),
           ),
         ],
@@ -391,7 +468,7 @@ class SearchLeadCard extends StatefulWidget {
   final String id;
   final String name;
   final String phone;
-  final String tag;
+  final String category;
   final String assignedTo;
   final String status;
   final String nextFollowUp;
@@ -406,7 +483,7 @@ class SearchLeadCard extends StatefulWidget {
     required this.id,
     required this.name,
     required this.phone,
-    required this.tag,
+    required this.category,
     required this.assignedTo,
     required this.status,
     required this.nextFollowUp,
@@ -519,7 +596,7 @@ class _SearchLeadCardState extends State<SearchLeadCard>
                               id: widget.id,
                               clientName: widget.name,
                               leadStage: widget.status,
-                              leadCategory: widget.tag,
+                              leadCategory: widget.category,
                               contactNumber: widget.phone,
                               assignedStaff: widget.assignedTo,
                               createdAt: DateTime.now(),
@@ -560,7 +637,7 @@ class _SearchLeadCardState extends State<SearchLeadCard>
                     child: _SearchLeadCardBody(
                       name: widget.name,
                       phone: widget.phone,
-                      tag: widget.tag,
+                      category: widget.category,
                       assignedTo: widget.assignedTo,
                       status: widget.status,
                       nextFollowUp: widget.nextFollowUp,
@@ -580,7 +657,7 @@ class _SearchLeadCardState extends State<SearchLeadCard>
 class _SearchLeadCardBody extends StatelessWidget {
   final String name;
   final String phone;
-  final String tag;
+  final String category;
   final String assignedTo;
   final String status;
   final String nextFollowUp;
@@ -589,7 +666,7 @@ class _SearchLeadCardBody extends StatelessWidget {
   const _SearchLeadCardBody({
     required this.name,
     required this.phone,
-    required this.tag,
+    required this.category,
     required this.assignedTo,
     required this.status,
     required this.nextFollowUp,
@@ -638,9 +715,7 @@ class _SearchLeadCardBody extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 SizedBox(width: 3.w),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -674,20 +749,17 @@ class _SearchLeadCardBody extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 StatusChip(
-                  label: tag,
-                  textColor: const Color(0xFF2F80ED),
-                  backgroundColor: const Color(0xFFDEEDFF),
+                  label: category,
+                  textColor: const Color(0xFFDC2626),
+                  backgroundColor: const Color(0xFFFEE2E2),
                   borderColor: Colors.transparent,
                   showDot: false,
                 ),
               ],
             ),
           ),
-
           Divider(height: 1, thickness: 1, color: const Color(0xFFF0F0F0)),
-
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
             child: Row(
@@ -735,13 +807,11 @@ class _SearchLeadCardBody extends StatelessWidget {
             child: InfoBox(nextFollowUp: nextFollowUp, lastCall: lastCall),
           ),
           SizedBox(height: 1.5.h),
-
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.w),
             child: GestureDetector(
               onTap: () {
                 launchPhoneCall(context, phone);
-                print('ffffffffffff');
               },
               child: SizedBox(
                 height: 5.5.h,
@@ -771,7 +841,6 @@ class _SearchLeadCardBody extends StatelessWidget {
                           size: 5.w,
                         ),
                       ),
-
                       SizedBox(width: 2.w),
                       Text(
                         'Contact Now',

@@ -19,7 +19,10 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
-  FilterResult? _reportFilters;
+  FilterResult? _callStatusFilters;
+  FilterResult? _activeLeadFilters;
+  FilterResult? _leadSourceFilters;
+  FilterResult? _categoryFilters;
 
   @override
   void initState() {
@@ -30,45 +33,6 @@ class _ReportScreenState extends State<ReportScreen> {
   String _getTodayString() {
     final d = DateTime.now();
     return '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year}';
-  }
-
-  List<AddLeadModel> _getFilteredReportLeads(List<AddLeadModel> leads) {
-    if (_reportFilters == null || _reportFilters!.isCleared) return leads;
-
-    final todayStr = _getTodayString();
-    final hasDateFilter = _reportFilters!.fromDate != todayStr || _reportFilters!.toDate != todayStr;
-    final staffSet = _reportFilters!.selectedItems['Assigned Staff'];
-    final hasStaffFilter = staffSet != null && staffSet.isNotEmpty;
-
-    if (!hasDateFilter && !hasStaffFilter) {
-      return leads;
-    }
-
-    return leads.where((lead) {
-      // 1. Date filter
-      if (hasDateFilter) {
-        final start = _parseDate(_reportFilters!.fromDate);
-        final end = _parseDate(_reportFilters!.toDate);
-        if (start != null && end != null) {
-          final startOfDay = DateTime(start.year, start.month, start.day);
-          final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59);
-          if (lead.createdAt == null) return false;
-          if (lead.createdAt!.isBefore(startOfDay) ||
-              lead.createdAt!.isAfter(endOfDay)) {
-            return false;
-          }
-        }
-      }
-
-      // 2. Staff filter
-      if (hasStaffFilter) {
-        if (!staffSet.contains(lead.assignedStaff)) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
   }
 
   DateTime? _parseDate(String dateStr) {
@@ -85,27 +49,67 @@ class _ReportScreenState extends State<ReportScreen> {
     return null;
   }
 
-  String _getDateText() {
-    if (_reportFilters == null || _reportFilters!.isCleared) return 'Showing all data';
+  // 1. Generic Filter Lead Method
+  List<AddLeadModel> _getFilteredLeadsFor(FilterResult? filter, List<AddLeadModel> leads) {
+    if (filter == null || filter.isCleared) return leads;
+
     final todayStr = _getTodayString();
-    final hasDateFilter = _reportFilters!.fromDate != todayStr || _reportFilters!.toDate != todayStr;
-    final staffSet = _reportFilters!.selectedItems['Assigned Staff'];
+    final hasDateFilter = filter.fromDate != todayStr || filter.toDate != todayStr;
+    final staffSet = filter.selectedItems['Assigned Staff'];
     final hasStaffFilter = staffSet != null && staffSet.isNotEmpty;
 
-    if (!hasDateFilter && !hasStaffFilter) {
-      return 'Showing all data';
-    }
+    if (!hasDateFilter && !hasStaffFilter) return leads;
 
-    final staffText = hasStaffFilter
-        ? '\nStaff : ${staffSet.join(', ')}'
-        : '';
-    return '${_reportFilters!.fromDate} → ${_reportFilters!.toDate}$staffText';
+    return leads.where((lead) {
+      if (hasDateFilter) {
+        final start = _parseDate(filter.fromDate);
+        final end = _parseDate(filter.toDate);
+        if (start != null && end != null) {
+          final startOfDay = DateTime(start.year, start.month, start.day);
+          final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59);
+          if (lead.createdAt == null) return false;
+          if (lead.createdAt!.isBefore(startOfDay) ||
+              lead.createdAt!.isAfter(endOfDay)) {
+            return false;
+          }
+        }
+      }
+      if (hasStaffFilter) {
+        if (!staffSet.contains(lead.assignedStaff)) return false;
+      }
+      return true;
+    }).toList();
   }
 
-  Future<void> _handleFilterTap() async {
+  List<AddLeadModel> _getCallStatusFilteredLeads(List<AddLeadModel> leads) => _getFilteredLeadsFor(_callStatusFilters, leads);
+  List<AddLeadModel> _getActiveLeadFilteredLeads(List<AddLeadModel> leads) => _getFilteredLeadsFor(_activeLeadFilters, leads);
+  List<AddLeadModel> _getLeadSourceFilteredLeads(List<AddLeadModel> leads) => _getFilteredLeadsFor(_leadSourceFilters, leads);
+  List<AddLeadModel> _getCategoryFilteredLeads(List<AddLeadModel> leads) => _getFilteredLeadsFor(_categoryFilters, leads);
+
+  // 2. Generic Date Text Method
+  String _getDateTextFor(FilterResult? filter) {
+    if (filter == null || filter.isCleared) return 'Showing all data';
+    final todayStr = _getTodayString();
+    final hasDateFilter = filter.fromDate != todayStr || filter.toDate != todayStr;
+    final staffSet = filter.selectedItems['Assigned Staff'];
+    final hasStaffFilter = staffSet != null && staffSet.isNotEmpty;
+
+    if (!hasDateFilter && !hasStaffFilter) return 'Showing all data';
+
+    final staffText = hasStaffFilter ? '\nStaff : ${staffSet.join(', ')}' : '';
+    return '${filter.fromDate} → ${filter.toDate}$staffText';
+  }
+
+  String _getCallStatusDateText() => _getDateTextFor(_callStatusFilters);
+  String _getActiveLeadDateText() => _getDateTextFor(_activeLeadFilters);
+  String _getLeadSourceDateText() => _getDateTextFor(_leadSourceFilters);
+  String _getCategoryDateText() => _getDateTextFor(_categoryFilters);
+
+  // 3. Generic Filter Tap Method
+  Future<void> _handleFilterTapGeneric(FilterResult? currentFilter, void Function(FilterResult?) onUpdate) async {
     final result = await showFilterBottomSheet(
       context,
-      initialFilters: _reportFilters,
+      initialFilters: currentFilter,
       isReportFilter: true,
     );
     if (result != null) {
@@ -116,12 +120,28 @@ class _ReportScreenState extends State<ReportScreen> {
 
       setState(() {
         if (hasFilters) {
-          _reportFilters = result;
+          onUpdate(result);
         } else {
-          _reportFilters = null;
+          onUpdate(null);
         }
       });
     }
+  }
+
+  Future<void> _handleCallStatusFilterTap() async {
+    await _handleFilterTapGeneric(_callStatusFilters, (res) => _callStatusFilters = res);
+  }
+
+  Future<void> _handleActiveLeadFilterTap() async {
+    await _handleFilterTapGeneric(_activeLeadFilters, (res) => _activeLeadFilters = res);
+  }
+
+  Future<void> _handleLeadSourceFilterTap() async {
+    await _handleFilterTapGeneric(_leadSourceFilters, (res) => _leadSourceFilters = res);
+  }
+
+  Future<void> _handleCategoryFilterTap() async {
+    await _handleFilterTapGeneric(_categoryFilters, (res) => _categoryFilters = res);
   }
 
   @override
@@ -131,8 +151,6 @@ class _ReportScreenState extends State<ReportScreen> {
         if (state.listStatus == LeadListStatus.loading) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        final filteredLeads = _getFilteredReportLeads(state.leads);
 
         return Container(
           color: const Color(0xFFEFF7FF),
@@ -150,48 +168,48 @@ class _ReportScreenState extends State<ReportScreen> {
                   ReportHeaderWidget(
                     icon: Icons.phone_outlined,
                     title: 'Call Status Report',
-                    dateText: _getDateText(),
+                    dateText: _getCallStatusDateText(),
                     updatedTime: 'Real-time',
-                    onFilterTap: _handleFilterTap,
+                    onFilterTap: _handleCallStatusFilterTap,
                   ),
                   SizedBox(height: 1.5.h),
-                  CallStatusReportCard(leads: filteredLeads),
+                  CallStatusReportCard(leads: _getCallStatusFilteredLeads(state.leads)),
                   SizedBox(height: 3.h),
 
                   // SECTION 2: Active Lead Summary
                   ReportHeaderWidget(
                     icon: Icons.pie_chart_outline,
                     title: 'Active Lead Summary',
-                    dateText: _getDateText(),
+                    dateText: _getActiveLeadDateText(),
                     updatedTime: 'Real-time',
-                    onFilterTap: _handleFilterTap,
+                    onFilterTap: _handleActiveLeadFilterTap,
                   ),
                   SizedBox(height: 1.5.h),
-                  ActiveLeadSummaryCard(leads: filteredLeads),
+                  ActiveLeadSummaryCard(leads: _getActiveLeadFilteredLeads(state.leads)),
                   SizedBox(height: 3.h),
 
                   // SECTION 3: Lead Source Report
                   ReportHeaderWidget(
                     icon: Icons.folder_open_outlined,
                     title: 'Lead Source Report',
-                    dateText: _getDateText(),
+                    dateText: _getLeadSourceDateText(),
                     updatedTime: 'Real-time',
-                    onFilterTap: _handleFilterTap,
+                    onFilterTap: _handleLeadSourceFilterTap,
                   ),
                   SizedBox(height: 1.5.h),
-                  LeadSourceCard(leads: filteredLeads),
+                  LeadSourceCard(leads: _getLeadSourceFilteredLeads(state.leads)),
                   SizedBox(height: 3.h),
 
                   // SECTION 4: Category Report
                   ReportHeaderWidget(
                     icon: Icons.category_outlined,
                     title: 'Category Report',
-                    dateText: _getDateText(),
+                    dateText: _getCategoryDateText(),
                     updatedTime: 'Real-time',
-                    onFilterTap: _handleFilterTap,
+                    onFilterTap: _handleCategoryFilterTap,
                   ),
                   SizedBox(height: 1.5.h),
-                  CategoryReportCard(leads: filteredLeads),
+                  CategoryReportCard(leads: _getCategoryFilteredLeads(state.leads)),
                   SizedBox(height: 8.h),
                 ],
               ),

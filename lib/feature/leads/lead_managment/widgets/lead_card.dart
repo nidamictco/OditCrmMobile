@@ -7,63 +7,16 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_list.d
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-Future<void> launchPhoneCall(BuildContext context, String phoneNumber) async {
-  try {
-    final cleanNumber = phoneNumber.replaceAll(RegExp(r'\s+|-'), '');
-    final Uri phoneUri = Uri(scheme: 'tel', path: cleanNumber);
-    await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
-  } catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open application')),
-      );
-    }
-  }
-}
-
-Future<void> launchWhatsApp(BuildContext context, String phoneNumber) async {
-  try {
-    var cleanNumber = phoneNumber.replaceAll(RegExp(r'\s+|-|\+'), '');
-    if (!cleanNumber.startsWith('91') && cleanNumber.length == 10) {
-      cleanNumber = '91$cleanNumber';
-    }
-    final Uri whatsappUri = Uri.parse('https://wa.me/$cleanNumber');
-    await launchUrl(
-      whatsappUri,
-      mode: LaunchMode.externalNonBrowserApplication,
-    );
-  } catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open application')),
-      );
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Save as: lib/core/utils/lead_card.dart  (replaces your existing file)
-// ---------------------------------------------------------------------------
-
-// ── Action panel width (revealed area) ──────────────────────────────────────
 double get _kActionPanelWidth => 55.w;
 
-// ── Swipe snap threshold (fraction of panel width) ──────────────────────────
 const double _kSnapThreshold = 0.35;
-
-// ===========================================================================
-// SWIPEABLE LEAD CARD  (public API — drop-in replacement)
-// ===========================================================================
 class LeadCard extends StatefulWidget {
   final LeadData data;
   final VoidCallback onToggleExpand;
   final VoidCallback onCall;
   final VoidCallback onMessage;
 
-  /// Notify parent when this card opens so siblings can close.
   final VoidCallback? onSwipeOpen;
-
-  /// Parent calls this notifier to force-close this card.
   final ValueNotifier<bool>? closeNotifier;
 
   const LeadCard({

@@ -9,7 +9,8 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/report_scre
 import 'package:sizer/sizer.dart';
 
 class LeadManagmentScreen extends StatelessWidget {
-  const LeadManagmentScreen({super.key});
+  final String initialStatus;
+  const LeadManagmentScreen({super.key, required this.initialStatus,});
 
   @override
   Widget build(BuildContext context) {

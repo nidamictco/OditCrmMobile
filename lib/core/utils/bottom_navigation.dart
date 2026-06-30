@@ -9,7 +9,8 @@ import 'package:odit_crm_mobile/feature/staff_management/Screen/staff_management
 class CustomBottomNavScreen extends StatefulWidget {
   final int index;
   static const int staffIndex = 2;
-  const CustomBottomNavScreen({super.key, this.index = 0});
+  final String? initialStatus;
+  const CustomBottomNavScreen({super.key, this.index = 0,this.initialStatus='New'});
 
   @override
   State<CustomBottomNavScreen> createState() => _CustomBottomNavScreenState();
@@ -31,9 +32,9 @@ class _CustomBottomNavScreenState extends State<CustomBottomNavScreen> {
   }
 
   // 3 pages now — home, dashboard, and staff management
-  final List<Widget> pages = const [
+  late List<Widget> pages =  [
     HomeScreen(),
-    LeadManagmentScreen(),
+    LeadManagmentScreen(initialStatus:widget.initialStatus!,),
     StaffManagementScreen(),
   ];
 
@@ -44,8 +45,8 @@ class _CustomBottomNavScreenState extends State<CustomBottomNavScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey, // 👈 attach the key
-      endDrawer: const OxdoDrawer(), // 👈 opens from the RIGHT side
+      key: _scaffoldKey, 
+      endDrawer: const OxdoDrawer(),
       body: Stack(
         alignment: Alignment.bottomCenter,
         children: [

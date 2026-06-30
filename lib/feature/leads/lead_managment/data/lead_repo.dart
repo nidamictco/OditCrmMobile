@@ -15,7 +15,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //     required String role,
 //   });
 //   Future<List<AddLeadModel>> fetchDashboardLeads({
-//     required String staffId,
+//     required String staffId, 
 //     required String role,
 //     required String fromCard,
 //     required DateTime selectedDate,
@@ -40,7 +40,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //   Future<void> addFollowUp(
 //     String leadId,
 //     FollowUpModel followUp, {
-//     String? previousStage, // pass current lead's stage before update
+//     String? previousStage, 
 //     String? previousCategory,
 //     String? previousPriority,
 //     String changedByName = '',
@@ -98,6 +98,12 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //     DateTime? toDate,
 //   });
 //   Future<bool> isContactNumberExists(String contactNumber);
+//   // In IAddLeadRepository — add to the abstract class:
+// Future<List<AddLeadModel>> searchLeadsByQuery({
+//   required String query,
+//   required String staffId,
+//   required String role,
+// });
 // }
 
 // class AddLeadRepository implements IAddLeadRepository {
@@ -513,207 +519,67 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //     log('[AddLeadRepository] Staff assigned to lead: $leadId → $staffId');
 //   }
 
- 
+//   @override
+//   Future<void> addFollowUpOld(String leadId, FollowUpModel followUp) async {
+//     if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
 
-//   // @override
-//   // Future<void> addFollowUp(
-//   //   String leadId,
-//   //   FollowUpModel followUp, {
-//   //   String? previousStage, // pass current lead's stage before update
-//   //   String? previousCategory,
-//   //   String? previousPriority,
-//   //   String changedByName = '',
-//   //   String changedById = '',
-//   //   String leadName = '',
-//   //   String leadPhone = '',
-//   // }) async {
-//   //   if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+//     final String followUpId = _generateDateId('FUP');
+//     await _collection
+//         .doc(leadId)
+//         .collection('FOLLOW_UPS')
+//         .doc(followUpId)
+//         .set(followUp.toFirestore());
 
-//   //   final batch = FirebaseFirestore.instance.batch();
-//   //   final activityRef = _collection.doc(leadId).collection('ACTIVITIES');
+//     await _collection.doc(leadId).update({
+//       'leadStage': followUp.leadStage,
+//       'priority': followUp.priority,
+//       'leadCategory': followUp.leadCategory,
+//       'nextFollowUpDate': followUp.nextFollowUpDate,
+//       'lastCalledDate': followUp.calledDate,
+//       'updatedAt': FieldValue.serverTimestamp(),
+//     });
 
-//   //   // 1. Write the follow-up document
-//   //   final String followUpId = followUp.id ?? _generateDateId('FUP');
-//   //   final fupRef = _collection
-//   //       .doc(leadId)
-//   //       .collection('FOLLOW_UPS')
-//   //       .doc(followUpId);
-//   //   batch.set(fupRef, followUp.toFirestore(), SetOptions(merge: true));
-
-//   //   // 2. Update lead document
-//   //   final leadRef = _collection.doc(leadId);
-//   //   // batch.update(leadRef, {
-//   //   //   'leadStage': followUp.leadStage,
-//   //   //   'priority': followUp.priority,
-//   //   //   'leadCategory': followUp.leadCategory,
-//   //   //   'nextFollowUpDate': followUp.nextFollowUpDate,
-//   //   //   'lastCalledDate': followUp.calledDate,
-//   //   //   'callResult': followUp.calledStatus,
-//   //   //   'leadTag': followUp.leadTag,
-//   //   //   'updatedAt': FieldValue.serverTimestamp(),
-//   //   //   // 'remarks' : followUp.remarks,
-//   //   // });
-//   //   final Map<String, dynamic> leadUpdates = {
-//   //     'leadStage': followUp.leadStage,
-//   //     'priority': followUp.priority,
-//   //     'leadCategory': followUp.leadCategory,
-//   //     'nextFollowUpDate': followUp.nextFollowUpDate,
-//   //     'lastCalledDate': followUp.calledDate,
-//   //     'callResult': followUp.calledStatus,
-//   //     'leadTag': followUp.leadTag,
-//   //     'updatedAt': FieldValue.serverTimestamp(),
-//   //     'hasFollowUp': true,
-//   //   };
-//   //   if ((followUp.adress ?? '').isNotEmpty) {
-//   //     leadUpdates['address'] = followUp.adress;
-//   //   }
-//   //   if ((followUp.email ?? '').isNotEmpty) {
-//   //     leadUpdates['email'] = followUp.email;
-//   //   }
-//   //   if ((followUp.remarks ?? '').isNotEmpty) {
-//   //     leadUpdates['remarks'] = followUp.remarks;
-//   //   }
-//   //   batch.update(leadRef, leadUpdates);
-
-//   //   final now = DateTime.now();
-
-//   //   // Helper to add an activity doc in the batch
-//   //   void logActivity(ActivityModel activity) {
-//   //     batch.set(activityRef.doc(), activity.toFirestore());
-//   //   }
-
-//   //   // 3. Always log the follow-up added activity
-//   //   logActivity(
-//   //     ActivityModel(
-//   //       id: '',
-//   //       type: ActivityType.followupAdded,
-//   //       changedBy: changedByName,
-//   //       changedById: changedById,
-//   //       changedAt: now,
-//   //       previousValue: followUp.calledStatus,
-//   //       leadId: leadId, // ← add
-//   //       leadName: leadName, // ← add
-//   //       leadPhone: leadPhone, // ← add
-//   //       newValue: DateFormat(
-//   //         'dd-MM-yyyy HH:mm',
-//   //       ).format(followUp.nextFollowUpDate),
-//   //       description:
-//   //           'Follow-up added. Call status: ${followUp.calledStatus}. '
-//   //           'Next follow-up scheduled to '
-//   //           '${DateFormat('dd-MM-yyyy HH:mm').format(followUp.nextFollowUpDate)}.',
-//   //     ),
-//   //   );
-
-//   //   // 4. Log status change only if it actually changed
-//   //   if (previousStage != null &&
-//   //       previousStage.isNotEmpty &&
-//   //       previousStage != followUp.leadStage) {
-//   //     logActivity(
-//   //       ActivityModel(
-//   //         id: '',
-//   //         type: ActivityType.statusChanged,
-//   //         changedBy: changedByName,
-//   //         changedById: changedById,
-//   //         changedAt: now,
-//   //         previousValue: previousStage,
-//   //         newValue: followUp.leadStage,
-//   //         description:
-//   //             'Status changed from $previousStage to ${followUp.leadStage}.',
-//   //       ),
-//   //     );
-//   //   }
-
-//   //   // 5. Log category change only if it changed
-//   //   if (previousCategory != null &&
-//   //       previousCategory.isNotEmpty &&
-//   //       previousCategory != followUp.leadCategory &&
-//   //       followUp.leadCategory.isNotEmpty) {
-//   //     logActivity(
-//   //       ActivityModel(
-//   //         id: '',
-//   //         type: ActivityType.categoryChanged,
-//   //         changedBy: changedByName,
-//   //         changedById: changedById,
-//   //         changedAt: now,
-//   //         previousValue: previousCategory,
-//   //         newValue: followUp.leadCategory,
-//   //         description:
-//   //             'Lead category updated from $previousCategory to ${followUp.leadCategory}.',
-//   //       ),
-//   //     );
-//   //   }
-
-//   //   // 6. Log priority change only if it changed
-//   //   if (previousPriority != null &&
-//   //       previousPriority.isNotEmpty &&
-//   //       previousPriority != followUp.priority &&
-//   //       followUp.priority.isNotEmpty) {
-//   //     logActivity(
-//   //       ActivityModel(
-//   //         id: '',
-//   //         type: ActivityType.priorityChanged,
-//   //         changedBy: changedByName,
-//   //         changedById: changedById,
-//   //         changedAt: now,
-//   //         previousValue: previousPriority,
-//   //         newValue: followUp.priority,
-//   //         description:
-//   //             'Priority updated from $previousPriority to ${followUp.priority}.',
-//   //       ),
-//   //     );
-//   //   }
-
-//   //   await batch.commit();
-//   //   log('[AddLeadRepository] FollowUp + activities written for lead: $leadId');
-//   // }
-
-//   // ✅ FIXED: AddLeadRepository.addFollowUp() with full debug logging
-// // Replace the existing addFollowUp() method in AddLeadRepository with this:
-
-// @override
-// Future<void> addFollowUp(
-//   String leadId,
-//   FollowUpModel followUp, {
-//   String? previousStage,
-//   String? previousCategory,
-//   String? previousPriority,
-//   String changedByName = '',
-//   String changedById = '',
-//   String leadName = '',
-//   String leadPhone = '',
-// }) async {
-//   debugPrint('=== REPOSITORY addFollowUp START ===');
-//   debugPrint('leadId: $leadId');
-//   debugPrint('followUpId: ${followUp.id}');
-//   debugPrint('followUpData: ${followUp.toFirestore()}');
-
-//   if (leadId.trim().isEmpty) {
-//     debugPrint('❌ VALIDATION ERROR: leadId is empty');
-//     throw ArgumentError('Lead ID cannot be empty.');
+//     log('[AddLeadRepository] FollowUp added for lead: $leadId');
 //   }
 
-//   try {
+//   @override
+//   Future<void> addFollowUp(
+//     String leadId,
+//     FollowUpModel followUp, {
+//     String? previousStage, // pass current lead's stage before update
+//     String? previousCategory,
+//     String? previousPriority,
+//     String changedByName = '',
+//     String changedById = '',
+//     String leadName = '',
+//     String leadPhone = '',
+//   }) async {
+//     if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+
 //     final batch = FirebaseFirestore.instance.batch();
 //     final activityRef = _collection.doc(leadId).collection('ACTIVITIES');
 
-//     // STEP 1: Write the follow-up document
-//     debugPrint('📌 STEP 1: Writing follow-up to FOLLOW_UPS subcollection...');
+//     // 1. Write the follow-up document
 //     final String followUpId = followUp.id ?? _generateDateId('FUP');
 //     final fupRef = _collection
 //         .doc(leadId)
 //         .collection('FOLLOW_UPS')
 //         .doc(followUpId);
-
-//     debugPrint('   - Path: LEADS/$leadId/FOLLOW_UPS/$followUpId');
-//     debugPrint('   - Data keys: ${followUp.toFirestore().keys.join(', ')}');
-
 //     batch.set(fupRef, followUp.toFirestore(), SetOptions(merge: true));
-//     debugPrint('✅ Follow-up batch.set() added');
 
-//     // STEP 2: Update lead document
-//     debugPrint('📌 STEP 2: Updating parent lead document...');
+//     // 2. Update lead document
 //     final leadRef = _collection.doc(leadId);
-
+//     // batch.update(leadRef, {
+//     //   'leadStage': followUp.leadStage,
+//     //   'priority': followUp.priority,
+//     //   'leadCategory': followUp.leadCategory,
+//     //   'nextFollowUpDate': followUp.nextFollowUpDate,
+//     //   'lastCalledDate': followUp.calledDate,
+//     //   'callResult': followUp.calledStatus,
+//     //   'leadTag': followUp.leadTag,
+//     //   'updatedAt': FieldValue.serverTimestamp(),
+//     //   // 'remarks' : followUp.remarks,
+//     // });
 //     final Map<String, dynamic> leadUpdates = {
 //       'leadStage': followUp.leadStage,
 //       'priority': followUp.priority,
@@ -725,7 +591,6 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //       'updatedAt': FieldValue.serverTimestamp(),
 //       'hasFollowUp': true,
 //     };
-
 //     if ((followUp.adress ?? '').isNotEmpty) {
 //       leadUpdates['address'] = followUp.adress;
 //     }
@@ -735,21 +600,16 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //     if ((followUp.remarks ?? '').isNotEmpty) {
 //       leadUpdates['remarks'] = followUp.remarks;
 //     }
-
-//     debugPrint('   - Updating fields: ${leadUpdates.keys.join(', ')}');
 //     batch.update(leadRef, leadUpdates);
-//     debugPrint('✅ Lead batch.update() added');
 
-//     // STEP 3: Log activities
-//     debugPrint('📌 STEP 3: Logging activities...');
 //     final now = DateTime.now();
 
+//     // Helper to add an activity doc in the batch
 //     void logActivity(ActivityModel activity) {
 //       batch.set(activityRef.doc(), activity.toFirestore());
-//       debugPrint('   - Activity logged: ${activity.type}');
 //     }
 
-//     // Always log the follow-up added activity
+//     // 3. Always log the follow-up added activity
 //     logActivity(
 //       ActivityModel(
 //         id: '',
@@ -758,11 +618,12 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //         changedById: changedById,
 //         changedAt: now,
 //         previousValue: followUp.calledStatus,
-//         leadId: leadId,
-//         leadName: leadName,
-//         leadPhone: leadPhone,
-//         newValue: DateFormat('dd-MM-yyyy HH:mm')
-//             .format(followUp.nextFollowUpDate),
+//         leadId: leadId, // ← add
+//         leadName: leadName, // ← add
+//         leadPhone: leadPhone, // ← add
+//         newValue: DateFormat(
+//           'dd-MM-yyyy HH:mm',
+//         ).format(followUp.nextFollowUpDate),
 //         description:
 //             'Follow-up added. Call status: ${followUp.calledStatus}. '
 //             'Next follow-up scheduled to '
@@ -770,7 +631,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //       ),
 //     );
 
-//     // Log status change if it changed
+//     // 4. Log status change only if it actually changed
 //     if (previousStage != null &&
 //         previousStage.isNotEmpty &&
 //         previousStage != followUp.leadStage) {
@@ -789,7 +650,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //       );
 //     }
 
-//     // Log category change if it changed
+//     // 5. Log category change only if it changed
 //     if (previousCategory != null &&
 //         previousCategory.isNotEmpty &&
 //         previousCategory != followUp.leadCategory &&
@@ -809,7 +670,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //       );
 //     }
 
-//     // Log priority change if it changed
+//     // 6. Log priority change only if it changed
 //     if (previousPriority != null &&
 //         previousPriority.isNotEmpty &&
 //         previousPriority != followUp.priority &&
@@ -829,18 +690,9 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //       );
 //     }
 
-//     // STEP 4: Commit batch
-//     debugPrint('📌 STEP 4: Committing batch write...');
 //     await batch.commit();
-//     debugPrint('✅ Batch committed successfully!');
-
 //     log('[AddLeadRepository] FollowUp + activities written for lead: $leadId');
-//   } catch (e, st) {
-//     debugPrint('❌ CRITICAL ERROR in addFollowUp: $e');
-//     debugPrint('Stack: $st');
-//     rethrow;
 //   }
-// }
 
 //   @override
 //   Future<void> transferLead(
@@ -1667,6 +1519,56 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //     };
 //   }
 
+//   // In AddLeadRepository — add the implementation:
+// @override
+// Future<List<AddLeadModel>> searchLeadsByQuery({
+//   required String query,
+//   required String staffId,
+//   required String role,
+// }) async {
+//   final trimmed = query.trim();
+//   if (trimmed.isEmpty) return [];
+
+//   // Firestore range trick for prefix search on clientName
+//   // e.g. query="rah" → where clientName >= "rah" AND clientName < "rai"
+//   final nameEnd = trimmed.substring(0, trimmed.length - 1) +
+//       String.fromCharCode(trimmed.codeUnitAt(trimmed.length - 1) + 1);
+
+//   // Run name search and phone search in parallel
+//   Query<Map<String, dynamic>> baseQuery = _collection;
+//   if (role.toLowerCase() != 'admin') {
+//     baseQuery = baseQuery.where('assignedStaffId', isEqualTo: staffId);
+//   }
+
+//   final results = await Future.wait([
+//     // ── Prefix search on clientName ─────────────────────────────────────
+//     baseQuery
+//         .where('clientName', isGreaterThanOrEqualTo: trimmed)
+//         .where('clientName', isLessThan: nameEnd)
+//         .get(),
+
+//     // ── Exact match on contactNumber ────────────────────────────────────
+//     baseQuery
+//         .where('contactNumber', isEqualTo: trimmed)
+//         .get(),
+//   ]);
+
+//   // Merge and deduplicate by document ID
+//   final seen = <String>{};
+//   final merged = <AddLeadModel>[];
+
+//   for (final snap in results) {
+//     for (final doc in snap.docs) {
+//       if (seen.add(doc.id)) {
+//         merged.add(AddLeadModel.fromFirestore(doc.data(), doc.id));
+//       }
+//     }
+//   }
+
+//   log('[searchLeadsByQuery] query="$trimmed" → ${merged.length} docs fetched from Firestore');
+//   return merged;
+// }
+
 //   Future<AddLeadModel> getLeadById(String leadId) async {
 //     try {
 //       final leadDoc = await _collection.doc(leadId).get();
@@ -1828,6 +1730,8 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 //     print('Updated ${leadDoc.id} → hasFollowUp: $hasFollowUp');
 //   }
 
+
+
 //   print('Migration complete. Updated: $updated, Skipped: $skipped');
 // }
 
@@ -1843,7 +1747,7 @@ abstract class IAddLeadRepository {
     required String staffId,
     required String role,
     required String fromCard,
-    required DateTime selectedDate,
+    required DateTime? selectedDate,
     DateTime? toDate,
   });
   Future<void> updateLead(String id, AddLeadModel lead);
@@ -1946,6 +1850,65 @@ class AddLeadRepository implements IAddLeadRepository {
     return '$prefix-$datePart-$id';
   }
 
+  Future<void> _checkDuplicates(
+  String contactNumber,
+  String whatsappNumber, {
+  String? excludeId,
+}) async {
+  final contact = contactNumber.trim();
+  final whatsapp = whatsappNumber.trim();
+
+  // Run all 4 queries in parallel
+  final futures = await Future.wait([
+    // Contact number entered → check against contactNumber field
+    _queryExists('contactNumber', contact, excludeId: excludeId),
+    // Contact number entered → check against whatsappNumber field
+    _queryExists('whatsappNumber', contact, excludeId: excludeId),
+    // WhatsApp number entered → check against contactNumber field
+    whatsapp.isNotEmpty
+        ? _queryExists('contactNumber', whatsapp, excludeId: excludeId)
+        : Future.value(false),
+    // WhatsApp number entered → check against whatsappNumber field
+    whatsapp.isNotEmpty
+        ? _queryExists('whatsappNumber', whatsapp, excludeId: excludeId)
+        : Future.value(false),
+  ]);
+
+  // futures[0] || futures[1] → contact number exists somewhere
+  final contactDuplicate = contact.isNotEmpty && (futures[0] || futures[1]);
+  // futures[2] || futures[3] → whatsapp number exists somewhere
+  final whatsappDuplicate = whatsapp.isNotEmpty && (futures[2] || futures[3]);
+
+  if (contactDuplicate && whatsappDuplicate) {
+    throw Exception('Contact Number and WhatsApp Number already exist.');
+  } else if (contactDuplicate) {
+    throw Exception('Contact Number already exists.');
+  } else if (whatsappDuplicate) {
+    throw Exception('WhatsApp Number already exists.');
+  }
+}
+
+/// Helper: returns true if [value] exists in [field], optionally excluding [excludeId]
+Future<bool> _queryExists(
+  String field,
+  String value, {
+  String? excludeId,
+}) async {
+  if (value.isEmpty) return false;
+
+  Query<Map<String, dynamic>> query = _collection.where(
+    field,
+    isEqualTo: value,
+  );
+
+  final snap = await query.limit(excludeId != null ? 5 : 1).get();
+
+  if (excludeId == null) return snap.docs.isNotEmpty;
+
+  // In edit mode — ignore the doc being edited
+  return snap.docs.any((doc) => doc.id != excludeId);
+}
+
   @override
   Future<String> addLead(AddLeadModel lead) async {
     if (lead.clientName.trim().isEmpty) {
@@ -1955,11 +1918,12 @@ class AddLeadRepository implements IAddLeadRepository {
       throw ArgumentError('Contact number cannot be empty.');
     }
 
-    final String id = _generateDateId('LEAD');
-    await _collection.doc(id).set(lead.toFirestore());
-    log('[AddLeadRepository] Lead added with ID: $id');
+    await _checkDuplicates(lead.contactNumber, lead.whatsappNumber);
 
-    return id;
+    await _collection.doc(lead.id).set(lead.toFirestore());
+    log('[AddLeadRepository] Lead added with ID: ${lead.id}');
+
+    return lead.id!;
   }
 
   @override
@@ -2121,7 +2085,7 @@ class AddLeadRepository implements IAddLeadRepository {
     required String staffId,
     required String role,
     required String fromCard,
-    required DateTime selectedDate,
+    required DateTime? selectedDate,
     DateTime? toDate,
   }) async {
     Query<Map<String, dynamic>> query = _collection;
@@ -2166,14 +2130,11 @@ class AddLeadRepository implements IAddLeadRepository {
       //       date.day == selectedDate.day;
       // }
 
-      final effectiveTo = toDate ?? selectedDate;
-
-      final fromDay = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-      );
-      final toDay = DateTime(
+      final effectiveTo = toDate ?? DateTime.now(); //selectedDate ??
+      final DateTime? fromDay = selectedDate != null
+          ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day)
+          : null;
+      final DateTime toDay = DateTime(
         effectiveTo.year,
         effectiveTo.month,
         effectiveTo.day,
@@ -2184,18 +2145,24 @@ class AddLeadRepository implements IAddLeadRepository {
 
       bool isInRange(DateTime? date) {
         if (date == null) return false;
-        return !date.isBefore(fromDay) && !date.isAfter(toDay);
+        if (selectedDate == null) {
+          return date.isBefore(toDay);
+        }
+        return !date.isBefore(fromDay!) && !date.isAfter(toDay);
       }
 
       bool isbeforeFromDay(DateTime? date) {
         if (date == null) return false;
-        return date.isBefore(fromDay);
+        if (selectedDate == null) {
+          return date.isBefore(toDay);
+        }
+        return date.isBefore(fromDay!);
       }
 
-      bool isAfterToDay(DateTime? date) {
-        if (date == null) return false;
-        return date.isAfter(toDay);
-      }
+      // bool isAfterToDay(DateTime? date) {
+      //   if (date == null) return false;
+      //   return date.isAfter(toDay);
+      // }
 
       /// CARD FILTER
       switch (fromCard.toUpperCase()) {
@@ -2226,9 +2193,43 @@ class AddLeadRepository implements IAddLeadRepository {
 
         /// TOTAL CALLED
         case 'TOTAL':
-          return allLeads.where((lead) {
-            return isInRange(lead.calledDate);
-          }).toList();
+          final List<AddLeadModel> result = [];
+          for (final lead in allLeads) {
+            final matchingFollowUps =
+                lead.followUp?.where((fup) {
+                  final inRange = isInRange(fup.calledDate);
+                  if (role.toLowerCase() != 'admin') {
+                    return inRange && fup.createdById == staffId;
+                  }
+                  return inRange;
+                }).toList() ??
+                [];
+            if (matchingFollowUps.isNotEmpty) {
+              for (final fup in matchingFollowUps) {
+                result.add(
+                  lead.copyWith(
+                    calledDate: fup.calledDate,
+                    leadStage: fup.leadStage,
+                    leadCategory: fup.leadCategory,
+                    priority: fup.priority,
+                    followUpDate: fup.nextFollowUpDate,
+                    remarks: fup.remarks,
+                    callResult: fup.calledStatus,
+                  ),
+                );
+              }
+            } else if (isInRange(lead.calledDate)) {
+              result.add(lead);
+            }
+          }
+          // Sort the expanded calls list by calledDate descending so latest call comes first
+          result.sort((a, b) {
+            if (a.calledDate == null && b.calledDate == null) return 0;
+            if (a.calledDate == null) return 1;
+            if (b.calledDate == null) return -1;
+            return b.calledDate!.compareTo(a.calledDate!);
+          });
+          return result;
 
         /// MISSED / REJECTED
         case 'MISSED':
@@ -2269,6 +2270,8 @@ class AddLeadRepository implements IAddLeadRepository {
   @override
   Future<void> updateLead(String id, AddLeadModel lead) async {
     if (id.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+
+    await _checkDuplicates(lead.contactNumber, lead.whatsappNumber, excludeId: id);
 
     //    final data = lead.toFirestore();
     // data.remove('createdAt'); // ✅ prevent createdAt from being overwritten
@@ -2779,12 +2782,24 @@ class AddLeadRepository implements IAddLeadRepository {
 
     // ONE round-trip to Firestore — no subcollection reads at all
     final snap = await base.get();
-    log('[fetchLeadCounts] docs: ${snap.docs.length}');
+    log('[fetchLeadCounts...............] docs: ${snap.docs.length}');
 
+    final activeLeadIds = snap.docs.map((doc) => doc.id).toSet();
     int newLeadCount = 0;
     int followUpCount = 0;
     int closedLeadCount = 0;
-    int totalCalledCount = 0;
+    // int totalCalledCount = await getTotalCalledCount(
+    //   startOfDay,
+    //   endOfDay,
+    //   staffId,
+    //   role,
+    // );
+    int totalCalledCount = await findTotalCalledCount(
+      staffId,
+      role,
+      selectedDate,
+      endOfDay,
+    );
     int missedLeadCount = 0;
     int transferredCount = 0;
 
@@ -2827,11 +2842,7 @@ class AddLeadRepository implements IAddLeadRepository {
       }
 
       // ── TOTAL CALLED ───────────────────────────────────────────────────
-      final lastCalledDate = data['lastCalledDate'];
-      if (lastCalledDate != null) {
-        final calledDate = (lastCalledDate as Timestamp).toDate();
-        if (_isInRange(calledDate, startOfDay, endOfDay)) totalCalledCount++;
-      }
+      // Handled outside the loop above to avoid N+1 queries.
 
       // ── MISSED ─────────────────────────────────────────────────────────
       if (leadStage == 'FOLLOWUP' || leadStage == 'NEW') {
@@ -2885,6 +2896,137 @@ class AddLeadRepository implements IAddLeadRepository {
   // ── Add this helper if not already present ──────────────────────────────────
   bool _isInRange(DateTime date, DateTime start, DateTime end) {
     return !date.isBefore(start) && !date.isAfter(end);
+  }
+
+  Future<int> findTotalCalledCount(
+    String staffId,
+    String role,
+    DateTime? selectedDate,
+    DateTime? toDate,
+  ) async {
+    Query<Map<String, dynamic>> query = _collection;
+
+    /// ROLE FILTER
+    if (role.toLowerCase() != 'admin') {
+      query = query.where('assignedStaffId', isEqualTo: staffId);
+    }
+
+    try {
+      final snap = await query.orderBy('createdAt', descending: true).get();
+
+      /// FETCH LEADS + FOLLOWUPS
+      final List<AddLeadModel> allLeads = await Future.wait(
+        snap.docs.map((leadDoc) async {
+          /// MAIN LEAD
+          final lead = AddLeadModel.fromFirestore(leadDoc.data(), leadDoc.id);
+
+          /// FETCH FOLLOWUP SUBCOLLECTION
+          final followUpSnap = await _collection
+              .doc(leadDoc.id)
+              .collection('FOLLOW_UPS')
+              .orderBy('createdAt', descending: true)
+              .get();
+
+          /// CONVERT FOLLOWUPS
+          final followUps = followUpSnap.docs.map((fupDoc) {
+            return FollowUpModel.fromFirestore(fupDoc.data(), fupDoc.id);
+          }).toList();
+
+          /// RETURN LEAD WITH FOLLOWUPS
+          return lead.copyWith(followUp: followUps);
+        }),
+      );
+
+      final effectiveTo = toDate ?? DateTime.now(); //selectedDate ??
+      final DateTime? fromDay = selectedDate != null
+          ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day)
+          : null;
+      final DateTime toDay = DateTime(
+        effectiveTo.year,
+        effectiveTo.month,
+        effectiveTo.day,
+        23,
+        59,
+        59,
+      );
+
+      bool isInRange(DateTime? date) {
+        if (date == null) return false;
+        if (selectedDate == null) {
+          return date.isBefore(toDay);
+        }
+        return !date.isBefore(fromDay!) && !date.isAfter(toDay);
+      }
+
+      final List<AddLeadModel> result = [];
+
+      int totalCount = 0;
+      for (final lead in allLeads) {
+        final matchingFollowUps =
+            lead.followUp?.where((fup) {
+              final inRange = isInRange(fup.calledDate);
+              if (role.toLowerCase() != 'admin') {
+                return inRange && fup.createdById == staffId;
+              }
+              return inRange;
+            }).toList() ??
+            [];
+        if (matchingFollowUps.isNotEmpty) {
+          for (final fup in matchingFollowUps) {
+            totalCount++;
+          }
+        } else if (isInRange(lead.calledDate)) {
+          totalCount++;
+          // result.add(lead);
+        }
+      }
+      log("totalCount $totalCount");
+      // Sort the expanded calls list by calledDate descending so latest call comes first
+
+      return totalCount;
+    } catch (e) {
+      log("error in fetchDashboardLeads ::: $e");
+
+      return 0;
+    }
+  }
+
+  Future<int> getTotalCalledCount(
+    DateTime startOfDay,
+    DateTime endOfDay,
+    String staffId,
+    String role,
+  ) async {
+    int totalCalledCount = 0;
+    try {
+      final startTs = Timestamp.fromDate(startOfDay);
+      final endTs = Timestamp.fromDate(endOfDay);
+      Query<Map<String, dynamic>> fupQuery = _firestore.collectionGroup(
+        'FOLLOW_UPS',
+      );
+      // Query on calledDate to match exactly how leadlistscreen filters follow-ups.
+      // Use single-field query to avoid requiring composite indexes on Firestore.
+      fupQuery = fupQuery
+          .where('calledDate', isGreaterThanOrEqualTo: startTs)
+          .where('calledDate', isLessThanOrEqualTo: endTs);
+      final fupSnap = await fupQuery.get();
+
+      int count = 0;
+      for (final doc in fupSnap.docs) {
+        final data = doc.data();
+        if (role.toLowerCase() != 'admin') {
+          if (data['createdById'] == staffId) {
+            count++;
+          }
+        } else {
+          count++;
+        }
+      }
+      totalCalledCount = count;
+    } catch (e) {
+      log('Error fetching follow-up counts in fetchLeadCounts: $e');
+    }
+    return totalCalledCount;
   }
 
   @override
@@ -3284,15 +3426,15 @@ class AddLeadRepository implements IAddLeadRepository {
       toTs = Timestamp.fromDate(to);
     }
 
-    // Query FOLLOW_UPS subcollection across all leads for this staff
-    Query<Map<String, dynamic>> query = _firestore
-        .collectionGroup('FOLLOW_UPS')
-        .where('createdById', isEqualTo: staffId);
+    // Query FOLLOW_UPS subcollection across all leads
+    Query<Map<String, dynamic>> query = _firestore.collectionGroup(
+      'FOLLOW_UPS',
+    );
 
     if (fromTs != null && toTs != null) {
       query = query
-          .where('createdAt', isGreaterThanOrEqualTo: fromTs)
-          .where('createdAt', isLessThanOrEqualTo: toTs);
+          .where('calledDate', isGreaterThanOrEqualTo: fromTs)
+          .where('calledDate', isLessThanOrEqualTo: toTs);
     }
 
     final snap = await query.get();
@@ -3304,6 +3446,11 @@ class AddLeadRepository implements IAddLeadRepository {
 
     for (final doc in snap.docs) {
       final data = doc.data();
+      if (role.toLowerCase() != 'admin') {
+        if (data['createdById'] != staffId) {
+          continue;
+        }
+      }
       final calledStatus = (data['calledStatus'] as String? ?? '').trim();
 
       if (calledStatus.isNotEmpty) {

@@ -257,9 +257,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         builder: (context, state) {
           // ── Loading ─────────────────────────────────────────────────
           if (state is NotificationLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           // ── Error ───────────────────────────────────────────────────
@@ -270,10 +268,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 child: Text(
                   state.message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.red.shade400,
-                    fontSize: 14.sp,
-                  ),
+                  style: TextStyle(color: Colors.red.shade400, fontSize: 14.sp),
                 ),
               ),
             );
@@ -297,10 +292,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               onRefresh: _onRefresh,
               child: ListView(
                 // Wrap in ListView so pull-to-refresh works on empty state
-                children: const [
-                  SizedBox(height: 200),
-                  _EmptyState(),
-                ],
+                children: const [SizedBox(height: 200), _EmptyState()],
               ),
             );
           }
@@ -312,10 +304,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: notifications.length,
-              separatorBuilder: (_, __) => const Divider(
-                thickness: 1,
-                color: Color(0xFFE5E5E5),
-              ),
+              separatorBuilder: (_, __) =>
+                  const Divider(thickness: 1, color: Color(0xFFE5E5E5)),
               itemBuilder: (context, index) {
                 return NotificationTile(notification: notifications[index]);
               },
@@ -390,7 +380,7 @@ class NotificationTile extends StatelessWidget {
                   notification.message,
                   style: TextStyle(
                     color: const Color(0xFF555555),
-                    fontSize: 13.sp,
+                    fontSize: 14.sp,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -404,10 +394,7 @@ class NotificationTile extends StatelessWidget {
           // ── Date ──────────────────────────────────────────────────
           Text(
             dateLabel,
-            style: TextStyle(
-              color: const Color(0xFFAAAAAA),
-              fontSize: 12.sp,
-            ),
+            style: TextStyle(color: const Color(0xFFAAAAAA), fontSize: 14.sp),
           ),
         ],
       ),

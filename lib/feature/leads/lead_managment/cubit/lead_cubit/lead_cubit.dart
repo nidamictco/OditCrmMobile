@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/feature/general_settings/data/general_setting_repo.dart';
@@ -18,6 +19,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_mod
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_count_model.dart';
 import 'package:odit_crm_mobile/feature/notification/data/notification_repo.dart';
 import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
+
 
 // class AddLeadCubit extends Cubit<AddLeadState> {
 //   final IAddLeadRepository _leadRepository;
@@ -110,30 +112,35 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 
 //   void _watchCategories() {
 //     _categorySubscription?.cancel();
-//     _categorySubscription = _categoryRepository.watchCategories().listen((
-//       cats,
-//     ) {
-//       if (isClosed) return;
-//       emit(state.copyWith(categories: [...cats]));
-//     }, onError: (_) {});
+//     _categorySubscription = _categoryRepository.watchCategories().listen(
+//       (cats) {
+//         if (isClosed) return;
+//         emit(state.copyWith(categories: [...cats]));
+//       },
+//       onError: (_) {},
+//     );
 //   }
 
 //   void _watchSources() {
 //     _sourceSubscription?.cancel();
-//     _sourceSubscription = _sourceRepository.watchSource().listen((srcs) {
-//       if (isClosed) return;
-//       emit(state.copyWith(sources: [...srcs]));
-//     }, onError: (_) {});
+//     _sourceSubscription = _sourceRepository.watchSource().listen(
+//       (srcs) {
+//         if (isClosed) return;
+//         emit(state.copyWith(sources: [...srcs]));
+//       },
+//       onError: (_) {},
+//     );
 //   }
 
 //   void _watchLeadStages() {
 //     _leadStageSubscription?.cancel();
-//     _leadStageSubscription = _leadStageRepository.watchCategories().listen((
-//       stages,
-//     ) {
-//       if (isClosed) return;
-//       emit(state.copyWith(stages: [...stages]));
-//     }, onError: (_) {});
+//     _leadStageSubscription = _leadStageRepository.watchCategories().listen(
+//       (stages) {
+//         if (isClosed) return;
+//         emit(state.copyWith(stages: [...stages]));
+//       },
+//       onError: (_) {},
+//     );
 //   }
 
 //   @override
@@ -207,26 +214,19 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //   // ── Fetch list ────────────────────────────────────────────────────────────
 
 //   Future<void> fetchLeads() async {
-//     log('[AddLeadCubit] fetchLeads() called');
 //     emit(
 //       state.copyWith(listStatus: LeadListStatus.loading, clearListError: true),
 //     );
 //     try {
 //       final user = await SessionService().getSavedUser();
-//       log('[AddLeadCubit] fetchLeads() user fetched: ${user?.name} (id: ${user?.id})');
 //       if (isClosed) return;
-      
-//       log('[AddLeadCubit] fetchLeads() Firestore collection query companyId: ${FirestorePath.companyId ?? 'null'}');
 //       final leads = await _leadRepository.fetchLeads(
 //         staffId: user?.id ?? '',
 //         role: user?.staffType ?? '',
 //       );
-//       log('[AddLeadCubit] fetchLeads() Firestore response count: ${leads.length}');
 //       if (isClosed) return;
 //       emit(state.copyWith(listStatus: LeadListStatus.loaded, leads: leads));
-//       log('[AddLeadCubit] AddLeadCubit state updated to loaded');
-//     } catch (e, st) {
-//       log('[AddLeadCubit] fetchLeads() failed with error: $e\n$st');
+//     } catch (e) {
 //       if (isClosed) return;
 //       emit(
 //         state.copyWith(
@@ -690,214 +690,76 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //     }
 //   }
 
-//   // Future<void> submitFollowUp({
-//   //   required String leadId,
-//   //   required String leadName,
-//   //   required String leadPhone,
-//   //   required String leadWhatsappNo,
-//   //   required String leadWhatsappDialCode,
-//   //   required DateTime calledDate,
-//   //   required DateTime nextFollowUpDate,
-//   //   required String leadTag,
-//   //   required String calledStatus,
-//   //   required String remarks,
-//   //   required String fromPage,
-//   //   required String editId,
-//   //   required String address,
-//   //   required String email,
-//   //   // Add these three — pass current lead values so repo can diff
-//   //   String previousStage = '',
-//   //   String previousCategory = '',
-//   //   String previousPriority = '',
-//   // }) async {
-//   //   if (state.isSubmitting) return;
+//   Future<void> submitFollowUp({
+//     required String leadId,
+//     required String leadName,
+//     required String leadPhone,
+//     required String leadWhatsappNo,
+//     required String leadWhatsappDialCode,
+//     required DateTime calledDate,
+//     required DateTime nextFollowUpDate,
+//     required String leadTag,
+//     required String calledStatus,
+//     required String remarks,
+//     required String fromPage,
+//     required String editId,
+//     required String address,
+//     required String email,
+//     // Add these three — pass current lead values so repo can diff
+//     String previousStage = '',
+//     String previousCategory = '',
+//     String previousPriority = '',
+//   }) async {
+//     if (state.isSubmitting) return;
 
-//   //   if (calledStatus.trim().isEmpty) {
-//   //     emit(
-//   //       state.copyWith(
-//   //         errorMessage: 'Call status is required.',
-//   //         clearSuccess: true,
-//   //       ),
-//   //     );
-//   //     return;
-//   //   }
-
-//   //   emit(state.copyWith(isSubmitting: true, clearError: true));
-
-//   //   try {
-//   //     final user = await SessionService().getSavedUser();
-
-//   //     log("fromPage : $fromPage");
-//   //     log("editId : $editId");
-
-//   //     String id = "";
-//   //     if (fromPage == "EDIT" && editId.isNotEmpty) {
-//   //       id = editId;
-//   //     } else {
-//   //       id = DateTime.now().millisecondsSinceEpoch.toString();
-//   //     }
-
-//   //     final followUp = FollowUpModel(
-//   //       id: id,
-//   //       leadId: leadId,
-//   //       leadName: leadName,
-//   //       leadWhatsappNo: leadWhatsappNo,
-//   //       leadWhatsappDialCode: leadWhatsappDialCode,
-//   //       calledDate: calledDate,
-//   //       nextFollowUpDate: nextFollowUpDate,
-//   //       calledStatus: calledStatus,
-//   //       leadTag: state.selectedLeadTag ?? '',
-//   //       leadStage: state.selectedLeadStage ?? '',
-//   //       leadCategory: state.selectedCategory ?? '',
-//   //       priority: state.selectedPriority ?? '',
-//   //       remarks: remarks,
-//   //       createdById: user?.id ?? '',
-//   //       createdAt: DateTime.now(),
-//   //       adress: address,
-//   //       email: email,
-//   //       assignedStaff: user!.name,
-//   //       assignedStaffId: user.id ?? '',
-//   //     );
-//   //     log(
-//   //       'followup date : ${followUp.nextFollowUpDate}, called date : ${followUp.calledDate},followup datail: $followUp',
-//   //     );
-
-//   //     await _leadRepository.addFollowUp(
-//   //       leadId,
-//   //       followUp,
-//   //       previousStage: previousStage,
-//   //       previousCategory: previousCategory,
-//   //       previousPriority: previousPriority,
-//   //       changedByName: user?.name ?? '',
-//   //       changedById: user?.id ?? '',
-//   //       leadName: leadName,
-//   //       leadPhone: leadPhone,
-//   //     );
-//   //     emit(
-//   //       state.copyWith(
-//   //         isSubmitting: false,
-//   //         status: AddLeadStatus.success,
-//   //         successMessage: 'Follow-up added successfully.',
-//   //         clearError: true,
-//   //         clearCategory: true,
-//   //         clearPriority: true,
-//   //         clearLeadStage: true,
-//   //       ),
-//   //     );
-//   //   } catch (e) {
-//   //     emit(
-//   //       state.copyWith(
-//   //         isSubmitting: false,
-//   //         status: AddLeadStatus.failure,
-//   //         errorMessage: _friendlyError(e),
-//   //         clearSuccess: true,
-//   //       ),
-//   //     );
-//   //   }
-//   // }
-
-//   // ✅ FIXED: AddLeadCubit.submitFollowUp() with full debug logging
-// // Replace the existing submitFollowUp() method in AddLeadCubit with this:
-
-// Future<void> submitFollowUp({
-//   required String leadId,
-//   required String leadName,
-//   required String leadPhone,
-//   required String leadWhatsappNo,
-//   required String leadWhatsappDialCode,
-//   required DateTime calledDate,
-//   required DateTime nextFollowUpDate,
-//   required String leadTag,
-//   required String calledStatus,
-//   required String remarks,
-//   required String fromPage,
-//   required String editId,
-//   required String address,
-//   required String email,
-//   String previousStage = '',
-//   String previousCategory = '',
-//   String previousPriority = '',
-// }) async {
-//   debugPrint('=== CUBIT submitFollowUp START ===');
-//   debugPrint('leadId: $leadId');
-//   debugPrint('leadName: $leadName');
-//   debugPrint('calledStatus: $calledStatus');
-
-//   if (state.isSubmitting) {
-//     debugPrint('⚠️ Already submitting, ignoring duplicate request');
-//     return;
-//   }
-
-//   if (calledStatus.trim().isEmpty) {
-//     debugPrint('❌ Validation failed: calledStatus is empty');
-//     emit(
-//       state.copyWith(
-//         errorMessage: 'Call status is required.',
-//         clearSuccess: true,
-//       ),
-//     );
-//     return;
-//   }
-
-//   emit(state.copyWith(isSubmitting: true, clearError: true));
-//   debugPrint('📌 Emitted isSubmitting=true');
-
-//   try {
-//     final user = await SessionService().getSavedUser();
-//     debugPrint('✅ User loaded: ${user?.name ?? 'Unknown'}');
-
-//     if (leadId.isEmpty) {
-//       debugPrint('❌ CRITICAL: leadId is empty!');
+//     if (calledStatus.trim().isEmpty) {
 //       emit(
 //         state.copyWith(
-//           isSubmitting: false,
-//           status: AddLeadStatus.failure,
-//           errorMessage: 'Lead ID is missing.',
+//           errorMessage: 'Call status is required.',
 //           clearSuccess: true,
 //         ),
 //       );
 //       return;
 //     }
 
-//     // Generate or use provided ID
-//     final String followUpId = editId.isNotEmpty
-//         ? editId
-//         : DateTime.now().millisecondsSinceEpoch.toString();
+//     emit(state.copyWith(isSubmitting: true, clearError: true));
 
-//     debugPrint('📌 Follow-up ID: $followUpId');
-
-//     // Create follow-up model
-//     final followUp = FollowUpModel(
-//       id: followUpId,
-//       leadId: leadId,
-//       leadName: leadName,
-//       leadWhatsappNo: leadWhatsappNo,
-//       leadWhatsappDialCode: leadWhatsappDialCode,
-//       calledDate: calledDate,
-//       nextFollowUpDate: nextFollowUpDate,
-//       calledStatus: calledStatus,
-//       leadTag: state.selectedLeadTag ?? '',
-//       leadStage: state.selectedLeadStage ?? '',
-//       leadCategory: state.selectedCategory ?? '',
-//       priority: state.selectedPriority ?? '',
-//       remarks: remarks,
-//       createdById: user?.id ?? '',
-//       createdAt: DateTime.now(),
-//       adress: address,
-//       email: email,
-//       assignedStaff: user!.name,
-//       assignedStaffId: user.id ?? '',
-//     );
-
-//     debugPrint('✅ FollowUpModel created');
-//     debugPrint('   - Stage: ${followUp.leadStage}');
-//     debugPrint('   - Category: ${followUp.leadCategory}');
-//     debugPrint('   - Priority: ${followUp.priority}');
-//     debugPrint('   - Status: ${followUp.calledStatus}');
-
-//     // CRITICAL: Call repository with error handling
-//     debugPrint('📌 Calling _leadRepository.addFollowUp()...');
 //     try {
+//       final user = await SessionService().getSavedUser();
+
+//       log("fromPage : $fromPage");
+//       log("editId : $editId");
+
+//       String id = "";
+//       if (fromPage == "EDIT" && editId.isNotEmpty) {
+//         id = editId;
+//       } else {
+//         id = DateTime.now().millisecondsSinceEpoch.toString();
+//       }
+
+//       final followUp = FollowUpModel(
+//         id: id,
+//         leadId: leadId,
+//         leadName: leadName,
+//         leadWhatsappNo: leadWhatsappNo,
+//         leadWhatsappDialCode: leadWhatsappDialCode,
+//         calledDate: calledDate,
+//         nextFollowUpDate: nextFollowUpDate,
+//         calledStatus: calledStatus,
+//         leadTag: state.selectedLeadTag ?? '',
+//         leadStage: state.selectedLeadStage ?? '',
+//         leadCategory: state.selectedCategory ?? '',
+//         priority: state.selectedPriority ?? '',
+//         remarks: remarks,
+//         createdById: user?.id ?? '',
+//         createdAt: DateTime.now(),
+//         adress: address,
+//         email: email,
+//         assignedStaff: user!.name,
+//         assignedStaffId: user.id ?? '',
+//       );
+//       log('followup date : ${followUp.nextFollowUpDate}, called date : ${followUp.calledDate},followup datail: $followUp');
+
 //       await _leadRepository.addFollowUp(
 //         leadId,
 //         followUp,
@@ -909,40 +771,28 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //         leadName: leadName,
 //         leadPhone: leadPhone,
 //       );
-//       debugPrint('✅ _leadRepository.addFollowUp() SUCCESS');
-//     } catch (repoError, repoStack) {
-//       debugPrint('❌ _leadRepository.addFollowUp() ERROR: $repoError');
-//       debugPrint('Stack: $repoStack');
-//       rethrow;
+//       emit(
+//         state.copyWith(
+//           isSubmitting: false,
+//           status: AddLeadStatus.success,
+//           successMessage: 'Follow-up added successfully.',
+//           clearError: true,
+//           clearCategory: true,
+//           clearPriority: true,
+//           clearLeadStage: true,
+//         ),
+//       );
+//     } catch (e) {
+//       emit(
+//         state.copyWith(
+//           isSubmitting: false,
+//           status: AddLeadStatus.failure,
+//           errorMessage: _friendlyError(e),
+//           clearSuccess: true,
+//         ),
+//       );
 //     }
-
-//     // If we reach here, save was successful
-//     debugPrint('📌 Emitting success state...');
-//     emit(
-//       state.copyWith(
-//         isSubmitting: false,
-//         status: AddLeadStatus.success,
-//         successMessage: 'Follow-up added successfully.',
-//         clearError: true,
-//         clearCategory: true,
-//         clearPriority: true,
-//         clearLeadStage: true,
-//       ),
-//     );
-//     debugPrint('✅ SUCCESS state emitted');
-//   } catch (e, st) {
-//     debugPrint('❌ CRITICAL ERROR in submitFollowUp: $e');
-//     debugPrint('Stack: $st');
-//     emit(
-//       state.copyWith(
-//         isSubmitting: false,
-//         status: AddLeadStatus.failure,
-//         errorMessage: _friendlyError(e),
-//         clearSuccess: true,
-//       ),
-//     );
 //   }
-// }
 
 //   // ______transfer______________________
 
@@ -984,13 +834,13 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //       );
 //       // await _leadRepository.transferLead(leadId, transfer);
 
-//       // if (toStaffId.isNotEmpty) {
-//       //   await notificationRepo.create(
-//       //     staffId: toStaffId,
-//       //     title: 'Lead Transferred',
-//       //     message: 'Name :$leadName, Phone No: $contactNumber',
-//       //   );
-//       // }
+//       if (toStaffId.isNotEmpty) {
+//         await notificationRepo.create(
+//           staffId: toStaffId,
+//           title: 'Lead Transferred',
+//           message: 'Name :$leadName, Phone No: $contactNumber',
+//         );
+//       }
 
 //       if (isClosed) return;
 
@@ -1249,53 +1099,53 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //   }
 //   // ----------search----------
 
-//   Future<void> searchLeads(String query) async {
-//     if (query.trim().isEmpty) {
-//       emit(state.copyWith(isSearching: false, searchResults: []));
-//       return;
-//     }
+//   // Future<void> searchLeads(String query) async {
+//   //   if (query.trim().isEmpty) {
+//   //     emit(state.copyWith(isSearching: false, searchResults: []));
+//   //     return;
+//   //   }
 
-//     // Show dropdown immediately with loading state
-//     emit(state.copyWith(isSearching: true, searchResults: []));
+//   //   // Show dropdown immediately with loading state
+//   //   emit(state.copyWith(isSearching: true, searchResults: []));
 
-//     try {
-//       // Use cached leads if already loaded — avoids Firestore call on every keystroke
-//       List<AddLeadModel> allLeads = state.leads;
+//   //   try {
+//   //     // Use cached leads if already loaded — avoids Firestore call on every keystroke
+//   //     List<AddLeadModel> allLeads = state.leads;
 
-//       if (allLeads.isEmpty) {
-//         final user = await SessionService().getSavedUser();
-//         // Fetch directly into local variable — do NOT call fetchLeads() here
-//         // because fetchLeads() emits intermediate states that make state.leads
-//         // unreliable to read afterward
-//         allLeads = await _leadRepository.fetchLeads(
-//           staffId: user?.id ?? '',
-//           role: user?.staffType ?? '',
-//         );
-//         // Cache in state for future keystrokes (instant filter after first load)
-//         emit(
-//           state.copyWith(
-//             listStatus: LeadListStatus.loaded,
-//             leads: allLeads,
-//             isSearching: true,
-//           ),
-//         );
-//       }
+//   //     if (allLeads.isEmpty) {
+//   //       final user = await SessionService().getSavedUser();
+//   //       // Fetch directly into local variable — do NOT call fetchLeads() here
+//   //       // because fetchLeads() emits intermediate states that make state.leads
+//   //       // unreliable to read afterward
+//   //       allLeads = await _leadRepository.fetchLeads(
+//   //         staffId: user?.id ?? '',
+//   //         role: user?.staffType ?? '',
+//   //       );
+//   //       // Cache in state for future keystrokes (instant filter after first load)
+//   //       emit(
+//   //         state.copyWith(
+//   //           listStatus: LeadListStatus.loaded,
+//   //           leads: allLeads,
+//   //           isSearching: true,
+//   //         ),
+//   //       );
+//   //     }
 
-//       final q = query.toLowerCase();
-//       final results = allLeads
-//           .where(
-//             (lead) =>
-//                 lead.clientName?.toLowerCase().contains(q) == true ||
-//                 lead.contactNumber?.contains(query) == true ||
-//                 lead.email?.toLowerCase().contains(q) == true,
-//           )
-//           .toList();
+//   //     final q = query.toLowerCase();
+//   //     final results = allLeads
+//   //         .where(
+//   //           (lead) =>
+//   //               lead.clientName?.toLowerCase().contains(q) == true ||
+//   //               lead.contactNumber?.contains(query) == true ||
+//   //               lead.email?.toLowerCase().contains(q) == true,
+//   //         )
+//   //         .toList();
 
-//       emit(state.copyWith(isSearching: true, searchResults: results));
-//     } catch (e) {
-//       emit(state.copyWith(isSearching: false, searchResults: []));
-//     }
-//   }
+//   //     emit(state.copyWith(isSearching: true, searchResults: results));
+//   //   } catch (e) {
+//   //     emit(state.copyWith(isSearching: false, searchResults: []));
+//   //   }
+//   // }
 
 //   void updateSelectedDashboardDate(DateTime date) {
 //     emit(state.copyWith(selectedDashboardDate: date));
@@ -1452,6 +1302,46 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //       ),
 //     );
 //   }
+//   // REPLACE the existing searchLeads() method with this:
+// Future<void> searchLeads(String query) async {
+//   if (query.trim().isEmpty) {
+//     emit(state.copyWith(
+//       listStatus: LeadListStatus.initial,
+//       leads: [],
+//       clearListError: true,
+//     ));
+//     return;
+//   }
+
+//   emit(state.copyWith(
+//     listStatus: LeadListStatus.loading,
+//     clearListError: true,
+//   ));
+
+//   try {
+//     final user = await SessionService().getSavedUser();
+//     if (isClosed) return;
+
+//     final results = await _leadRepository.searchLeadsByQuery(
+//       query: query,
+//       staffId: user?.id ?? '',
+//       role: user?.staffType ?? '',
+//     );
+//     if (isClosed) return;
+
+//     log('[AddLeadCubit] searchLeads: ${results.length} results for "$query"');
+//     emit(state.copyWith(
+//       listStatus: LeadListStatus.loaded,
+//       leads: results,
+//     ));
+//   } catch (e) {
+//     if (isClosed) return;
+//     emit(state.copyWith(
+//       listStatus: LeadListStatus.failure,
+//       listError: _friendlyError(e),
+//     ));
+//   }
+// }
 // }
 
 // Future<void> migrateCallResults() async {
@@ -1491,6 +1381,7 @@ import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 //   /// child: const Text('Run Migration'),
 //   ///),
 // }
+
 
 class AddLeadCubit extends Cubit<AddLeadState> {
   final IAddLeadRepository _leadRepository;
@@ -1583,35 +1474,30 @@ class AddLeadCubit extends Cubit<AddLeadState> {
 
   void _watchCategories() {
     _categorySubscription?.cancel();
-    _categorySubscription = _categoryRepository.watchCategories().listen(
-      (cats) {
-        if (isClosed) return;
-        emit(state.copyWith(categories: [...cats]));
-      },
-      onError: (_) {},
-    );
+    _categorySubscription = _categoryRepository.watchCategories().listen((
+      cats,
+    ) {
+      if (isClosed) return;
+      emit(state.copyWith(categories: [...cats]));
+    }, onError: (_) {});
   }
 
   void _watchSources() {
     _sourceSubscription?.cancel();
-    _sourceSubscription = _sourceRepository.watchSource().listen(
-      (srcs) {
-        if (isClosed) return;
-        emit(state.copyWith(sources: [...srcs]));
-      },
-      onError: (_) {},
-    );
+    _sourceSubscription = _sourceRepository.watchSource().listen((srcs) {
+      if (isClosed) return;
+      emit(state.copyWith(sources: [...srcs]));
+    }, onError: (_) {});
   }
 
   void _watchLeadStages() {
     _leadStageSubscription?.cancel();
-    _leadStageSubscription = _leadStageRepository.watchCategories().listen(
-      (stages) {
-        if (isClosed) return;
-        emit(state.copyWith(stages: [...stages]));
-      },
-      onError: (_) {},
-    );
+    _leadStageSubscription = _leadStageRepository.watchCategories().listen((
+      stages,
+    ) {
+      if (isClosed) return;
+      emit(state.copyWith(stages: [...stages]));
+    }, onError: (_) {});
   }
 
   @override
@@ -1712,7 +1598,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     required String staffId,
     required String role,
     required String fromCard,
-    required DateTime selectedDate,
+    DateTime? selectedDate,
     DateTime? toDate,
   }) async {
     emit(
@@ -1834,6 +1720,16 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   //   }
   // }
 
+  String _generateDateId(String prefix) {
+    final now = DateTime.now();
+    final datePart = DateFormat('yyyyMMdd').format(now);
+    final timePart = DateFormat('HHmmss').format(now);
+    final ms =
+        now.millisecondsSinceEpoch % 1000; // last 3 digits for uniqueness
+    final id = now.millisecondsSinceEpoch.toString();
+    return '$prefix-$datePart-$id';
+  }
+
   // ── Submit (add) ──────────────────────────────────────────────────────────
 
   Future<void> submitLead({
@@ -1850,6 +1746,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     required DateTime nextFollowUpDate,
     Map<String, String> additionalFieldValues = const {},
   }) async {
+    final now = DateTime.now();
     if (state.isSubmitting) return;
 
     if (clientName.trim().isEmpty) {
@@ -1872,21 +1769,6 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     }
 
     emit(state.copyWith(isSubmitting: true, clearError: true));
-    // ── Duplicate contact check ───────────────────────────────────────────────
-    final isDuplicate = await _leadRepository.isContactNumberExists(
-      contactNumber,
-    );
-    if (isClosed) return;
-    if (isDuplicate) {
-      emit(
-        state.copyWith(
-          isSubmitting: false,
-          errorMessage: 'A lead with this contact number already exists.',
-          clearSuccess: true,
-        ),
-      );
-      return;
-    }
     try {
       final user = await SessionService().getSavedUser();
 
@@ -1900,7 +1782,15 @@ class AddLeadCubit extends Cubit<AddLeadState> {
           ? state.assignedStaffName
           : user?.name ?? '';
 
+      final calledDate =
+          state.selectedLeadStage.toString().toUpperCase() != "NEW"
+          ? now
+          : null;
+
+      final String leadId = _generateDateId('LEAD');
+
       final lead = AddLeadModel(
+        id: leadId,
         clientName: clientName,
         contactNumber: contactNumber,
         contactDialCode: contactDialCode,
@@ -1925,9 +1815,11 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         leadTag: state.selectedLeadTag ?? '',
         followUpDate: nextFollowUpDate,
         additionalFields: additionalFieldValues,
+        calledDate: calledDate,
       );
 
       final newId = await _leadRepository.addLead(lead);
+
       if (isClosed) return;
       // ✅ Log lead creation activity
       await _leadRepository.logLeadCreated(
@@ -1948,6 +1840,32 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         message: 'Name: ${lead.clientName} Phone No: ${lead.contactNumber}',
         excludeStaffId: user?.id,
       );
+
+      if (isClosed) return;
+      if (state.selectedLeadStage.toString().toUpperCase() != 'NEW') {
+        final followup = FollowUpModel(
+          id: now.millisecondsSinceEpoch.toString(),
+          leadId: leadId,
+          leadName: clientName,
+          leadWhatsappNo: whatsappNumber,
+          leadWhatsappDialCode: whatsappDialCode,
+          nextFollowUpDate: nextFollowUpDate,
+          leadTag: state.selectedLeadTag ?? '',
+          calledStatus: state.selectedCallResult ?? '',
+          calledDate: calledDate!,
+          leadStage: state.selectedLeadStage.toString(),
+          leadCategory: state.selectedCategory ?? '',
+          priority: state.selectedPriority ?? '',
+          remarks: remarks,
+          adress: address,
+          email: email,
+          assignedStaff: resolvedStaffName,
+          assignedStaffId: resolvedStaffId,
+          createdById: user?.id ?? '',
+          createdAt: now,
+        );
+        await _leadRepository.addFollowUp(leadId, followup);
+      }
 
       if (isClosed) return;
 
@@ -1983,14 +1901,17 @@ class AddLeadCubit extends Cubit<AddLeadState> {
 
   String _friendlyError(Object error) {
     final msg = error.toString();
+    if (msg.contains('Contact Number and WhatsApp Number already exist.')) return 'Contact Number and WhatsApp Number already exist.';
+    if (msg.contains('Contact Number already exists.')) return 'Contact Number already exists.';
+    if (msg.contains('WhatsApp Number already exists.')) return 'WhatsApp Number already exists.';
     if (msg.contains('permission-denied'))
       return 'You do not have permission to perform this action.';
     if (msg.contains('network') || msg.contains('unavailable'))
       return 'Network error. Please check your connection.';
     if (msg.contains('not-found'))
       return 'Record not found. It may have been deleted.';
-    if (msg.contains('Client name')) return msg;
-    if (msg.contains('Contact number')) return msg;
+    if (msg.contains('Client name')) return 'Client name cannot be empty.';
+    if (msg.contains('Contact number')) return 'Contact number cannot be empty.';
     return 'Something went wrong. Please try again.';
   }
 
@@ -2208,6 +2129,9 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         id = DateTime.now().millisecondsSinceEpoch.toString();
       }
 
+      log("state.selectedLeadStage : ${state.selectedLeadStage}");
+      log("state.selectedLeadTag : ${state.selectedLeadTag}");
+
       final followUp = FollowUpModel(
         id: id,
         leadId: leadId,
@@ -2229,7 +2153,9 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         assignedStaff: user!.name,
         assignedStaffId: user.id ?? '',
       );
-      log('followup date : ${followUp.nextFollowUpDate}, called date : ${followUp.calledDate},followup datail: $followUp');
+      log(
+        'followup date : ${followUp.nextFollowUpDate}, called date : ${followUp.calledDate},followup datail: $followUp',
+      );
 
       await _leadRepository.addFollowUp(
         leadId,
@@ -2425,9 +2351,11 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     DateTime selectedDate, {
     String? staffId,
     String? role,
+    bool forceFetch = false,
   }) async {
     // Skip re-fetch if same date and we already have counts
-    if (_lastCountDate != null &&
+    if (!forceFetch &&
+        _lastCountDate != null &&
         _lastCountDate!.year == selectedDate.year &&
         _lastCountDate!.month == selectedDate.month &&
         _lastCountDate!.day == selectedDate.day &&
@@ -2474,7 +2402,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
       _cachedTotalCalled = totalCalled;
 
       log(
-        '[fetchDashboardCounts] closed=${counts.closedLeadCount} '
+        '[fetchDashboardCounts......1234567890......] closed=${counts.closedLeadCount} '
         'total=${counts.totalCalledCount} totalCalled=$totalCalled',
       );
 
@@ -2490,6 +2418,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
           transferredCount: counts.transferredCount.toString(),
         ),
       );
+      log("kkkkkkkkkk ${state.dashboardTotalCalledCount}");
     } catch (e) {
       log('[fetchDashboardCounts] Error: $e');
       if (!isClosed) emit(state.copyWith(isLoadingCounts: false));

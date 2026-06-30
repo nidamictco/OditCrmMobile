@@ -1,13 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
+import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
+import 'package:odit_crm_mobile/feature/menu/change_password_screen.dart';
 import 'package:odit_crm_mobile/feature/menu/profile_bottom_sheet.dart';
 import 'package:odit_crm_mobile/feature/menu/logout_dialog.dart';
-import 'package:odit_crm_mobile/feature/change_password/presentation/change_password_screen.dart';
+import 'package:odit_crm_mobile/feature/menu/widget/open_notification_settings.dart';
+import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_cubit.dart';
 import 'package:sizer/sizer.dart';
 
-class OxdoDrawer extends StatelessWidget {
+class OxdoDrawer extends StatefulWidget {
   const OxdoDrawer({super.key});
+
+  @override
+  State<OxdoDrawer> createState() => _OxdoDrawerState();
+}
+
+class _OxdoDrawerState extends State<OxdoDrawer> {
+  StaffModel? user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    user = await SessionService().getSavedUser();
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +48,7 @@ class OxdoDrawer extends StatelessWidget {
         width: 60.w,
         child: Column(
           children: [
-            const _DrawerHeader(),
+            _DrawerHeader(user),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.symmetric(vertical: 1.h),
@@ -38,35 +65,41 @@ class OxdoDrawer extends StatelessWidget {
                       );
                     },
                   ),
-                  _DrawerMenuItem(
-                    icon: Icons.people_outline,
-                    title: 'Staff Management',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CustomBottomNavScreen(index: CustomBottomNavScreen.staffIndex),
-                        ),
-                      );
-                    },
-                  ),
+
                   _DrawerMenuItem(
                     icon: Icons.person_outline,
                     title: 'Profile',
-                    onTap: () => ProfileBottomSheet.show(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (user != null) {
+                        ProfileBottomSheet.show(
+                          context,
+                          user!,
+                        ); // ✅ Safe unwrap
+                      }
+                    },
                   ),
+
                   _DrawerMenuItem(
                     icon: Icons.lock_outline,
                     title: 'Change Password',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ChangePasswordScreen(),
-                        ),
-                      );
+                      if (user != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BlocProvider.value(
+                              value: StaffCubit(),
+                              child: ChangePasswordScreen(staff: user!),
+                            ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('User data not loaded')),
+                        );
+                      }
                     },
                   ),
                   _DrawerMenuItem(
@@ -76,17 +109,20 @@ class OxdoDrawer extends StatelessWidget {
                   _DrawerMenuItem(
                     icon: Icons.notifications_none,
                     title: 'Notification Settings',
+                    onTap: () async {
+                      await openNotificationSettings();
+                    },
                   ),
-                  _DrawerMenuItem(
-                    icon: Icons.location_on,
-                    title: 'Company Locations',
-                    iconColor: Color.fromARGB(255, 177, 41, 39),
-                  ),
-                  _DrawerMenuItem(
-                    icon: Icons.dashboard_customize_outlined,
-                    title: 'Set Dashboard',
-                    iconColor: AppColors.skyBlue,
-                  ),
+                  // _DrawerMenuItem(
+                  //   icon: Icons.location_on,
+                  //   title: 'Company Locations',
+                  //   iconColor: Color.fromARGB(255, 177, 41, 39),
+                  // ),
+                  // _DrawerMenuItem(
+                  //   icon: Icons.dashboard_customize_outlined,
+                  //   title: 'Set Dashboard',
+                  //   iconColor: AppColors.skyBlue,
+                  // ),
                   _DrawerMenuItem(
                     icon: Icons.power_settings_new,
                     title: 'Logout',
@@ -107,7 +143,8 @@ class OxdoDrawer extends StatelessWidget {
 }
 
 class _DrawerHeader extends StatelessWidget {
-  const _DrawerHeader();
+  final StaffModel? user;
+  const _DrawerHeader(this.user);
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +177,9 @@ class _DrawerHeader extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                'L2',
+                user?.name?.isNotEmpty == true
+                    ? user!.name![0].toUpperCase()
+                    : 'U',
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w800,
@@ -162,7 +201,9 @@ class _DrawerHeader extends StatelessWidget {
               ),
             ),
             child: Text(
-              'OXDO LEADS',
+              user?.name?.isNotEmpty == true
+                  ? user!.name!.toUpperCase()
+                  : 'User',
               style: TextStyle(
                 fontSize: 11.sp,
                 fontWeight: FontWeight.bold,
@@ -259,9 +300,21 @@ class _DrawerBottomBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _BottomIcon(icon: Icons.chat_outlined, onTap: () {}),
-          _BottomIcon(icon: Icons.phone_outlined, onTap: () {}),
-          _BottomIcon(icon: Icons.language_outlined, onTap: () {}),
+          _BottomIcon(
+            icon: Icons.chat_outlined,
+            onTap: () {
+              launchWhatsApp(context, '8089131915');
+            },
+          ),
+          _BottomIcon(
+            icon: Icons.phone_outlined,
+            onTap: () {
+              launchPhoneCall(context, '8089131915');
+            },
+          ),
+          _BottomIcon(icon: Icons.language_outlined, onTap: () {
+            launchWeb(context, 'https://oxdotech.com/');
+          }),
         ],
       ),
     );

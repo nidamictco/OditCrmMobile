@@ -12,6 +12,7 @@ class FollowupHistoryCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final bool canEditDelete;
+  final bool canNotDelete;
 
   const FollowupHistoryCard({
     super.key,
@@ -21,21 +22,23 @@ class FollowupHistoryCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     this.canEditDelete = false,
+    this.canNotDelete = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isNewStatus = followup.leadStage.trim().toLowerCase().contains('new');
-    final Color badgeBgColor = isNewStatus ? AppColors.bottomNavBlue : const Color(0xFFFFA000);
+    final bool isNewStatus = followup.leadStage.trim().toLowerCase().contains(
+      'new',
+    );
+    final Color badgeBgColor = isNewStatus
+        ? AppColors.bottomNavBlue
+        : const Color(0xFFFFA000);
 
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF0F8FF),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF9ED1FF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFF9ED1FF), width: 1),
       ),
       padding: EdgeInsets.all(4.w),
       margin: EdgeInsets.only(bottom: 2.h),
@@ -82,14 +85,11 @@ class FollowupHistoryCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 3.w),
-                GestureDetector(
-                  onTap: onDelete,
-                  child: Icon(
-                    Icons.delete,
-                    color: Colors.red,
-                    size: 5.w,
+                if (followupNumber != 2)
+                  GestureDetector(
+                    onTap: onDelete,
+                    child: Icon(Icons.delete, color: Colors.red, size: 5.w),
                   ),
-                ),
                 SizedBox(width: 3.w),
               ],
               // Status Badge
@@ -103,7 +103,7 @@ class FollowupHistoryCard extends StatelessWidget {
           SizedBox(height: 1.5.h),
 
           // Scheduled Date Row
-          if (scheduledDate != null) ...[
+          if (scheduledDate != null && followup.leadStage != 'REJECTED') ...[
             Row(
               children: [
                 Icon(
