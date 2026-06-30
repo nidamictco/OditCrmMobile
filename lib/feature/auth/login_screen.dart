@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
 import 'package:odit_crm_mobile/feature/auth/cubit/auth_cubit.dart';
 import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
@@ -65,28 +66,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const TopBackgroundWidget(),
 
-                      // Company Dropdown at top-right
-                      Positioned(
-                        top: 6.h,
-                        right: 6.w,
-                        child: CompanyDropdownWidget(
-                          selectedValue: _selectedCompany,
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() {
-                                _selectedCompany = val;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-
                       // Logo (placed overlapping the bottom of top background)
-                      Positioned(bottom: -5.h, child: const LogoWidget()),
+                      Positioned(bottom: -8.h, child: const LogoWidget()),
                     ],
                   ),
 
-                  SizedBox(height: 7.h),
+                  SizedBox(height: 10.h),
 
                   // ── Credentials / Input Section ──
                   Padding(
@@ -155,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               phoneNo: _usernameController.text,
                               password: _passwordController.text,
                               // companyId: ,
-                              permissionCubit: context.read<PermissionCubit>(), 
+                              permissionCubit: context.read<PermissionCubit>(),
                             );
                             log(_usernameController.text);
                             log(_passwordController.text);
@@ -185,7 +170,7 @@ class TopBackgroundWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 35.h,
+      height: 30.h,
       decoration: BoxDecoration(
         color: AppColors.bottomNavBlue.withOpacity(0.04),
       ),
@@ -411,15 +396,16 @@ class LogoWidget extends StatelessWidget {
             //   color: AppColors.bottomNavBlue,
             //   size: 22.sp,
             // ),
-            Text(
-              'Odit',
-              style: GoogleFonts.poppins(
-                color: AppColors.bottomNavBlue,
-                fontSize: 30.sp,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
+            // Text(
+            //   'Odit',
+            //   style: GoogleFonts.poppins(
+            //     color: AppColors.bottomNavBlue,
+            //     fontSize: 30.sp,
+            //     fontWeight: FontWeight.bold,
+            //     letterSpacing: 0.5,
+            //   ),
+            // ),
+            Image.asset(AssetResources.logo, height: 15.h, width: 20.w),
           ],
         ),
       ),
@@ -469,7 +455,7 @@ class LoginTextFieldWidget extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         style: GoogleFonts.poppins(
-          fontSize: 14.sp,
+          fontSize: 14.5.sp,
           color: const Color(0xFF333333),
         ),
         inputFormatters: phone == true
@@ -481,7 +467,7 @@ class LoginTextFieldWidget extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: GoogleFonts.poppins(
-            fontSize: 13.5.sp,
+            fontSize: 14.5.sp,
             color: Colors.grey.shade400,
           ),
           prefixIcon: Padding(
@@ -489,7 +475,7 @@ class LoginTextFieldWidget extends StatelessWidget {
             child: Icon(
               prefixIcon,
               color: AppColors.bottomNavBlue,
-              size: 18.sp,
+              size: 20.sp,
             ),
           ),
           prefixIconConstraints: BoxConstraints(minWidth: 10.w),

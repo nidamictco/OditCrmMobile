@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
 import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
 import 'package:odit_crm_mobile/feature/menu/change_password_screen.dart';
@@ -162,8 +163,8 @@ class _DrawerHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            height: 13.h,
-            width: 13.h,
+            height: 14.5.h,
+            width: 14.5.h,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -176,42 +177,50 @@ class _DrawerHeader extends StatelessWidget {
               ],
             ),
             child: Center(
-              child: Text(
-                user?.name?.isNotEmpty == true
-                    ? user!.name![0].toUpperCase()
-                    : 'U',
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF2F80ED),
-                  letterSpacing: 1,
+              // child: Text(
+              //   user?.name?.isNotEmpty == true
+              //       ? user!.name![0].toUpperCase()
+              //       : 'U',
+              //   style: TextStyle(
+              //     fontSize: 20.sp,
+              //     fontWeight: FontWeight.w800,
+              //     color: const Color(0xFF2F80ED),
+              //     letterSpacing: 1,
+              //   ),
+              // ),
+              child: Padding(
+                padding: EdgeInsets.all(6.w),
+                child: Image.asset(
+                  AssetResources.logo2,
+                  // height: 13.h,
+                  // width: 15.w,
                 ),
               ),
             ),
           ),
-          SizedBox(height: 2.h),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.8.h),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.6),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              user?.name?.isNotEmpty == true
-                  ? user!.name!.toUpperCase()
-                  : 'User',
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
+          // SizedBox(height: 2.h),
+          // Container(
+          //   padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.8.h),
+          //   decoration: BoxDecoration(
+          //     color: Colors.white.withOpacity(0.25),
+          //     borderRadius: BorderRadius.circular(20),
+          //     border: Border.all(
+          //       color: Colors.white.withOpacity(0.6),
+          //       width: 1,
+          //     ),
+          //   ),
+          //   child: Text(
+          //     user?.name?.isNotEmpty == true
+          //         ? user!.name!.toUpperCase()
+          //         : 'User',
+          //     style: TextStyle(
+          //       fontSize: 11.sp,
+          //       fontWeight: FontWeight.bold,
+          //       color: Colors.white,
+          //       letterSpacing: 1.5,
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );
@@ -312,9 +321,12 @@ class _DrawerBottomBar extends StatelessWidget {
               launchPhoneCall(context, '8089131915');
             },
           ),
-          _BottomIcon(icon: Icons.language_outlined, onTap: () {
-            launchWeb(context, 'https://oxdotech.com/');
-          }),
+          _BottomIcon(
+            icon: Icons.language_outlined,
+            onTap: () {
+              launchWeb(context, 'https://oxdotech.com/');
+            },
+          ),
         ],
       ),
     );
