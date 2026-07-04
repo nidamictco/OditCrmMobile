@@ -131,8 +131,8 @@ class NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateLabel = notification.createdAt != null
-        ? DateFormat('yyyy-MM-dd').format(notification.createdAt!)
-        : DateFormat('yyyy-MM-dd').format(DateTime.now());
+        ? DateFormat('dd-MM-yyyy').format(notification.createdAt!)
+        : DateFormat('dd-MM-yyyy').format(DateTime.now());
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),

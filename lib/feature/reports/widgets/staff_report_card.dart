@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:sizer/sizer.dart';
 
 class StaffReportCard extends StatelessWidget {
@@ -99,12 +99,12 @@ class StaffReportCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Navigation Arrow
-                        Icon(
-                          Icons.chevron_right,
-                          color: const Color(0xFFBDBDBD),
-                          size: 19.5.sp,
-                        ),
+                        // // Navigation Arrow
+                        // Icon(
+                        //   Icons.chevron_right,
+                        //   color: const Color(0xFFBDBDBD),
+                        //   size: 19.5.sp,
+                        // ),
                       ],
                     ),
                   ),

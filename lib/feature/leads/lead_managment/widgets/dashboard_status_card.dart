@@ -3,11 +3,7 @@ import 'package:odit_crm_mobile/feature/reports/presentation/lead_report_screen.
 import 'package:sizer/sizer.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-enum StatCardVariant {
-  twoLabel,
-  actionIcons,
-  twoLabelWithFilter,
-}
+enum StatCardVariant { twoLabel, actionIcons, twoLabelWithFilter }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DashboardStatCard
@@ -54,12 +50,14 @@ class DashboardStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap ?? () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LeadReportScreen()),
-      ),
+      onTap:
+          onTap ??
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LeadReportScreen()),
+          ),
       child: AspectRatio(
-        aspectRatio: 0.99,
+        aspectRatio: 1.1,
         child: Container(
           decoration: BoxDecoration(
             color: backgroundColor,
@@ -241,7 +239,7 @@ class _LabelValue extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
-           overflow: TextOverflow.ellipsis,
+          overflow: TextOverflow.ellipsis,
           maxLines: 1,
         ),
       ],
@@ -257,10 +255,7 @@ class _ActionIconRow extends StatelessWidget {
   final List<IconData> icons;
   final List<VoidCallback>? onActionTaps;
 
-  const _ActionIconRow({
-    required this.icons,
-    this.onActionTaps,
-  });
+  const _ActionIconRow({required this.icons, this.onActionTaps});
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +266,8 @@ class _ActionIconRow extends StatelessWidget {
             ? onActionTaps![index]
             : null;
         return Padding(
-          padding: EdgeInsets.only(right: 2.5.w),
+          // padding: EdgeInsets.only(right: 50.w),
+          padding: EdgeInsetsGeometry.zero,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTap,

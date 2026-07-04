@@ -800,8 +800,6 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/report_sect
 import 'package:sizer/sizer.dart';
 export 'package:odit_crm_mobile/feature/leads/lead_managment/models/lead_data.dart';
 
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // LeadFilter — single source of truth for all filtering and counting rules.
 //
@@ -1110,7 +1108,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         log('[LeadListScreen] fetchLeads() on init');
-        context.read<AddLeadCubit>().fetchLeads();
+        context.read<AddLeadCubit>().watchLeadsRealtime();
       }
     });
 
@@ -1185,7 +1183,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
     return firestoreLeads.map((lead) {
       return LeadData(
         id: lead.id ?? '',
-        name: lead.clientName.isEmpty ? 'Unknown' : lead.clientName,
+        name: lead.clientName,
         phone: lead.contactNumber,
         assignedTo: lead.assignedStaff,
         category: lead.leadCategory.isEmpty
@@ -1508,32 +1506,32 @@ class _LeadListScreenState extends State<LeadListScreen> {
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () =>
-                                  context.read<AddLeadCubit>().fetchLeads(),
-                              child: Container(
-                                width: 9.w,
-                                height: 4.5.h,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(2.5.w),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.06,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  Icons.sync_rounded,
-                                  size: 4.5.w,
-                                  color: const Color(0xFF6B7280),
-                                ),
-                              ),
-                            ),
+                            // GestureDetector(
+                            //   onTap: () =>
+                            //       context.read<AddLeadCubit>().fetchLeads(),
+                            //   child: Container(
+                            //     width: 9.w,
+                            //     height: 4.5.h,
+                            //     decoration: BoxDecoration(
+                            //       color: Colors.white,
+                            //       borderRadius: BorderRadius.circular(2.5.w),
+                            //       boxShadow: [
+                            //         BoxShadow(
+                            //           color: Colors.black.withValues(
+                            //             alpha: 0.06,
+                            //           ),
+                            //           blurRadius: 8,
+                            //           offset: const Offset(0, 2),
+                            //         ),
+                            //       ],
+                            //     ),
+                            //     child: Icon(
+                            //       Icons.sync_rounded,
+                            //       size: 4.5.w,
+                            //       color: const Color(0xFF6B7280),
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         SizedBox(height: 1.8.h),
@@ -1547,7 +1545,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
                                 crossAxisCount: 3,
                                 crossAxisSpacing: 2.w,
                                 mainAxisSpacing: 2.w,
-                                childAspectRatio: 0.88,
+                                childAspectRatio: 0.99,
                               ),
                           itemBuilder: (context, index) => StatusCard(
                             data: updatedStatusCards[index],

@@ -7,7 +7,7 @@
 // import 'package:sizer/sizer.dart';
 
 // class ChangePasswordScreen extends StatefulWidget {
-//   final StaffModel staff; 
+//   final StaffModel staff;
 //   const ChangePasswordScreen({super.key, required this.staff});
 
 //   @override
@@ -25,8 +25,6 @@
 //     _confirmPasswordController.dispose();
 //     super.dispose();
 //   }
-
-
 
 //   void _changePassword() {
 //     final newPassword = _newPasswordController.text.trim();
@@ -167,7 +165,7 @@
 //     widget.staff.id!,
 //     {'password': newPassword},
 //   );
-      
+
 //       if (mounted) {
 //         _newPasswordController.clear();
 //         _confirmPasswordController.clear();
@@ -450,7 +448,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_cubit.dart';
 import 'package:sizer/sizer.dart';
 
@@ -556,10 +554,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await context.read<StaffCubit>().updateStaffField(
-            widget.staff.id!,
-            {'password': newPassword},
-          );
+      await context.read<StaffCubit>().updateStaffField(widget.staff.id!, {
+        'password': newPassword,
+      });
 
       if (mounted) {
         _newPasswordController.clear();
@@ -613,8 +610,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.bottomNavBlue
-                                .withValues(alpha: .25),
+                            color: AppColors.bottomNavBlue.withValues(
+                              alpha: .25,
+                            ),
                             blurRadius: 15,
                             offset: const Offset(0, 6),
                           ),
@@ -630,8 +628,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.bottomNavBlue,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                              AppColors.bottomNavBlue.withValues(alpha: 0.6),
+                          disabledBackgroundColor: AppColors.bottomNavBlue
+                              .withValues(alpha: 0.6),
                           elevation: 0,
                           fixedSize: Size(45.w, 6.5.h),
                           shape: RoundedRectangleBorder(
@@ -714,24 +712,25 @@ class _CustomChangePasswordAppBar extends StatelessWidget
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  // const Spacer(),
+                  SizedBox(width: 3.w),
                   Text(
                     'Change Password',
                     style: TextStyle(
-                      fontSize: 22.sp,
+                      fontSize: 20.sp,
                       fontWeight: FontWeight.w400,
                       color: Colors.white,
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(
-                      Icons.more_vert,
-                      color: Colors.white,
-                      size: 20.sp,
-                    ),
-                    onPressed: () {},
-                  ),
+                  // const Spacer(),
+                  // IconButton(
+                  //   icon: Icon(
+                  //     Icons.more_vert,
+                  //     color: Colors.white,
+                  //     size: 20.sp,
+                  //   ),
+                  //   onPressed: () {},
+                  // ),
                 ],
               ),
             ),
@@ -793,8 +792,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
             size: 18.sp,
           ),
         ),
-        contentPadding:
-            EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.8.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.8.h),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
@@ -805,21 +803,20 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: AppColors.bottomNavBlue, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.bottomNavBlue,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Colors.redAccent, width: 1),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Colors.redAccent, width: 1.5),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
-        errorStyle:
-            TextStyle(fontSize: 11.sp, color: Colors.redAccent),
+        errorStyle: TextStyle(fontSize: 11.sp, color: Colors.redAccent),
       ),
     );
   }

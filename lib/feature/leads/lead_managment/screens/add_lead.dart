@@ -119,6 +119,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
   final _emailCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _pinCtrl = TextEditingController();
+  final _postOfficeCtrl = TextEditingController();
   final nextFollowUpCtrl = TextEditingController();
 
   // Lead Information
@@ -129,6 +130,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
 
   // Dropdown values
   String? _selectedState;
+  String? _selectedDistrict;
   String? _selectedStaff;
   String? _selectedCategory;
   String? _selectedSource;
@@ -260,66 +262,399 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
     super.dispose();
   }
 
+  // void _showAddCategoryDialog(BuildContext parentContext) {
+  //   final controller = TextEditingController();
+  //   showDialog(
+  //     context: parentContext,
+  //     builder: (dialogContext) {
+  //       return BlocProvider.value(
+  //         value: parentContext.read<LeadCategoryCubit>(),
+  //         child: BlocConsumer<LeadCategoryCubit, LeadCategoryState>(
+  //           listener: (context, state) {},
+  //           builder: (context, state) {
+  //             return AlertDialog(
+  //               title: const Text('Add Category'),
+  //               content: Column(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   TextField(
+  //                     controller: controller,
+  //                     decoration: const InputDecoration(
+  //                       hintText: 'Enter category name',
+  //                     ),
+  //                   ),
+  //                   if (state.isSubmitting)
+  //                     const Padding(
+  //                       padding: EdgeInsets.only(top: 8.0),
+  //                       child: LinearProgressIndicator(),
+  //                     ),
+  //                 ],
+  //               ),
+  //               actions: [
+  //                 TextButton(
+  //                   onPressed: () => Navigator.pop(dialogContext),
+  //                   child: const Text('Cancel'),
+  //                 ),
+  //                 ElevatedButton(
+  //                   onPressed: state.isSubmitting
+  //                       ? null
+  //                       : () async {
+  //                           final name = controller.text.trim();
+  //                           if (name.isNotEmpty) {
+  //                             try {
+  //                               await context
+  //                                   .read<LeadCategoryCubit>()
+  //                                   .addCategory(name: name);
+  //                               if (dialogContext.mounted) {
+  //                                 Navigator.pop(dialogContext);
+  //                               }
+  //                             } catch (e) {
+  //                               if (dialogContext.mounted) {
+  //                                 ScaffoldMessenger.of(
+  //                                   dialogContext,
+  //                                 ).showSnackBar(
+  //                                   SnackBar(content: Text(e.toString())),
+  //                                 );
+  //                               }
+  //                             }
+  //                           }
+  //                         },
+  //                   child: const Text('Add'),
+  //                 ),
+  //               ],
+  //             );
+  //           },
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  // void _showAddSourceDialog(BuildContext parentContext) {
+  //   final controller = TextEditingController();
+  //   showDialog(
+  //     context: parentContext,
+  //     builder: (dialogContext) {
+  //       return BlocProvider.value(
+  //         value: parentContext.read<LeadSourceCubit>(),
+  //         child: BlocConsumer<LeadSourceCubit, LeadSourceState>(
+  //           listener: (context, state) {},
+  //           builder: (context, state) {
+  //             return AlertDialog(
+  //               title: const Text('Add Lead Source'),
+  //               content: Column(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   TextField(
+  //                     controller: controller,
+  //                     decoration: const InputDecoration(
+  //                       hintText: 'Enter source name',
+  //                     ),
+  //                   ),
+  //                   if (state.isSubmitting)
+  //                     const Padding(
+  //                       padding: EdgeInsets.only(top: 8.0),
+  //                       child: LinearProgressIndicator(),
+  //                     ),
+  //                 ],
+  //               ),
+  //               actions: [
+  //                 TextButton(
+  //                   onPressed: () => Navigator.pop(dialogContext),
+  //                   child: const Text('Cancel'),
+  //                 ),
+  //                 ElevatedButton(
+  //                   onPressed: state.isSubmitting
+  //                       ? null
+  //                       : () async {
+  //                           final name = controller.text.trim();
+  //                           if (name.isNotEmpty) {
+  //                             try {
+  //                               await context.read<LeadSourceCubit>().addSource(
+  //                                 name: name,
+  //                               );
+  //                               if (dialogContext.mounted) {
+  //                                 Navigator.pop(dialogContext);
+  //                               }
+  //                             } catch (e) {
+  //                               if (dialogContext.mounted) {
+  //                                 ScaffoldMessenger.of(
+  //                                   dialogContext,
+  //                                 ).showSnackBar(
+  //                                   SnackBar(content: Text(e.toString())),
+  //                                 );
+  //                               }
+  //                             }
+  //                           }
+  //                         },
+  //                   child: const Text('Add'),
+  //                 ),
+  //               ],
+  //             );
+  //           },
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
   void _showAddCategoryDialog(BuildContext parentContext) {
     final controller = TextEditingController();
     showDialog(
       context: parentContext,
+      barrierColor: Colors.black.withOpacity(0.5),
       builder: (dialogContext) {
         return BlocProvider.value(
           value: parentContext.read<LeadCategoryCubit>(),
           child: BlocConsumer<LeadCategoryCubit, LeadCategoryState>(
             listener: (context, state) {},
             builder: (context, state) {
-              return AlertDialog(
-                title: const Text('Add Category'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter category name',
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: EdgeInsets.symmetric(horizontal: 6.w),
+                child: Container(
+                  padding: EdgeInsets.all(5.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                    if (state.isSubmitting)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8.0),
-                        child: LinearProgressIndicator(),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Icon + Title ─────────────────────────────
+                      Row(
+                        children: [
+                          Container(
+                            width: 11.w,
+                            height: 11.w,
+                            decoration: BoxDecoration(
+                              color: AppColors.bottomNavBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.category_outlined,
+                              color: AppColors.bottomNavBlue,
+                              size: 6.w,
+                            ),
+                          ),
+                          SizedBox(width: 3.w),
+                          Expanded(
+                            child: Text(
+                              'Add Lead Category',
+                              style: TextStyle(
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1D2433),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(dialogContext),
+                            child: Container(
+                              padding: EdgeInsets.all(1.5.w),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F3F5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 4.5.w,
+                                color: const Color(0xFF555555),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                  ],
+
+                      SizedBox(height: 2.5.h),
+
+                      // ── Subtitle ─────────────────────────────────
+                      Text(
+                        'This will be added to your Lead Category list and can be reused for future leads.',
+                        style: TextStyle(
+                          fontSize: 13.5.sp,
+                          color: const Color(0xFF888888),
+                          fontWeight: FontWeight.w400,
+                          height: 1.4,
+                        ),
+                      ),
+
+                      SizedBox(height: 2.5.h),
+
+                      // ── Text field ───────────────────────────────
+                      TextField(
+                        controller: controller,
+                        autofocus: true,
+                        style: TextStyle(
+                          fontSize: 14.5.sp,
+                          color: const Color(0xFF212121),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Visited, May Visited, Not Interested',
+                          hintStyle: TextStyle(
+                            fontSize: 13.5.sp,
+                            color: const Color(0xFFAAAAAA),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.edit_outlined,
+                            size: 5.w,
+                            color: const Color(0xFF888888),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5F5),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 4.w,
+                            vertical: 1.6.h,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.bottomNavBlue,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      if (state.isSubmitting) ...[
+                        SizedBox(height: 2.h),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: LinearProgressIndicator(
+                            minHeight: 4,
+                            backgroundColor: const Color(0xFFE0E0E0),
+                            color: AppColors.bottomNavBlue,
+                          ),
+                        ),
+                      ],
+
+                      SizedBox(height: 3.h),
+
+                      // ── Actions ──────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: state.isSubmitting
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 1.6.h),
+                                side: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 14.5.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF555555),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 3.w),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: state.isSubmitting
+                                  ? null
+                                  : () async {
+                                      final name = controller.text.trim();
+                                      if (name.isNotEmpty) {
+                                        try {
+                                          await context
+                                              .read<LeadCategoryCubit>()
+                                              .addCategory(name: name);
+
+                                          // NEW: close dialog first
+                                          if (dialogContext.mounted) {
+                                            Navigator.pop(dialogContext);
+                                          }
+
+                                          // NEW: auto-select the newly added
+                                          // category. We already know the
+                                          // exact value that was just written
+                                          // to Firestore (`name`), so we
+                                          // don't need to wait for the stream
+                                          // to refresh before selecting it —
+                                          // this also avoids any extra API
+                                          // calls.
+                                          if (mounted) {
+                                            setState(() {
+                                              _selectedCategory = name;
+                                            });
+                                            parentContext
+                                                .read<AddLeadCubit>()
+                                                .selectCategory(name);
+                                          }
+                                        } catch (e) {
+                                          if (dialogContext.mounted) {
+                                            ScaffoldMessenger.of(
+                                              dialogContext,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(e.toString()),
+                                                backgroundColor: Colors.red,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.bottomNavBlue,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: EdgeInsets.symmetric(vertical: 1.6.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: state.isSubmitting
+                                  ? SizedBox(
+                                      width: 4.5.w,
+                                      height: 4.5.w,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Add Category',
+                                      style: TextStyle(
+                                        fontSize: 14.5.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: state.isSubmitting
-                        ? null
-                        : () async {
-                            final name = controller.text.trim();
-                            if (name.isNotEmpty) {
-                              try {
-                                await context
-                                    .read<LeadCategoryCubit>()
-                                    .addCategory(name: name);
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext);
-                                }
-                              } catch (e) {
-                                if (dialogContext.mounted) {
-                                  ScaffoldMessenger.of(
-                                    dialogContext,
-                                  ).showSnackBar(
-                                    SnackBar(content: Text(e.toString())),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                    child: const Text('Add'),
-                  ),
-                ],
               );
             },
           ),
@@ -332,62 +667,250 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
     final controller = TextEditingController();
     showDialog(
       context: parentContext,
+      barrierColor: Colors.black.withOpacity(0.5),
       builder: (dialogContext) {
         return BlocProvider.value(
           value: parentContext.read<LeadSourceCubit>(),
           child: BlocConsumer<LeadSourceCubit, LeadSourceState>(
             listener: (context, state) {},
             builder: (context, state) {
-              return AlertDialog(
-                title: const Text('Add Lead Source'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter source name',
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: EdgeInsets.symmetric(horizontal: 6.w),
+                child: Container(
+                  padding: EdgeInsets.all(5.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                    if (state.isSubmitting)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8.0),
-                        child: LinearProgressIndicator(),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Icon + Title ─────────────────────────────
+                      Row(
+                        children: [
+                          Container(
+                            width: 11.w,
+                            height: 11.w,
+                            decoration: BoxDecoration(
+                              color: AppColors.bottomNavBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.source_outlined,
+                              color: AppColors.bottomNavBlue,
+                              size: 6.w,
+                            ),
+                          ),
+                          SizedBox(width: 3.w),
+                          Expanded(
+                            child: Text(
+                              'Add Lead Source',
+                              style: TextStyle(
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1D2433),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(dialogContext),
+                            child: Container(
+                              padding: EdgeInsets.all(1.5.w),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F3F5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 4.5.w,
+                                color: const Color(0xFF555555),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                  ],
+
+                      SizedBox(height: 2.5.h),
+
+                      // ── Subtitle ─────────────────────────────────
+                      Text(
+                        'This will be added to your Lead Source list and can be reused for future leads.',
+                        style: TextStyle(
+                          fontSize: 13.5.sp,
+                          color: const Color(0xFF888888),
+                          fontWeight: FontWeight.w400,
+                          height: 1.4,
+                        ),
+                      ),
+
+                      SizedBox(height: 2.5.h),
+
+                      // ── Text field ───────────────────────────────
+                      TextField(
+                        controller: controller,
+                        autofocus: true,
+                        style: TextStyle(
+                          fontSize: 14.5.sp,
+                          color: const Color(0xFF212121),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Instagram Ads, Referral, Walk-in',
+                          hintStyle: TextStyle(
+                            fontSize: 13.5.sp,
+                            color: const Color(0xFFAAAAAA),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.edit_outlined,
+                            size: 5.w,
+                            color: const Color(0xFF888888),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5F5),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 4.w,
+                            vertical: 1.6.h,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.bottomNavBlue,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      if (state.isSubmitting) ...[
+                        SizedBox(height: 2.h),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: LinearProgressIndicator(
+                            minHeight: 4,
+                            backgroundColor: const Color(0xFFE0E0E0),
+                            color: AppColors.bottomNavBlue,
+                          ),
+                        ),
+                      ],
+
+                      SizedBox(height: 3.h),
+
+                      // ── Actions ──────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: state.isSubmitting
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 1.6.h),
+                                side: const BorderSide(
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 14.5.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF555555),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 3.w),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: state.isSubmitting
+                                  ? null
+                                  : () async {
+                                      final name = controller.text.trim();
+                                      if (name.isNotEmpty) {
+                                        try {
+                                          await context
+                                              .read<LeadSourceCubit>()
+                                              .addSource(name: name);
+
+                                          if (dialogContext.mounted) {
+                                            Navigator.pop(dialogContext);
+                                          }
+
+                                          if (mounted) {
+                                            setState(() {
+                                              _selectedSource = name;
+                                            });
+                                            parentContext
+                                                .read<AddLeadCubit>()
+                                                .selectSource(name);
+                                          }
+                                        } catch (e) {
+                                          if (dialogContext.mounted) {
+                                            ScaffoldMessenger.of(
+                                              dialogContext,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(e.toString()),
+                                                backgroundColor: Colors.red,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.bottomNavBlue,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: EdgeInsets.symmetric(vertical: 1.6.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: state.isSubmitting
+                                  ? SizedBox(
+                                      width: 4.5.w,
+                                      height: 4.5.w,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Add Source',
+                                      style: TextStyle(
+                                        fontSize: 14.5.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: state.isSubmitting
-                        ? null
-                        : () async {
-                            final name = controller.text.trim();
-                            if (name.isNotEmpty) {
-                              try {
-                                await context.read<LeadSourceCubit>().addSource(
-                                  name: name,
-                                );
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext);
-                                }
-                              } catch (e) {
-                                if (dialogContext.mounted) {
-                                  ScaffoldMessenger.of(
-                                    dialogContext,
-                                  ).showSnackBar(
-                                    SnackBar(content: Text(e.toString())),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                    child: const Text('Add'),
-                  ),
-                ],
               );
             },
           ),
@@ -517,25 +1040,25 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         //   );
         // }
         if (!state.isSubmitting && !state.isUpdating) {
-    if (state.status == AddLeadStatus.success &&
-        (state.successMessage?.isNotEmpty == true)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.successMessage!),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.maybePop(context, true);
-    } else if (state.status == AddLeadStatus.failure &&
-        (state.errorMessage?.isNotEmpty == true)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.errorMessage!),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+          if (state.status == AddLeadStatus.success &&
+              (state.successMessage?.isNotEmpty == true)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.successMessage!),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.maybePop(context, true);
+          } else if (state.status == AddLeadStatus.failure &&
+              (state.errorMessage?.isNotEmpty == true)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       },
       builder: (context, state) {
         if (state.status == AddLeadStatus.loading && !state.isSubmitting) {
@@ -606,8 +1129,32 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                       emailCtrl: _emailCtrl,
                       addressCtrl: _addressCtrl,
                       pinCtrl: _pinCtrl,
+                      postOfficeCtrl: _postOfficeCtrl,
                       selectedState: _selectedState,
-                      states: const [
+                      selectedDistrict: _selectedDistrict,
+                      districts: [
+                        'wayanad',
+                        'malappuram',
+                        'kozhikode',
+                        'palakad',
+                        'thrissur',
+                        'ernakulam',
+                        'kannur',
+                        'kasargod',
+                        'kollam',
+                        'pathanamthitta',
+                        'alappuzha',
+                        'kottayam',
+                        'idukki',
+                        'kannur',
+                        'kasargod',
+                        'kollam',
+                        'pathanamthitta',
+                        'alappuzha',
+                        'kottayam',
+                        'idukki',
+                      ],
+                      states: [
                         'Kerala',
                         'Tamil Nadu',
                         'Karnataka',
@@ -619,6 +1166,10 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                         context.read<AddLeadCubit>().selectState(v);
                       },
                       onContactPickerTap: () {},
+                      onDistrictChanged: (v) {
+                        setState(() => _selectedDistrict = v);
+                        context.read<AddLeadCubit>().selectDistrict(v);
+                      },
                     ),
                     SizedBox(height: 2.h),
                     _LeadInformationCard(
@@ -659,13 +1210,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                       },
                       onAddSource: () => _showAddSourceDialog(context),
                       selectedPriority: _selectedPriority,
-                      priorities: const [
-                        'Normal',
-                        'High',
-                        'Norma',
-                        'Low',
-                        'Negative',
-                      ],
+                      priorities: const ['Normal', 'High', 'Low', 'Negative'],
                       onPriorityChanged: (v) {
                         setState(() => _selectedPriority = v);
                         context.read<AddLeadCubit>().selectPriority(v);
@@ -815,6 +1360,111 @@ class SectionTitle extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // CUSTOM DROPDOWN FIELD
 // ---------------------------------------------------------------------------
+// class _CustomDropdownField<T> extends StatelessWidget {
+//   final T? value;
+//   final List<T> items;
+//   final String hint;
+//   final String? floatingLabel;
+//   final void Function(T?) onChanged;
+//   final bool filled;
+//   final Widget? suffixWidget;
+//   final bool isRequired;
+
+//   const _CustomDropdownField({
+//     super.key,
+//     required this.value,
+//     required this.items,
+//     required this.hint,
+//     required this.onChanged,
+//     this.floatingLabel,
+//     this.filled = true,
+//     this.suffixWidget,
+//     this.isRequired = false,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return PopupMenuButton<T>(
+//       offset: Offset(0, 6.h),
+//       color: Colors.white,
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+//       onSelected: onChanged,
+//       itemBuilder: (context) {
+//         return items.map((e) {
+//           return PopupMenuItem<T>(
+//             value: e,
+//             child: Text(
+//               e.toString(),
+//               style: TextStyle(
+//                 fontSize: 15.sp,
+//                 color: ScreenColors.textPrimary,
+//               ),
+//             ),
+//           );
+//         }).toList();
+//       },
+//       child: InputDecorator(
+//         decoration: InputDecoration(
+//           labelText: value != null ? floatingLabel : null,
+//           labelStyle: TextStyle(fontSize: 15.sp, color: ScreenColors.hintGrey),
+//           filled: filled,
+//           fillColor: filled ? Colors.white : Colors.transparent,
+//           contentPadding: EdgeInsets.symmetric(
+//             horizontal: 3.w,
+//             vertical: 1.2.h,
+//           ),
+//           border: OutlineInputBorder(
+//             borderRadius: BorderRadius.circular(10),
+//             borderSide: const BorderSide(
+//               color: AppColors.bottomNavBlue,
+//               width: 0.1,
+//             ),
+//           ),
+//           enabledBorder: OutlineInputBorder(
+//             borderRadius: BorderRadius.circular(10),
+//             borderSide: const BorderSide(
+//               color: AppColors.bottomNavBlue,
+//               width: 0.1,
+//             ),
+//           ),
+//           focusedBorder: OutlineInputBorder(
+//             borderRadius: BorderRadius.circular(10),
+//             borderSide: const BorderSide(
+//               color: AppColors.bottomNavBlue,
+//               width: 1.5,
+//             ),
+//           ),
+//           isDense: true,
+//           suffixIcon:
+//               suffixWidget ??
+//               Icon(
+//                 Icons.arrow_drop_down,
+//                 color: ScreenColors.iconGrey,
+//                 size: 20.sp,
+//               ),
+//           // suffixIconConstraints: const BoxConstraints(),
+//         ),
+//         child: Row(
+//           children: [
+//             Expanded(
+//               child: Text(
+//                 value != null ? value.toString() : hint,
+//                 style: TextStyle(
+//                   fontSize: 15.sp,
+//                   color: value != null
+//                       ? ScreenColors.textPrimary
+//                       : ScreenColors.hintGrey,
+//                 ),
+//                 overflow: TextOverflow.ellipsis,
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 class _CustomDropdownField<T> extends StatelessWidget {
   final T? value;
   final List<T> items;
@@ -839,6 +1489,11 @@ class _CustomDropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Show the clear (✕) icon only when a value is selected and the
+    // field is not marked required. Required fields keep only the
+    // dropdown arrow, exactly as before.
+    final bool showClearIcon = value != null && !isRequired;
+
     return PopupMenuButton<T>(
       offset: Offset(0, 6.h),
       color: Colors.white,
@@ -892,12 +1547,24 @@ class _CustomDropdownField<T> extends StatelessWidget {
           isDense: true,
           suffixIcon:
               suffixWidget ??
-              Icon(
-                Icons.arrow_drop_down,
-                color: ScreenColors.iconGrey,
-                size: 20.sp,
-              ),
-          suffixIconConstraints: const BoxConstraints(),
+              (showClearIcon
+                  ? GestureDetector(
+                      // Stop the tap from bubbling up to the
+                      // PopupMenuButton so clearing never opens the menu.
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onChanged(null),
+                      child: Icon(
+                        Icons.close,
+                        color: ScreenColors.iconGrey,
+                        size: 18.sp,
+                      ),
+                    )
+                  : Icon(
+                      Icons.arrow_drop_down,
+                      color: ScreenColors.iconGrey,
+                      size: 20.sp,
+                    )),
+          // suffixIconConstraints: const BoxConstraints(),
         ),
         child: Row(
           children: [
@@ -1038,9 +1705,13 @@ class _CustomerDetailsCard extends StatelessWidget {
   final TextEditingController emailCtrl;
   final TextEditingController addressCtrl;
   final TextEditingController pinCtrl;
+  final TextEditingController postOfficeCtrl;
   final String? selectedState;
+  final String? selectedDistrict;
   final List<String> states;
+  final List<String> districts;
   final void Function(String?) onStateChanged;
+  final void Function(String?) onDistrictChanged;
   final VoidCallback onContactPickerTap;
 
   const _CustomerDetailsCard({
@@ -1050,9 +1721,13 @@ class _CustomerDetailsCard extends StatelessWidget {
     required this.emailCtrl,
     required this.addressCtrl,
     required this.pinCtrl,
+    required this.postOfficeCtrl,
     required this.selectedState,
+    required this.selectedDistrict,
+    required this.districts,
     required this.states,
     required this.onStateChanged,
+    required this.onDistrictChanged,
     required this.onContactPickerTap,
   });
 
@@ -1074,7 +1749,7 @@ class _CustomerDetailsCard extends StatelessWidget {
             filled: false,
             outlined: true,
             suffixIcon: Icons.person_outline,
-            validator: validateClientName, // ✅
+            validator: validateClientName,
           ),
         ),
         SizedBox(height: 1.2.h),
@@ -1148,9 +1823,21 @@ class _CustomerDetailsCard extends StatelessWidget {
             hint: 'PIN Code',
             prefixIcon: Icons.pin_drop_outlined,
             keyboardType: TextInputType.number,
-            suffixIcon: Icons.location_on_outlined,
+            suffixIcon: Icons.share_location_sharp,
             pinCode: true, // ✅ enables 6-digit formatter
             validator: validatePincode, // ✅
+          ),
+        ),
+        SizedBox(height: 1.2.h),
+
+        SizedBox(
+          height: 6.h,
+          child: CustomTextField(
+            controller: postOfficeCtrl,
+            hint: 'Post Office',
+            prefixIcon: Icons.pin_drop_outlined,
+            keyboardType: TextInputType.text,
+            suffixIcon: Icons.home_work_rounded,
           ),
         ),
         SizedBox(height: 1.2.h),
@@ -1160,7 +1847,7 @@ class _CustomerDetailsCard extends StatelessWidget {
           height: 6.h,
           child: _CustomDropdownField<String>(
             value: selectedState,
-            items: const [
+            items: [
               'Kerala',
               'Tamil Nadu',
               'Karnataka',
@@ -1170,6 +1857,24 @@ class _CustomerDetailsCard extends StatelessWidget {
             hint: 'State',
             onChanged: onStateChanged,
             floatingLabel: 'State',
+          ),
+        ),
+        SizedBox(height: 1.2.h),
+        // district
+        SizedBox(
+          height: 6.h,
+          child: _CustomDropdownField<String>(
+            value: selectedDistrict,
+            items: [
+              'Malappuram',
+              'Ernakulam',
+              'Alappuzha',
+              'Kozhikode',
+              'Thiruvananthapuram',
+            ],
+            hint: 'District',
+            onChanged: onDistrictChanged,
+            floatingLabel: 'District',
           ),
         ),
       ],
@@ -1209,7 +1914,7 @@ class _LeadInformationCard extends StatelessWidget {
   final ValueChanged<String?> onCallStatusChanged;
 
   const _LeadInformationCard({
-    required this. from,
+    required this.from,
     required this.selectedStaff,
     required this.staffList,
     required this.onStaffChanged,
@@ -1252,6 +1957,7 @@ class _LeadInformationCard extends StatelessWidget {
             hint: 'Assign Staff',
             floatingLabel: 'Assign Staff',
             onChanged: onStaffChanged,
+            isRequired: true,
           ),
         ),
         SizedBox(height: 1.2.h),
@@ -1281,6 +1987,7 @@ class _LeadInformationCard extends StatelessWidget {
             hint: 'Priority',
             floatingLabel: 'Priority',
             onChanged: onPriorityChanged,
+            isRequired: true,
           ),
         ),
         if (from != 'EDIT') ...[
@@ -1293,6 +2000,7 @@ class _LeadInformationCard extends StatelessWidget {
               hint: 'Stages',
               floatingLabel: 'Stages',
               onChanged: onStageChanged,
+              isRequired: true,
             ),
           ),
           if (selectedStage == 'FOLLOWUP' || selectedStage == 'REJECTED') ...[
@@ -1380,13 +2088,15 @@ class _LeadInformationCard extends StatelessWidget {
                   value: selectedCallStatus,
                   hintText: 'Select Call Status',
                   isRequired: true,
-                  items: const [
+                  items: [
                     'Connected',
                     'Busy',
-                    'Rejected',
-                    'Switched Off',
                     'Not Attended',
+                    'Switched Off',
                     'Out Of Coverage',
+                    'Wrong Number',
+                    'Not Reachable',
+                    'Other',
                   ],
                   onChanged: onCallStatusChanged,
                 ),
@@ -1396,16 +2106,53 @@ class _LeadInformationCard extends StatelessWidget {
         ],
 
         SizedBox(height: 1.2.h),
-        CustomTextField(
+        // CustomTextField(
+        //   controller: remarksCtrl,
+        //   hint: 'Remarks',
+        //   prefixIcon: Icons.list_alt_outlined,
+        //   maxLines: 5,
+        //   filled: true,
+        //   // suffixIcon: Icons.edit_document,
+        //   contentPadding: EdgeInsets.symmetric(
+        //     horizontal: 3.w,
+        //     vertical: 1.5.h,
+        //   ),
+        // ),
+        TextField(
           controller: remarksCtrl,
-          hint: 'Remarks',
-          prefixIcon: Icons.list_alt_outlined,
           maxLines: 5,
-          filled: true,
-          suffixIcon: Icons.edit_document,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 3.w,
-            vertical: 1.5.h,
+          style: TextStyle(color: const Color(0xFF212121), fontSize: 14.5.sp),
+          decoration: InputDecoration(
+            hintText: 'Enter Remarks',
+            hintStyle: TextStyle(
+              color: const Color(0xFF888888),
+              fontSize: 14.sp,
+            ),
+
+            // label: Text(
+            //   'Remarks',
+            //   style: TextStyle(
+            //     color: const Color(0xFF888888),
+            //     fontSize: 14.5.sp,
+            //   ),
+            // ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 4.w,
+              vertical: 1.5.h,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppColors.bottomNavBlue,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ],

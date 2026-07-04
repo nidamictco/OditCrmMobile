@@ -6,7 +6,7 @@ import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/feature/auth/data/auth_data.dart';
 import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 
 part 'auth_state.dart';

@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 class QuickActionButton extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAsset;
   final Color backgroundColor;
-  final Color iconColor;
+  final Color? iconColor;
   final String label;
   final VoidCallback onTap;
 
   const QuickActionButton({
     super.key,
-    required this.icon,
+    this.icon,
+    this.iconAsset,
     required this.backgroundColor,
-    required this.iconColor,
+    this.iconColor,
     required this.label,
     required this.onTap,
   });
@@ -31,11 +33,18 @@ class QuickActionButton extends StatelessWidget {
               color: backgroundColor,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 6.5.w,
-            ),
+            child: iconAsset != null
+                ? Padding(
+                    padding: EdgeInsets.all(1.5.w),
+                    child: Image.asset(
+                      iconAsset!,
+                      width: 1.w,
+                      height: 1.w,
+                      color:
+                          iconColor, // remove this line if your PNG is already colored (e.g. official WhatsApp green logo)
+                    ),
+                  )
+                : Icon(icon, color: iconColor, size: 6.w),
           ),
           SizedBox(height: 0.8.h),
           Text(

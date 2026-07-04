@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/followup_form_card.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/followup_history_card.dart';
@@ -198,11 +199,10 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
     }
   }
 
-
   @override
   void initState() {
     super.initState();
-   
+
     log(
       '[LeadDetailsScreen] initState() called - showFollowupForm: ${widget.showFollowupForm}',
     );
@@ -309,6 +309,33 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
     );
   }
 
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            SizedBox(width: 2.w),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   // ── Reset form ──────────────────────────────────────────────────────────────
   void _resetForm() {
     if (!mounted) return;
@@ -326,7 +353,6 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
       _whatsaapCntrlr.text = _leadData.whatsappNumber;
       _addressCntrlr.text = _leadData.address;
       _emailCntrlr.text = _leadData.email;
-      // ✅ Reset date to default (tomorrow) so next open starts fresh
       _nextFollowupDateValue = DateTime.now().add(const Duration(days: 1));
       _nextFollowupDate = null;
       _selectedStaff = null;
@@ -415,8 +441,8 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
           calledStatus: _selectedCallStatus!.trim(),
           remarks: _remarksController.text.isNotEmpty
               ? _remarksController.text
-              : '-',
-          fromPage: widget.from,
+              : 'N/A',
+          fromPage: _isEditingFollowup ? 'EDIT' : widget.from,
           address: _addressCntrlr.text.trim().isNotEmpty
               ? _addressCntrlr.text.trim()
               : _leadData.address,
@@ -434,6 +460,9 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
 
           await _loadLatestLead();
 
+          final wasEditing = _isEditingFollowup;
+          await _loadLatestLead();
+
           debugPrint(
             '✅ _loadLatestLead() completed. Followups: ${_leadData.followUp?.length ?? 0}',
           );
@@ -442,6 +471,12 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
             debugPrint('📌 setState() triggered');
             setState(() {});
           }
+
+          _showSuccess(
+            wasEditing
+                ? 'Follow-up updated successfully'
+                : 'Follow-up added successfully',
+          );
         })
         .catchError((error, stackTrace) {
           debugPrint('❌ ERROR in submitFollowUp chain: $error');
@@ -544,9 +579,12 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
           }
         });
       } else if (value == 'delete') {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Delete option selected')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('The lead has been deleted successfully.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     });
   }
@@ -575,10 +613,16 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                 previous.isSubmitting == true && current.isSubmitting == false,
             listener: (context, state) async {
               if (state.status == AddLeadStatus.success) {
+                final wasEditing = _isEditingFollowup;
                 await _loadLatestLead();
                 if (!mounted) return;
                 _resetForm();
                 context.read<AddLeadCubit>().fetchLeads();
+                //              _showSuccess(
+                //   wasEditing
+                //       ? 'Follow-up updated successfully'
+                //       : 'Follow-up added successfully',
+                // );
               } else if (state.status == AddLeadStatus.failure &&
                   state.errorMessage != null) {
                 if (!mounted) return;
@@ -671,9 +715,9 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                               },
                             ),
                             QuickActionButton(
-                              icon: Icons.message,
+                              iconAsset: AssetResources.whatsapp,
                               backgroundColor: const Color(0xFFE8F7EA),
-                              iconColor: const Color(0xFF2E7D32),
+
                               label: 'WhatsApp',
                               onTap: () {
                                 if (_leadData.whatsappNumber.isNotEmpty) {
@@ -996,7 +1040,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                                     : '',
                                 remarks: _leadData.remarks.isNotEmpty
                                     ? _leadData.remarks
-                                    : '_',
+                                    : 'N/A',
                               );
                               return LeadCreationCard(
                                 history: leadCreationHistory,
@@ -1174,63 +1218,63 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
       ),
     );
   }
-//   void _shareLeadOnWhatsApp() {
-//   final name = _leadData.clientName;
-//   final contact = _leadData.contactNumber;
+  //   void _shareLeadOnWhatsApp() {
+  //   final name = _leadData.clientName;
+  //   final contact = _leadData.contactNumber;
 
-//   final message = Uri.encodeComponent(
-//     'Lead Details\n'
-//     '━━━━━━━━━━━━━━━━\n'
-//     'Name    : $name\n'
-//     'Contact : $contact\n'
-//     '━━━━━━━━━━━━━━━━',
-//   );
+  //   final message = Uri.encodeComponent(
+  //     'Lead Details\n'
+  //     '━━━━━━━━━━━━━━━━\n'
+  //     'Name    : $name\n'
+  //     'Contact : $contact\n'
+  //     '━━━━━━━━━━━━━━━━',
+  //   );
 
-//   final uri = Uri.parse('whatsapp://send?text=$message');
+  //   final uri = Uri.parse('whatsapp://send?text=$message');
 
-//   launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) {
-//     if (mounted) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text('WhatsApp is not installed on this device'),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//     }
-//     return false;
-//   });
-// }
-void _shareLeadOnWhatsApp() {
-  final name = _leadData.clientName;
-  final contact = _leadData.contactNumber;
-  final leadId = _leadData.id ?? '';
+  //   launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('WhatsApp is not installed on this device'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //     return false;
+  //   });
+  // }
+  void _shareLeadOnWhatsApp() {
+    final name = _leadData.clientName;
+    final contact = _leadData.contactNumber;
+    final leadId = _leadData.id ?? '';
 
-  // Deep link — your app must handle this scheme
-  final deepLink = 'oxdocrm://lead/$leadId';
+    // Deep link — your app must handle this scheme
+    final deepLink = 'oxdocrm://lead/$leadId';
 
-  final message = Uri.encodeComponent(
-    'Lead Details\n'
-    '━━━━━━━━━━━━━━━━\n'
-    'Name    : $name\n'
-    'Contact : $contact\n'
-    'Link    : $deepLink\n'
-    '━━━━━━━━━━━━━━━━',
-  );
+    final message = Uri.encodeComponent(
+      'Lead Details\n'
+      '━━━━━━━━━━━━━━━━\n'
+      'Name    : $name\n'
+      'Contact : $contact\n'
+      // 'Link    : $deepLink\n'
+      '━━━━━━━━━━━━━━━━',
+    );
 
-  final uri = Uri.parse('whatsapp://send?text=$message');
+    final uri = Uri.parse('whatsapp://send?text=$message');
 
-  launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('WhatsApp is not installed on this device'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-    return false;
-  });
-}
+    launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('WhatsApp is not installed on this device'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    });
+  }
 }
 
 // ─── AppBar ───────────────────────────────────────────────────────────────────
@@ -1311,21 +1355,51 @@ class LeadSummaryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  lead.clientName,
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1D2433),
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lead.clientName,
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1D2433),
+                      ),
+                    ),
+                    if (lead.address.isNotEmpty)
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_pin,
+                            size: 15.sp,
+                            color: Color(0xFF888888),
+                          ),
+                          Expanded(
+                            child: Text(
+                              lead.address,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF555555),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
               ),
               StatusBadge(
                 label: lead.leadStage,
-                backgroundColor: const Color(0xFFFFEBEB),
-                textColor: Colors.red,
+                backgroundColor: getStatusColor(
+                  lead.leadStage,
+                ).withValues(alpha: 0.1),
+                textColor: getStatusColor(lead.leadStage),
                 border: Border.all(
-                  color: Colors.red.withValues(alpha: 0.5),
+                  color: getStatusColor(lead.leadStage).withValues(alpha: 0.5),
                   width: 1,
                 ),
               ),
@@ -1394,7 +1468,7 @@ class LeadSummaryCard extends StatelessWidget {
               Expanded(
                 child: _InfoTile(
                   icon: Icons.folder_open,
-                  value: lead.leadSource,
+                  value: lead.leadSource.isNotEmpty ? lead.leadSource : 'N/A',
                 ),
               ),
             ],
@@ -1528,29 +1602,29 @@ class LeadCreationCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 1.h),
-          Padding(
-            padding: EdgeInsets.only(left: 6.5.w),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDDF5D8),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                'F.No : 1',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2E7D32),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 1.h),
+          // Padding(
+          //   padding: EdgeInsets.only(left: 6.5.w),
+          //   child: Container(
+          //     padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
+          //     decoration: BoxDecoration(
+          //       color: const Color(0xFFDDF5D8),
+          //       borderRadius: BorderRadius.circular(10),
+          //     ),
+          //     child: Text(
+          //       'F.No : 1',
+          //       style: TextStyle(
+          //         fontSize: 12.sp,
+          //         fontWeight: FontWeight.w600,
+          //         color: const Color(0xFF2E7D32),
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          // SizedBox(height: 1.h),
           Padding(
             padding: EdgeInsets.only(left: 6.5.w),
             child: Text(
-              'Remarks: ${history.remarks}',
+              'Remarks:  ${history.remarks}',
               style: TextStyle(
                 fontSize: 13.5.sp,
                 fontWeight: FontWeight.w500,

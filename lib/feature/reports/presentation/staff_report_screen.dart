@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/reports/widgets/report_appbar.dart';
 import 'package:odit_crm_mobile/feature/reports/widgets/staff_report_card.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_cubit.dart';

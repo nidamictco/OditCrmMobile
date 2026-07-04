@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_collection.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
 
 // class FirebaseAuthService {

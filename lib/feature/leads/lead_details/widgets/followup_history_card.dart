@@ -160,32 +160,33 @@ class FollowupHistoryCard extends StatelessWidget {
           ),
           SizedBox(height: 1.5.h),
 
-          // F.No Badge
-          Padding(
-            padding: EdgeInsets.only(left: 6.5.w),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDDF5D8),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                'F.No : $followupNumber',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2E7D32),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 1.5.h),
+          // // F.No Badge
+          // Padding(
+          //   padding: EdgeInsets.only(left: 6.5.w),
+          //   child: Container(
+          //     padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
+          //     decoration: BoxDecoration(
+          //       color: const Color(0xFFDDF5D8),
+          //       borderRadius: BorderRadius.circular(10),
+          //     ),
+          //     child: Text(
+          //       'F.No : $followupNumber',
+          //       style: TextStyle(
+          //         fontSize: 12.sp,
+          //         fontWeight: FontWeight.w600,
+          //         color: const Color(0xFF2E7D32),
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          // SizedBox(height: 1.5.h),
 
           // Remarks Row
           Padding(
             padding: EdgeInsets.only(left: 6.5.w),
             child: Text(
-              'Remarks: ${followup.remarks}',
+              followup.remarks.isNotEmpty?
+              'Remarks:  ${followup.remarks}':'Remark : N/A',
               style: TextStyle(
                 fontSize: 13.5.sp,
                 fontWeight: FontWeight.w500,

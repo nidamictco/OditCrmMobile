@@ -118,8 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                                  ?Icons.visibility_off_outlined 
+                                  :Icons.visibility_outlined,
                               color: Colors.grey.shade400,
                               size: 20,
                             ),
@@ -133,20 +133,71 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(height: 4.h),
 
                         // Sign In Button
+                        // LoginButtonWidget(
+                        //   isLoading: state is AuthLoading,
+                        //   onTap: () {
+                        //     context.read<AuthCubit>().login(
+                        //       phoneNo: _usernameController.text,
+                        //       password: _passwordController.text,
+                        //       // companyId: ,
+                        //       permissionCubit: context.read<PermissionCubit>(),
+                        //     );
+                        //     log(_usernameController.text);
+                        //     log(_passwordController.text);
+                        //     log(_selectedCompany.toString());
+                        //   },
+                        // ),
                         LoginButtonWidget(
-                          isLoading: state is AuthLoading,
-                          onTap: () {
-                            context.read<AuthCubit>().login(
-                              phoneNo: _usernameController.text,
-                              password: _passwordController.text,
-                              // companyId: ,
-                              permissionCubit: context.read<PermissionCubit>(),
-                            );
-                            log(_usernameController.text);
-                            log(_passwordController.text);
-                            log(_selectedCompany.toString());
-                          },
-                        ),
+  isLoading: state is AuthLoading,
+  onTap: () {
+    final phone = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+    if(phone.isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your phone number'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if(password.isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (phone.isEmpty && password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both phone number and password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (phone.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid 10-digit phone number'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    context.read<AuthCubit>().login(
+      phoneNo: phone,
+      password: password,
+      permissionCubit: context.read<PermissionCubit>(),
+    );
+  },
+),
                         SizedBox(height: 2.5.h),
                       ],
                     ),

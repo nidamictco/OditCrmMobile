@@ -43,6 +43,10 @@ class LeadReportCard extends StatelessWidget {
       statusIndicatorColor = const Color(0xFF2F80ED);
     }
 
+    final createdDate = lead.createdAt != null
+        ? DateFormat('dd MMM yyyy').format(lead.createdAt!)
+        : '—';
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -158,87 +162,125 @@ class LeadReportCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Dates Row
-                    Row(
-                      children: [
-                        // Called Date
-                        Expanded(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 2.w,
-                              vertical: 0.6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F4FD),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.phone_callback,
-                                  size: 16.sp,
-                                  color: const Color(0xFF2F80ED),
+                    lead.leadStage == 'NEW'
+                        ? Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 2.w,
+                                  vertical: 0.6.h,
                                 ),
-                                SizedBox(width: 1.w),
-                                Expanded(
-                                  child: Text(
-                                    lead.calledDate == null
-                                        ? 'Called: _'
-                                        : 'Called: ${lead.calledDate}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF2F80ED),
+                                decoration: BoxDecoration(
+                                  color: AppColors.skyBlue.withValues(
+                                    alpha: 0.09,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 16.sp,
+                                      color: AppColors.skyBlue,
                                     ),
+                                    SizedBox(width: 1.w),
+                                    Text(
+                                      'Created Date: $createdDate',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.skyBlue,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              // Called Date
+                              Expanded(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 2.w,
+                                    vertical: 0.6.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F4FD),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.phone_callback,
+                                        size: 16.sp,
+                                        color: const Color(0xFF2F80ED),
+                                      ),
+                                      SizedBox(width: 1.w),
+                                      Expanded(
+                                        child: Text(
+                                          lead.calledDate == null
+                                              ? 'Called: _'
+                                              : 'Called: ${DateFormat('dd-MM-yyyy').format(lead.calledDate!)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF2F80ED),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 2.w),
-                        // Next Followup Date
-                        Expanded(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 2.w,
-                              vertical: 0.6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF3E0),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 16.sp,
-                                  color: const Color(0xFFE0A82E),
-                                ),
-                                SizedBox(width: 1.w),
-                                Expanded(
-                                  child: Text(
-                                    lead.leadStage == 'NEW'
-                                        ? 'Next:_'
-                                        : 'Next: ${lead.followUpDate}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFFE0A82E),
-                                    ),
+                              ),
+                              SizedBox(width: 2.w),
+                              // Next Followup Date
+                              Expanded(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 2.w,
+                                    vertical: 0.6.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF3E0),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 16.sp,
+                                        color: const Color(0xFFE0A82E),
+                                      ),
+                                      SizedBox(width: 1.w),
+                                      Expanded(
+                                        child: Text(
+                                          lead.followUpDate == null
+                                              ? 'Next: _'
+                                              : 'Next: ${DateFormat('dd-MM-yyyy').format(lead.followUpDate!)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFFE0A82E),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                     SizedBox(height: 1.h),
 
                     // Phone and Profile Avatar Row

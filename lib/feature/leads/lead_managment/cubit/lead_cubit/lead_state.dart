@@ -3,7 +3,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/activity_mod
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/additional_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/leads_model.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
 
 enum AddLeadStatus { initial, loading, success, failure }
@@ -67,6 +67,8 @@ class AddLeadState {
 
   final bool isLoadingCounts;
 
+  final bool hasLoadedOnce;
+
   final DateTime? selectedDashboardDate;
 
   final String profileClosedCount;
@@ -123,6 +125,7 @@ class AddLeadState {
     this.profileNotConnectedCount = '0',
     this.profileCallResultCounts = const {},
     this.isLoadingProfileCounts = false,
+    this.hasLoadedOnce = true,
   });
 
   bool get isLoading => status == AddLeadStatus.loading;

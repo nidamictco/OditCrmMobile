@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/filtering.dart';
@@ -38,25 +39,113 @@ class _TransferReportContentState extends State<TransferReportContent> {
   bool _showSearchBar = false;
   final TextEditingController _searchController = TextEditingController();
 
+  // ===================== PAGINATION ADDITIONS START =====================
+  // Controller attached directly to the ListView.separated below (there is
+  // no outer SingleChildScrollView on this screen — the ListView itself is
+  // the scrollable), so scroll-to-bottom detection is accurate here.
+  final ScrollController _scrollController = ScrollController();
+
+  // Number of items from the final filtered/sorted/searched
+  // `transferLeads` list currently rendered. UI-side windowing only.
+  int _visibleCount = 0;
+
+  // Batch size per requirements.
+  static const int _pageSize = 10;
+
+  // Prevents duplicate concurrent load-more calls.
+  bool _isLoadingMore = false;
+
+  // Signature of everything that affects the final `transferLeads` list.
+  // When this changes between builds, we know the matching set changed
+  // (new filter, new sort direction, new search text, or a data refresh)
+  // and pagination must reset to page 1 (requirement #11).
+  String _lastFilterSignature = '';
+  // ====================== PAGINATION ADDITIONS END =======================
+
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
       setState(() {});
     });
+    // ---- PAGINATION: listen for scroll-to-bottom ----
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    // ---- PAGINATION: clean up listener + controller ----
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
   }
+
+  // ===================== PAGINATION METHODS START =====================
+
+  /// Fires on every scroll event of the transfer-leads ListView.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final nearBottom = position.pixels >= (position.maxScrollExtent - 200);
+
+    if (nearBottom) {
+      _maybeLoadMore();
+    }
+  }
+
+  /// Reveals the next `_pageSize` items out of the already-computed,
+  /// already-filtered/sorted `total` count (passed in from build via the
+  /// closure over `transferLeads.length` at call time — see usage below).
+  ///
+  /// NOTE: seam for future Firestore-side pagination — swap the body for
+  /// something like `context.read<AddLeadCubit>().fetchNextLeadsPage()`
+  /// and await the real result instead of widening the local window.
+  Future<void> _maybeLoadMore() async {
+    final total = context
+        .read<AddLeadCubit>()
+        .state
+        .leads
+        .where((lead) => lead.leadStage.toUpperCase() == 'TRANSFERRED')
+        .length;
+
+    if (_isLoadingMore || _visibleCount >= total) {
+      return;
+    }
+
+    setState(() => _isLoadingMore = true);
+
+    // Simulated async boundary — mirrors where a real paginated fetch
+    // would await network I/O.
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    if (!mounted) return;
+
+    setState(() {
+      final next = _visibleCount + _pageSize;
+      _visibleCount = next > total ? total : next;
+      _isLoadingMore = false;
+    });
+  }
+
+  /// Resets the visible window back to the first page of `total` items.
+  void _resetPagination(int total) {
+    _visibleCount = total < _pageSize ? total : _pageSize;
+    _isLoadingMore = false;
+  }
+
+  // ====================== PAGINATION METHODS END =======================
 
   DateTime? _parseDate(String dateStr) {
     try {
       final parts = dateStr.split('-');
       if (parts.length == 3) {
-        return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
       }
     } catch (_) {}
     return null;
@@ -64,7 +153,9 @@ class _TransferReportContentState extends State<TransferReportContent> {
 
   List<AddLeadModel> _applyFilters(List<AddLeadModel> leads) {
     if (_appliedFilters == null) {
-      debugPrint('[Filter Debug] No filters applied. Total leads count: ${leads.length}');
+      debugPrint(
+        '[Filter Debug] No filters applied. Total leads count: ${leads.length}',
+      );
       return leads;
     }
 
@@ -76,8 +167,12 @@ class _TransferReportContentState extends State<TransferReportContent> {
     final start = _parseDate(fromStr);
     final end = _parseDate(toStr);
 
-    final startOfDay = start != null ? DateTime(start.year, start.month, start.day, 0, 0, 0) : null;
-    final endOfDay = end != null ? DateTime(end.year, end.month, end.day, 23, 59, 59) : null;
+    final startOfDay = start != null
+        ? DateTime(start.year, start.month, start.day, 0, 0, 0)
+        : null;
+    final endOfDay = end != null
+        ? DateTime(end.year, end.month, end.day, 23, 59, 59)
+        : null;
 
     final filteredList = leads.where((lead) {
       // 1. Date Filter (createdAt)
@@ -95,7 +190,9 @@ class _TransferReportContentState extends State<TransferReportContent> {
         }
       }
 
-      debugPrint('[Filter Debug] Lead clientName: ${lead.clientName}, Lead Created Date: $createdAt');
+      debugPrint(
+        '[Filter Debug] Lead clientName: ${lead.clientName}, Lead Created Date: $createdAt',
+      );
 
       if (startOfDay != null && endOfDay != null) {
         if (createdAt == null) return false;
@@ -107,7 +204,9 @@ class _TransferReportContentState extends State<TransferReportContent> {
       // 2. Assigned Staff Filter
       final selectedStaff = _appliedFilters!.selectedItems['Assigned Staff'];
       if (selectedStaff != null && selectedStaff.isNotEmpty) {
-        if (!selectedStaff.any((staff) => lead.assignedStaff.toLowerCase() == staff.toLowerCase())) {
+        if (!selectedStaff.any(
+          (staff) => lead.assignedStaff.toLowerCase() == staff.toLowerCase(),
+        )) {
           return false;
         }
       }
@@ -115,7 +214,9 @@ class _TransferReportContentState extends State<TransferReportContent> {
       // 3. Category Filter
       final selectedCategory = _appliedFilters!.selectedItems['Category'];
       if (selectedCategory != null && selectedCategory.isNotEmpty) {
-        if (!selectedCategory.any((cat) => lead.leadCategory.toLowerCase() == cat.toLowerCase())) {
+        if (!selectedCategory.any(
+          (cat) => lead.leadCategory.toLowerCase() == cat.toLowerCase(),
+        )) {
           return false;
         }
       }
@@ -123,7 +224,9 @@ class _TransferReportContentState extends State<TransferReportContent> {
       // 4. Priority Filter
       final selectedPriority = _appliedFilters!.selectedItems['Priority'];
       if (selectedPriority != null && selectedPriority.isNotEmpty) {
-        if (!selectedPriority.any((prio) => lead.priority.toLowerCase() == prio.toLowerCase())) {
+        if (!selectedPriority.any(
+          (prio) => lead.priority.toLowerCase() == prio.toLowerCase(),
+        )) {
           return false;
         }
       }
@@ -148,11 +251,7 @@ class _TransferReportContentState extends State<TransferReportContent> {
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.sort_rounded,
-              color: Colors.white,
-              size: 17.sp,
-            ),
+            child: Icon(Icons.sort_rounded, color: Colors.white, size: 17.sp),
           ),
           SizedBox(width: 2.w),
           GestureDetector(
@@ -205,6 +304,10 @@ class _TransferReportContentState extends State<TransferReportContent> {
             );
           }
 
+          // ---- Existing pipeline: stage filter -> custom filters -> search
+          // -> sort. UNTOUCHED. `transferLeads` is the final processed
+          // list — this defines "total" for pagination and is what the
+          // "Total Leads" summary must reflect (requirement #9). ----
           final List<AddLeadModel> rawTransferLeads = state.leads
               .where((lead) => lead.leadStage.toUpperCase() == 'TRANSFERRED')
               .toList();
@@ -235,6 +338,36 @@ class _TransferReportContentState extends State<TransferReportContent> {
             });
           }
 
+          // ===================== PAGINATION WINDOWING =====================
+          // Signature combines everything that can change the composition
+          // of `transferLeads`. Any change resets to page 1 (requirement
+          // #11). Length alone isn't reliable enough (two different filter
+          // combos could coincidentally match the same count), so we also
+          // fold in first/last id.
+          final String currentSignature =
+              '${_sortByNewest}_${_appliedFilters?.fromDate}_${_appliedFilters?.toDate}_${_searchController.text}_${transferLeads.length}_${transferLeads.isNotEmpty ? transferLeads.first.id : ''}_${transferLeads.isNotEmpty ? transferLeads.last.id : ''}';
+
+          if (_lastFilterSignature != currentSignature) {
+            _lastFilterSignature = currentSignature;
+            _resetPagination(transferLeads.length);
+          }
+
+          // Defensive clamp — guarantees no index-out-of-range regardless
+          // of how transferLeads.length shifts between rebuilds.
+          final int safeVisibleCount = _visibleCount.clamp(
+            0,
+            transferLeads.length,
+          );
+
+          // Only this sub-list is ever rendered.
+          final List<AddLeadModel> visibleTransferLeads = transferLeads.sublist(
+            0,
+            safeVisibleCount,
+          );
+
+          final bool hasMore = safeVisibleCount < transferLeads.length;
+          // ==================== END PAGINATION WINDOWING ===================
+
           return Column(
             children: [
               // Summary Row
@@ -244,7 +377,10 @@ class _TransferReportContentState extends State<TransferReportContent> {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4.w,
+                          vertical: 1.5.h,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(15),
@@ -265,21 +401,28 @@ class _TransferReportContentState extends State<TransferReportContent> {
                             ),
                             SizedBox(width: 2.w),
                             Text(
+                              // ---- PAGINATION: unchanged — still the TOTAL
+                              // filtered count, not the visible window
+                              // (requirement #9). ----
                               'Total Leads : ${transferLeads.length}',
                               style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1D2433)),
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1D2433),
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
                     SizedBox(width: 3.w),
-                     FilterButton(
+                    FilterButton(
                       icon: Icons.filter_alt_outlined,
                       onTap: () async {
-                        final result = await showFilterBottomSheet(context, initialFilters: _appliedFilters);
+                        final result = await showFilterBottomSheet(
+                          context,
+                          initialFilters: _appliedFilters,
+                        );
                         if (result != null) {
                           setState(() {
                             if (result.isCleared) {
@@ -315,7 +458,11 @@ class _TransferReportContentState extends State<TransferReportContent> {
                 child: _showSearchBar
                     ? Container(
                         height: 6.h,
-                        margin: EdgeInsets.only(left: 4.w, right: 4.w, bottom: 1.h),
+                        margin: EdgeInsets.only(
+                          left: 4.w,
+                          right: 4.w,
+                          bottom: 1.h,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(15),
@@ -333,7 +480,9 @@ class _TransferReportContentState extends State<TransferReportContent> {
                             hintText: 'Search leads...',
                             prefixIcon: const Icon(Icons.search_rounded),
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 1.5.h),
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 1.5.h,
+                            ),
                           ),
                         ),
                       )
@@ -349,21 +498,53 @@ class _TransferReportContentState extends State<TransferReportContent> {
                           style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                         ),
                       )
+                    // ---- PAGINATION: controller attached here since this
+                    // ListView is this screen's actual scrollable. ----
                     : ListView.separated(
+                        controller: _scrollController,
                         physics: const BouncingScrollPhysics(),
                         padding: EdgeInsets.only(
                           left: 4.w,
                           right: 4.w,
                           bottom: MediaQuery.of(context).padding.bottom + 2.h,
                         ),
-                        itemCount: transferLeads.length,
-                        separatorBuilder: (context, index) => SizedBox(height: 2.h),
+                        // ---- PAGINATION: +1 extra slot for the trailing
+                        // loading indicator, shown only while relevant.
+                        // Keeps the exact same widget structure otherwise. ----
+                        itemCount:
+                            visibleTransferLeads.length +
+                            (hasMore || _isLoadingMore ? 1 : 0),
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 2.h),
                         itemBuilder: (context, index) {
+                          // Trailing indicator slot.
+                          if (index >= visibleTransferLeads.length) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 2.h),
+                              child: Center(
+                                child: _isLoadingMore
+                                    ? const CircularProgressIndicator()
+                                    : const SizedBox.shrink(),
+                              ),
+                            );
+                          }
+
+                          final lead = visibleTransferLeads[index];
                           return LeadReportCard(
-                            lead: transferLeads[index],
+                            key: ValueKey(lead.id ?? index),
+                            lead: lead,
                             isTransferReport: true,
-                            onCall: () {},
-                            onWhatsApp: () {},
+                            onCall: () {
+                              launchPhoneCall(context, lead.contactNumber);
+                            },
+                            onWhatsApp: () {
+                              launchWhatsApp(
+                                context,
+                                lead.whatsappNumber.isEmpty
+                                    ? lead.contactNumber
+                                    : lead.whatsappNumber,
+                              );
+                            },
                           );
                         },
                       ),

@@ -45,6 +45,13 @@ class _LeadReportContentState extends State<LeadReportContent> {
   bool _showSearchBar = false;
   final TextEditingController _searchController = TextEditingController();
 
+  final ScrollController _scrollController = ScrollController();
+  int _visibleCount = 0;
+  static const int _pageSize = 10;
+  bool _isLoadingMore = false;
+
+  String _lastFilterSignature = '';
+
   String get reportTitle {
     switch (widget.reportType) {
       case LeadReportType.newLead:
@@ -56,7 +63,7 @@ class _LeadReportContentState extends State<LeadReportContent> {
       case LeadReportType.rejected:
         return 'Rejected Leads';
       case LeadReportType.transferred:
-        return 'Transfered Leads';
+        return 'Transferred Leads';
       default:
         return 'All Leads';
     }
@@ -68,12 +75,55 @@ class _LeadReportContentState extends State<LeadReportContent> {
     _searchController.addListener(() {
       setState(() {});
     });
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final nearBottom = position.pixels >= (position.maxScrollExtent - 200);
+
+    if (nearBottom) {
+      _maybeLoadMore();
+    }
+  }
+
+  Future<void> _maybeLoadMore() async {
+    final totalResults = context.read<AddLeadCubit>().state.leads.length;
+
+    // Nothing more to show, or already loading, or no search performed yet.
+    if (_isLoadingMore || _visibleCount >= totalResults) {
+      return;
+    }
+
+    setState(() => _isLoadingMore = true);
+
+    // Simulate the async boundary so the CircularProgressIndicator has a
+    // chance to render smoothly (also matches where a real Firestore
+    // pagination call would await a network fetch).
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    if (!mounted) return;
+
+    setState(() {
+      final next = _visibleCount + _pageSize;
+      _visibleCount = next > totalResults ? totalResults : next;
+      _isLoadingMore = false;
+    });
+  }
+
+  void _resetPagination(int totalResults) {
+    _visibleCount = totalResults < _pageSize ? totalResults : _pageSize;
+    _isLoadingMore = false;
   }
 
   DateTime? _parseDate(String dateStr) {
@@ -185,15 +235,15 @@ class _LeadReportContentState extends State<LeadReportContent> {
         title: reportTitle,
         actions: [
           // Sort Button
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.sort_rounded, color: Colors.white, size: 17.sp),
-          ),
-          SizedBox(width: 2.w),
+          // Container(
+          //   padding: const EdgeInsets.all(8),
+          //   decoration: BoxDecoration(
+          //     color: Colors.white.withValues(alpha: 0.2),
+          //     shape: BoxShape.circle,
+          //   ),
+          //   child: Icon(Icons.sort_rounded, color: Colors.white, size: 17.sp),
+          // ),
+          // SizedBox(width: 2.w),
           // Newest Dropdown Button
           GestureDetector(
             onTap: () {
@@ -270,7 +320,7 @@ class _LeadReportContentState extends State<LeadReportContent> {
               break;
             case LeadReportType.transferred:
               leads = leads
-                  .where((e) => e.leadStage.toUpperCase() == 'TRANSFFERED')
+                  .where((e) => e.leadStage.toUpperCase() == 'TRANSFERRED')
                   .toList();
               break;
             case LeadReportType.all:
@@ -302,6 +352,26 @@ class _LeadReportContentState extends State<LeadReportContent> {
               return a.createdAt!.compareTo(b.createdAt!);
             });
           }
+
+          final String currentSignature =
+              '${widget.reportType}_${_sortByNewest}_${_appliedFilters?.fromDate}_${_appliedFilters?.toDate}_${_searchController.text}_${leads.length}_${leads.isNotEmpty ? leads.first.id : ''}_${leads.isNotEmpty ? leads.last.id : ''}';
+
+          if (_lastFilterSignature != currentSignature) {
+            _lastFilterSignature = currentSignature;
+            _resetPagination(leads.length);
+          }
+
+          // Defensive clamp — guarantees no index-out-of-range regardless
+          // of how `leads.length` shifts between rebuilds.
+          final int safeVisibleCount = _visibleCount.clamp(0, leads.length);
+
+          // Only this sub-list is ever rendered by the ListView below.
+          final List<AddLeadModel> visibleLeads = leads.sublist(
+            0,
+            safeVisibleCount,
+          );
+
+          final bool hasMore = safeVisibleCount < leads.length;
 
           return Column(
             children: [
@@ -432,24 +502,42 @@ class _LeadReportContentState extends State<LeadReportContent> {
                         ),
                       )
                     : ListView.separated(
+                        controller: _scrollController,
                         physics: const BouncingScrollPhysics(),
                         padding: EdgeInsets.only(
                           left: 4.w,
                           right: 4.w,
                           bottom: MediaQuery.of(context).padding.bottom + 2.h,
                         ),
-                        itemCount: leads.length,
+                        itemCount:
+                            visibleLeads.length +
+                            (hasMore || _isLoadingMore ? 1 : 0),
                         separatorBuilder: (context, index) =>
                             SizedBox(height: 2.h),
                         itemBuilder: (context, index) {
+                          if (index >= visibleLeads.length) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 2.h),
+                              child: Center(
+                                child: _isLoadingMore
+                                    ? const CircularProgressIndicator()
+                                    // hasMore but not yet loading (just
+                                    // scrolled into range) — reserve space,
+                                    // no spinner needed here since
+                                    // _onScroll will flip _isLoadingMore
+                                    // almost immediately.
+                                    : const SizedBox.shrink(),
+                              ),
+                            );
+                          }
+
+                          final lead = visibleLeads[index];
+
                           return LeadReportCard(
-                            lead: leads[index],
+                            lead: lead,
                             onFollowUp: () {},
                             onCall: () {
-                              launchPhoneCall(
-                                context,
-                                leads[index].contactNumber,
-                              );
+                              launchPhoneCall(context, lead.contactNumber);
                             },
                             onWhatsApp: () {
                               launchWhatsApp(

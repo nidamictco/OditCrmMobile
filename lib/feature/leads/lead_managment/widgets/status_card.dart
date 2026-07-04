@@ -126,13 +126,12 @@ class StatusCard extends StatelessWidget {
             ),
           ],
         ),
-        // padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 1.8.h),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              width: 9.5.w,
+              // width: 9.5.w,
               padding: EdgeInsets.all(0.5.h),
               decoration: BoxDecoration(
                 color: isSelected

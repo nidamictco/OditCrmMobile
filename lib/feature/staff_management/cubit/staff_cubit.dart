@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_state.dart';
 import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 

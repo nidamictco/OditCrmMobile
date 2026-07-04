@@ -9,7 +9,7 @@ import 'package:odit_crm_mobile/feature/menu/change_password_screen.dart';
 import 'package:odit_crm_mobile/feature/menu/profile_bottom_sheet.dart';
 import 'package:odit_crm_mobile/feature/menu/logout_dialog.dart';
 import 'package:odit_crm_mobile/feature/menu/widget/open_notification_settings.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_cubit.dart';
 import 'package:sizer/sizer.dart';
 
@@ -103,10 +103,10 @@ class _OxdoDrawerState extends State<OxdoDrawer> {
                       }
                     },
                   ),
-                  _DrawerMenuItem(
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy T&C',
-                  ),
+                  // _DrawerMenuItem(
+                  //   icon: Icons.privacy_tip_outlined,
+                  //   title: 'Privacy T&C',
+                  // ),
                   _DrawerMenuItem(
                     icon: Icons.notifications_none,
                     title: 'Notification Settings',
@@ -163,8 +163,8 @@ class _DrawerHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            height: 14.5.h,
-            width: 14.5.h,
+            height: 14.h,
+            width: 14.h,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -189,7 +189,7 @@ class _DrawerHeader extends StatelessWidget {
               //   ),
               // ),
               child: Padding(
-                padding: EdgeInsets.all(6.w),
+                padding: EdgeInsets.all(8.w),
                 child: Image.asset(
                   AssetResources.logo2,
                   // height: 13.h,

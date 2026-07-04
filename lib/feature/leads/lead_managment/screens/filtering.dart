@@ -5,7 +5,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/le
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:sizer/sizer.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
 // ---------------------------------------------------------------------------
 // Save as: lib/widgets/filter_bottom_sheet.dart
@@ -124,9 +124,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   void initState() {
     super.initState();
-    final todayStr = _formatDate(DateTime.now());
-    _fromDate = todayStr;
-    _toDate = todayStr;
+    _fromDate = '';
+    _toDate = '';
     if (widget.initialFilters != null) {
       _fromDate = widget.initialFilters!.fromDate;
       _toDate = widget.initialFilters!.toDate;
@@ -137,6 +136,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         }
       });
     }
+     _selectedIndex = _computeInitialIndex();
     _loadUser();
   }
 
@@ -150,11 +150,39 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     }
   }
 
+  int _computeInitialIndex() {
+  final categories = widget.isReportFilter
+      ? const [
+          FilterCategory(
+            label: 'Leads Date',
+            icon: Icons.calendar_today_outlined,
+          ),
+          FilterCategory(label: 'Assigned Staff', icon: Icons.group_outlined),
+        ]
+      : kFilterCategories;
+
+  final filters = widget.initialFilters;
+  if (filters != null && !filters.isCleared) {
+    const priorityOrder = ['Assigned Staff', 'Category', 'Priority'];
+    for (final label in priorityOrder) {
+      final hasSelection = filters.selectedItems[label]?.isNotEmpty ?? false;
+      if (hasSelection) {
+        final idx = categories.indexWhere((c) => c.label == label);
+        if (idx != -1) return idx;
+      }
+    }
+    if (filters.fromDate.isNotEmpty || filters.toDate.isNotEmpty) {
+      final idx = categories.indexWhere((c) => c.label == 'Leads Date');
+      if (idx != -1) return idx;
+    }
+  }
+  return 0;
+}
+
   void _clearAll() {
     setState(() {
-      final todayStr = _formatDate(DateTime.now());
-      _fromDate = todayStr;
-      _toDate = todayStr;
+      _fromDate = '';
+      _toDate = '';
       for (final key in _selectedItems.keys) {
         _selectedItems[key]!.clear();
       }
@@ -217,12 +245,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               BottomActionButtons(
                 onClear: _clearAll,
                 onApply: () {
-                  Navigator.of(context).pop(FilterResult(
-                    fromDate: _fromDate,
-                    toDate: _toDate,
-                    selectedItems: _selectedItems,
-                    isCleared: _isCleared,
-                  ));
+                  Navigator.of(context).pop(
+                    FilterResult(
+                      fromDate: _fromDate,
+                      toDate: _toDate,
+                      selectedItems: _selectedItems,
+                      isCleared: _isCleared,
+                    ),
+                  );
                 },
               ),
             ],
@@ -239,10 +269,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               label: 'Leads Date',
               icon: Icons.calendar_today_outlined,
             ),
-            FilterCategory(
-              label: 'Assigned Staff',
-              icon: Icons.group_outlined,
-            ),
+            FilterCategory(label: 'Assigned Staff', icon: Icons.group_outlined),
           ]
         : kFilterCategories;
     final category = categories[_selectedIndex];
@@ -257,11 +284,44 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               setState(() {
                 _fromDate = picked;
                 _isCleared = false;
+                // Keep the pair valid: if the existing To Date is now
+                // earlier than the new From Date, clear it so the user
+                // must re-select a valid To Date.
+                if (_toDate.isNotEmpty) {
+                  final toParts = _toDate.split('-');
+                  if (toParts.length == 3) {
+                    final toDt = DateTime(
+                      int.parse(toParts[2]),
+                      int.parse(toParts[1]),
+                      int.parse(toParts[0]),
+                    );
+                    final fromParts = picked.split('-');
+                    final fromDt = DateTime(
+                      int.parse(fromParts[2]),
+                      int.parse(fromParts[1]),
+                      int.parse(fromParts[0]),
+                    );
+                    if (toDt.isBefore(fromDt)) {
+                      _toDate = '';
+                    }
+                  }
+                }
               });
             }
           },
           onToDateTap: () async {
-            final picked = await _pickDate(context, _toDate);
+            DateTime? minDate;
+            if (_fromDate.isNotEmpty) {
+              final parts = _fromDate.split('-');
+              if (parts.length == 3) {
+                minDate = DateTime(
+                  int.parse(parts[2]),
+                  int.parse(parts[1]),
+                  int.parse(parts[0]),
+                );
+              }
+            }
+            final picked = await _pickDate(context, _toDate, minDate: minDate);
             if (picked != null) {
               setState(() {
                 _toDate = picked;
@@ -272,8 +332,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           onClear: () {
             final todayStr = _formatDate(DateTime.now());
             setState(() {
-              _fromDate = todayStr;
-              _toDate = todayStr;
+              _fromDate = '';
+              _toDate = '';
               _isCleared = false;
             });
           },
@@ -316,9 +376,16 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 .map((e) => e.name)
                 .toList();
           }
+        // } else if (label == 'Category') {
+        //   items = state.categories.map((e) => e.name).toList();
+        // }
         } else if (label == 'Category') {
-          items = state.categories.map((e) => e.name).toList();
-        } else {
+          items = state.categories
+              .map((e) => e.name)
+              .whereType<String>()
+              .toList();
+        }
+         else {
           items = kCheckboxItems[label] ?? [];
         }
 
@@ -361,7 +428,30 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     }
   }
 
-  Future<String?> _pickDate(BuildContext context, String current) async {
+  // Future<String?> _pickDate(BuildContext context, String current) async {
+  //   final parts = current.split('-');
+  //   final initial = parts.length == 3
+  //       ? DateTime(
+  //           int.parse(parts[2]),
+  //           int.parse(parts[1]),
+  //           int.parse(parts[0]),
+  //         )
+  //       : DateTime.now();
+
+  //   final picked = await showDatePicker(
+  //     context: context,
+  //     initialDate: initial,
+  //     firstDate: DateTime(2020),
+  //     lastDate: DateTime(2030),
+  //   );
+  //   return picked != null ? _formatDate(picked) : null;
+  // }
+
+  Future<String?> _pickDate(
+    BuildContext context,
+    String current, {
+    DateTime? minDate,
+  }) async {
     final parts = current.split('-');
     final initial = parts.length == 3
         ? DateTime(
@@ -369,12 +459,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             int.parse(parts[1]),
             int.parse(parts[0]),
           )
-        : DateTime.now();
+        : (minDate ?? DateTime.now());
+
+    final firstDate = minDate ?? DateTime(2020);
+    final adjustedInitial = initial.isBefore(firstDate) ? firstDate : initial;
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(2020),
+      initialDate: adjustedInitial,
+      firstDate: firstDate,
       lastDate: DateTime(2030),
     );
     return picked != null ? _formatDate(picked) : null;
@@ -511,6 +604,9 @@ class FilterMenuItem extends StatelessWidget {
 // ===========================================================================
 // DATE SELECTION VIEW
 // ===========================================================================
+// ===========================================================================
+// DATE SELECTION VIEW
+// ===========================================================================
 class DateSelectionView extends StatelessWidget {
   final String fromDate;
   final String toDate;
@@ -531,8 +627,21 @@ class DateSelectionView extends StatelessWidget {
     required this.onThisMonth,
   });
 
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.year}';
+
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayStr = _fmt(now);
+    final firstOfMonthStr = _fmt(DateTime(now.year, now.month, 1));
+
+    final isTodaySelected = fromDate == todayStr && toDate == todayStr;
+    final isThisMonthSelected =
+        !isTodaySelected && fromDate == firstOfMonthStr && toDate == todayStr;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -579,13 +688,18 @@ class DateSelectionView extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: FilterOutlinedButton(label: 'Today', onTap: onToday),
+              child: FilterOutlinedButton(
+                label: 'Today',
+                onTap: onToday,
+                isSelected: isTodaySelected,
+              ),
             ),
             SizedBox(width: 3.w),
             Expanded(
               child: FilterOutlinedButton(
                 label: 'This Month',
                 onTap: onThisMonth,
+                isSelected: isThisMonthSelected,
               ),
             ),
           ],
@@ -594,6 +708,134 @@ class DateSelectionView extends StatelessWidget {
     );
   }
 }
+
+// class DateSelectionView extends StatelessWidget {
+//   final String fromDate;
+//   final String toDate;
+//   final VoidCallback onFromDateTap;
+//   final VoidCallback onToDateTap;
+//   final VoidCallback onClear;
+//   final VoidCallback onToday;
+//   final VoidCallback onThisMonth;
+
+//   const DateSelectionView({
+//     super.key,
+//     required this.fromDate,
+//     required this.toDate,
+//     required this.onFromDateTap,
+//     required this.onToDateTap,
+//     required this.onClear,
+//     required this.onToday,
+//     required this.onThisMonth,
+//   });
+
+//   String _fmt(DateTime d) =>
+//       '${d.day.toString().padLeft(2, '0')}-'
+//       '${d.month.toString().padLeft(2, '0')}-'
+//       '${d.year}';
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final now = DateTime.now();
+//     final todayStr = _fmt(now);
+//     final firstOfMonthStr = _fmt(DateTime(now.year, now.month, 1));
+
+//     final isTodaySelected = fromDate == todayStr && toDate == todayStr;
+//     final isThisMonthSelected =
+//         !isTodaySelected && fromDate == firstOfMonthStr && toDate == todayStr;
+
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         // ... unchanged title row, From/To date cards ...
+
+//         Row(
+//           children: [
+//             Expanded(
+//               child: FilterOutlinedButton(
+//                 label: 'Today',
+//                 onTap: onToday,
+//                 isSelected: isTodaySelected,
+//               ),
+//             ),
+//             SizedBox(width: 3.w),
+//             Expanded(
+//               child: FilterOutlinedButton(
+//                 label: 'This Month',
+//                 onTap: onThisMonth,
+//                 isSelected: isThisMonthSelected,
+//               ),
+//             ),
+//           ],
+//         ),
+//       ],
+//     );
+//   }
+// }
+
+// class DateSelectionView extends StatelessWidget {
+//   final String fromDate;
+//   final String toDate;
+//   final VoidCallback onFromDateTap;
+//   final VoidCallback onToDateTap;
+//   final VoidCallback onClear;
+//   final VoidCallback onToday;
+//   final VoidCallback onThisMonth;
+
+//   const DateSelectionView({
+//     super.key,
+//     required this.fromDate,
+//     required this.toDate,
+//     required this.onFromDateTap,
+//     required this.onToDateTap,
+//     required this.onClear,
+//     required this.onToday,
+//     required this.onThisMonth,
+//   });
+
+//   String _fmt(DateTime d) =>
+//       '${d.day.toString().padLeft(2, '0')}-'
+//       '${d.month.toString().padLeft(2, '0')}-'
+//       '${d.year}';
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final now = DateTime.now();
+//     final todayStr = _fmt(now);
+//     final firstOfMonthStr = _fmt(DateTime(now.year, now.month, 1));
+
+//     final isTodaySelected = fromDate == todayStr && toDate == todayStr;
+//     final isThisMonthSelected =
+//         !isTodaySelected && fromDate == firstOfMonthStr && toDate == todayStr;
+
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         // ... unchanged title row, From/To date cards ...
+
+//         Row(
+//           children: [
+//             Expanded(
+//               child: FilterOutlinedButton(
+//                 label: 'Today',
+//                 onTap: onToday,
+//                 isSelected: isTodaySelected,
+//               ),
+//             ),
+//             SizedBox(width: 3.w),
+//             Expanded(
+//               child: FilterOutlinedButton(
+//                 label: 'This Month',
+//                 onTap: onThisMonth,
+//                 isSelected: isThisMonthSelected,
+//               ),
+//             ),
+//           ],
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 // ===========================================================================
 // FILTER DATE CARD
@@ -632,14 +874,23 @@ class FilterDateCard extends StatelessWidget {
                     style: TextStyle(fontSize: 13.5.sp, color: _kTextGrey),
                   ),
                   SizedBox(height: 0.4.h),
-                  Text(
-                    date,
-                    style: TextStyle(
-                      fontSize: 13.5.sp,
-                      fontWeight: FontWeight.w600,
-                      color: _kTextDark,
-                    ),
-                  ),
+                  date.isEmpty
+                      ? Text(
+                          'Select Date',
+                          style: TextStyle(
+                            fontSize: 13.5.sp,
+                            fontWeight: FontWeight.w300,
+                            color: _kTextDark,
+                          ),
+                        )
+                      : Text(
+                          date,
+                          style: TextStyle(
+                            fontSize: 13.5.sp,
+                            fontWeight: FontWeight.w600,
+                            color: _kTextDark,
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -654,14 +905,52 @@ class FilterDateCard extends StatelessWidget {
 // ===========================================================================
 // FILTER OUTLINED BUTTON
 // ===========================================================================
+// class FilterOutlinedButton extends StatelessWidget {
+//   final String label;
+//   final VoidCallback onTap;
+
+//   const FilterOutlinedButton({
+//     super.key,
+//     required this.label,
+//     required this.onTap,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: onTap,
+//       child: Container(
+//         height: 5.5.h,
+//         decoration: BoxDecoration(
+//           color: _kBlue.withOpacity(0.09),
+//           borderRadius: BorderRadius.circular(14),
+//           border: Border.all(color: _kBlue, width: 0.3),
+//         ),
+//         child: Center(
+//           child: Text(
+//             label,
+//             style: TextStyle(
+//               fontSize: 14.sp,
+//               fontWeight: FontWeight.w600,
+//               color: _kBlue,
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 class FilterOutlinedButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final bool isSelected;
 
   const FilterOutlinedButton({
     super.key,
     required this.label,
     required this.onTap,
+    this.isSelected = false,
   });
 
   @override
@@ -671,9 +960,9 @@ class FilterOutlinedButton extends StatelessWidget {
       child: Container(
         height: 5.5.h,
         decoration: BoxDecoration(
-          color: _kBlue.withOpacity(0.2),
+          color: isSelected ? _kBlue : _kBlue.withOpacity(0.09),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _kBlue, width: 1.5),
+          border: Border.all(color: _kBlue, width: isSelected ? 0 : 0.3),
         ),
         child: Center(
           child: Text(
@@ -681,7 +970,7 @@ class FilterOutlinedButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w600,
-              color: _kBlue,
+              color: isSelected ? Colors.white : _kBlue,
             ),
           ),
         ),

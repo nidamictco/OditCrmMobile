@@ -10,7 +10,7 @@ import 'package:odit_crm_mobile/feature/reports/presentation/report_selection_di
 import 'package:odit_crm_mobile/feature/staff_management/Screen/staff_management_screen.dart';
 import 'package:sizer/sizer.dart';
 import 'package:odit_crm_mobile/core/utils/app_bar.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -128,84 +128,183 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 
 // ─── Feature Grid ─────────────────────────────────────────────────────────────
 
+// class _FeatureGrid extends StatelessWidget {
+//   const _FeatureGrid();
+
+//   @override
+//   Widget build(BuildContext context) {
+//     // return FutureBuilder<StaffModel?>(
+//     //   future: SessionService().getSavedUser(),
+//     //   builder: (context, snapshot) {
+//     //     if (snapshot.connectionState == ConnectionState.waiting) {
+//     //       return Center(
+//     //         child: SizedBox(
+//     //           height: 16.h,
+//     //           child: const Center(child: CircularProgressIndicator()),
+//     //         ),
+//     //       );
+//     //     }
+
+//     // final user = snapshot.data;
+//     // final isAdmin = user?.staffType == 'Admin';
+//     final perm = context.read<PermissionCubit>();
+
+//     final items = [
+//       if (perm.canViewDashboard ||
+//           perm.canViewLeadsReport ||
+//           perm.canAddLead ||
+//           perm.canTransferLeads ||
+//           perm.canAddLeadCategory ||
+//           perm.canAddLeadSource ||
+//           perm.canViewLeadStages ||
+//           perm.canViewLeadCategory ||
+//           perm.canViewLeadSource)
+//         _FeatureItem(
+//           label: 'LEAD\nMANAGEMENT',
+//           assetsPath: AssetResources.stateMngmnt,
+//           iconBgColor: const Color(0xFFE8F4FD),
+//           onTap: () {
+//             Navigator.push(
+//               context,
+//               MaterialPageRoute(
+//                 builder: (context) => CustomBottomNavScreen(index: 1),
+//               ),
+//             );
+//           },
+//         ),
+//       if (perm.canViewStaff ||
+//           perm.canAddStaff ||
+//           perm.canEditStaff ||
+//           perm.canDeleteStaff)
+//         _FeatureItem(
+//           label: 'STAFF\nMANAGEMENT',
+//           assetsPath: AssetResources.staffMngmnt,
+//           iconBgColor: const Color(0xFFF0EAFF),
+//           onTap: () {
+//             Navigator.push(
+//               context,
+//               MaterialPageRoute(
+//                 builder: (context) => const StaffManagementScreen(),
+//               ),
+//             );
+//           },
+//         ),
+//       if (perm.canViewRejectedReport ||
+//           perm.canViewStaffReport ||
+//           perm.canViewTransferReport)
+//         _FeatureItem(
+//           label: 'REPORTS\n    ',
+//           assetsPath: AssetResources.report,
+//           iconBgColor: const Color(0xFFFFF3E0),
+//           onTap: () => ReportSelectionDialog.show(context),
+//         ),
+//     ];
+
+//     return Row(
+//       children: items
+//           .map(
+//             (item) => Expanded(
+//               child: Padding(
+//                 padding: EdgeInsets.symmetric(
+//                   horizontal: 1.5.w,
+//                 ), // list screen uses 1.5.w gaps
+//                 child: _FeatureCard(item: item),
+//               ),
+//             ),
+//           )
+//           .toList(),
+//     );
+//     // },
+//     // );
+//   }
+// }
 class _FeatureGrid extends StatelessWidget {
   const _FeatureGrid();
 
   @override
   Widget build(BuildContext context) {
-    // return FutureBuilder<StaffModel?>(
-    //   future: SessionService().getSavedUser(),
-    //   builder: (context, snapshot) {
-    //     if (snapshot.connectionState == ConnectionState.waiting) {
-    //       return Center(
-    //         child: SizedBox(
-    //           height: 16.h,
-    //           child: const Center(child: CircularProgressIndicator()),
-    //         ),
-    //       );
-    //     }
+    final perm = context.read<PermissionCubit>();
 
-        // final user = snapshot.data;
-        // final isAdmin = user?.staffType == 'Admin';
-        final perm = context.read<PermissionCubit>(); 
+    final items = [
+      if (perm.canViewDashboard ||
+          perm.canViewLeadsReport ||
+          perm.canAddLead ||
+          perm.canTransferLeads ||
+          perm.canAddLeadCategory ||
+          perm.canAddLeadSource ||
+          perm.canViewLeadStages ||
+          perm.canViewLeadCategory ||
+          perm.canViewLeadSource)
+        _FeatureItem(
+          label: 'LEAD\nMANAGEMENT',
+          assetsPath: AssetResources.stateMngmnt,
+          iconBgColor: const Color(0xFFE8F4FD),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomBottomNavScreen(index: 1),
+              ),
+            );
+          },
+        ),
+      if (perm.canViewStaff ||
+          perm.canAddStaff ||
+          perm.canEditStaff ||
+          perm.canDeleteStaff)
+        _FeatureItem(
+          label: 'STAFF\nMANAGEMENT',
+          assetsPath: AssetResources.staffMngmnt,
+          iconBgColor: const Color(0xFFF0EAFF),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StaffManagementScreen(),
+              ),
+            );
+          },
+        ),
+      if (perm.canViewRejectedReport ||
+          perm.canViewStaffReport ||
+          perm.canViewTransferReport)
+        _FeatureItem(
+          label: 'REPORTS\n    ',
+          assetsPath: AssetResources.report,
+          iconBgColor: const Color(0xFFFFF3E0),
+          onTap: () => ReportSelectionDialog.show(context),
+        ),
+    ];
 
-        final items = [
-          if(perm.canViewDashboard || perm.canViewLeadsReport|| perm.canAddLead||perm.canTransferLeads || perm.canAddLeadCategory|| perm.canAddLeadSource||perm.canViewLeadStages||perm.canViewLeadCategory||perm.canViewLeadSource)
-          _FeatureItem(
-            label: 'LEAD\nMANAGEMENT',
-            assetsPath: AssetResources.stateMngmnt,
-            iconBgColor: const Color(0xFFE8F4FD),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CustomBottomNavScreen(index: 1),
-                ),
-              );
-            },
-          ),
-          if(perm.canViewStaff || perm.canAddStaff || perm.canEditStaff || perm.canDeleteStaff)
-            _FeatureItem( 
-              label: 'STAFF\nMANAGEMENT',
-              assetsPath: AssetResources.staffMngmnt,
-              iconBgColor: const Color(0xFFF0EAFF),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const StaffManagementScreen(),
-                  ),
-                );
-              },
-            ),
-          if(perm.canViewRejectedReport|| perm.canViewStaffReport|| perm.canViewTransferReport)
-            _FeatureItem(
-              label: 'REPORTS\n    ',
-              assetsPath: AssetResources.report,
-              iconBgColor: const Color(0xFFFFF3E0),
-              onTap: () => ReportSelectionDialog.show(context),
-            ),
-        ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Derive card width from the ACTUAL space this widget has
+        // (not 100.w), since the parent SingleChildScrollView already
+        // applies 4.w horizontal padding on each side.
+        // Each item has 1.5.w padding on each side (3.w total per item,
+        // 9.w total across the original 3 items) — same rhythm as before,
+        // just anchored to real available width instead of screen width.
+        final cardWidth = (constraints.maxWidth - 9.w) / 3;
 
         return Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: items
               .map(
-                (item) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 1.5.w,
-                    ), // list screen uses 1.5.w gaps
+                (item) => Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 1.5.w),
+                  child: SizedBox(
+                    width: cardWidth,
                     child: _FeatureCard(item: item),
                   ),
                 ),
               )
               .toList(),
         );
-      // },
-    // );
+      },
+    );
   }
 }
-
 // ─── Feature Card ─────────────────────────────────────────────────────────────
 
 class _FeatureCard extends StatelessWidget {
@@ -222,8 +321,7 @@ class _FeatureCard extends StatelessWidget {
       child: GestureDetector(
         onTap: item.onTap,
         child: Container(
-          // height: 16.h,
-          padding: EdgeInsets.symmetric(vertical: 2.5.h, horizontal: 2.5.w),
+          padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 1.w),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(2.5.w),

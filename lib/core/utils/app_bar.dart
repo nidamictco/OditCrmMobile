@@ -7,7 +7,7 @@ import 'package:odit_crm_mobile/feature/home/search_screen.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/notification/screen/notification_screen.dart';
 import 'package:sizer/sizer.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? avatarImagePath;
@@ -81,7 +81,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 letterSpacing: 0.2,
                                 height: 1.2,
                               ),
-                              maxLines: 1,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
@@ -111,7 +111,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                         },
                         badgeCount: notificationCount,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       _AppBarIconButton(
                         icon: Icons.search,
                         onTap: () {

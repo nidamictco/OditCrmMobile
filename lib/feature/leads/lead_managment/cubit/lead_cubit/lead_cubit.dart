@@ -35,6 +35,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   StreamSubscription? _sourceSubscription;
   StreamSubscription? _leadStageSubscription;
   GeneralSettingsRepository? _settingsRepo;
+  StreamSubscription<List<AddLeadModel>>? _leadsRealtimeSubscription;
 
   AddLeadCubit({
     IAddLeadRepository? leadRepository,
@@ -144,6 +145,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     _categorySubscription?.cancel();
     _sourceSubscription?.cancel();
     _leadStageSubscription?.cancel();
+    _leadsRealtimeSubscription?.cancel();
     return super.close();
   }
 
@@ -332,32 +334,6 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     }
   }
 
-  // Future<void> updateLead(String id, AddLeadModel updated) async {
-  //   if (state.isUpdating) return;
-  //   emit(state.copyWith(isUpdating: true, clearError: true));
-  //   try {
-  //     await _leadRepository.updateLead(id, updated);
-  //     final updatedList = state.leads.map((l) {
-  //       return l.id == id ? updated.copyWith(id: id) : l;
-  //     }).toList();
-  //     emit(
-  //       state.copyWith(
-  //         isUpdating: false,
-  //         leads: updatedList,
-  //         successMessage: 'Lead updated successfully.',
-  //         status: AddLeadStatus.success,
-  //       ),
-  //     );
-  //   } catch (e) {
-  //     emit(
-  //       state.copyWith(
-  //         isUpdating: false,
-  //         status: AddLeadStatus.failure,
-  //         errorMessage: _friendlyError(e),
-  //       ),
-  //     );
-  //   }
-  // }
 
   String _generateDateId(String prefix) {
     final now = DateTime.now();
@@ -1138,58 +1114,52 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   }
   // ----------search----------
 
-  Future<void> searchLeads(String query) async {
-    if (query.trim().isEmpty) {
-      emit(state.copyWith(isSearching: false, searchResults: []));
-      return;
-    }
+  List<AddLeadModel> _allLeadsCache = [];
 
-    // Show dropdown immediately with loading state
-    emit(state.copyWith(isSearching: true, searchResults: []));
-
-    try {
-      // Use cached leads if already loaded — avoids Firestore call on every keystroke
-      List<AddLeadModel> allLeads = state.leads;
-
-      if (allLeads.isEmpty) {
-        final user = await SessionService().getSavedUser();
-        // Fetch directly into local variable — do NOT call fetchLeads() here
-        // because fetchLeads() emits intermediate states that make state.leads
-        // unreliable to read afterward
-        allLeads = await _leadRepository.fetchLeads(
-          staffId: user?.id ?? '',
-          role: user?.staffType ?? '',
-        );
-        // Cache in state for future keystrokes (instant filter after first load)
-        emit(
-          state.copyWith(
-            listStatus: LeadListStatus.loaded,
-            leads: allLeads,
-            isSearching: true,
-          ),
-        );
-      }
-
-      final q = query.toLowerCase();
-      final results = allLeads
-          .where(
-            (lead) =>
-                lead.clientName?.toLowerCase().contains(q) == true ||
-                lead.contactNumber?.contains(query) == true ||
-                lead.email?.toLowerCase().contains(q) == true,
-          )
-          .toList();
-
-      emit(state.copyWith(isSearching: true, searchResults: results));
-    } catch (e) {
-      emit(state.copyWith(isSearching: false, searchResults: []));
-    }
+Future<void> searchLeads(String query) async {
+  if (query.trim().isEmpty) {
+    emit(state.copyWith(isSearching: false, searchResults: []));
+    return;
   }
 
-  void updateSelectedDashboardDate(DateTime date) {
-    emit(state.copyWith(selectedDashboardDate: date));
-  }
+  emit(state.copyWith(listStatus: LeadListStatus.loading, isSearching: true));
 
+  try {
+    if (_allLeadsCache.isEmpty) {
+      final user = await SessionService().getSavedUser();
+      _allLeadsCache = await _leadRepository.fetchLeads(
+        staffId: user?.id ?? '',
+        role: user?.staffType ?? '',
+      );
+    }
+
+    final q = query.toLowerCase();
+    final results = _allLeadsCache
+        .where(
+          (lead) =>
+              lead.clientName?.toLowerCase().contains(q) == true ||
+              lead.contactNumber?.contains(query) == true ||
+              lead.email?.toLowerCase().contains(q) == true,
+        )
+        .toList();
+
+    emit(
+      state.copyWith(
+        listStatus: LeadListStatus.loaded,
+        isSearching: true,
+        searchResults: results, // separate field, doesn't touch `leads`
+      ),
+    );
+  } catch (e) {
+    emit(
+      state.copyWith(
+        listStatus: LeadListStatus.failure,
+        isSearching: false,
+        searchResults: [],
+      ),
+    );
+  }
+}
   // Future<void> fetchLeadChartCounts({
   //   required String staffId,
   //   required String role,
@@ -1341,6 +1311,40 @@ class AddLeadCubit extends Cubit<AddLeadState> {
       ),
     );
   }
+  // ── Real-time sync ────────────────────────────────────────────────────────
+void watchLeadsRealtime() {
+  // Cancel any existing listener first — prevents duplicate listeners
+  // if this is called more than once (e.g. tab re-entry).
+  _leadsRealtimeSubscription?.cancel();
+
+  emit(
+    state.copyWith(listStatus: LeadListStatus.loading, clearListError: true),
+  );
+
+  SessionService().getSavedUser().then((user) {
+    if (isClosed) return;
+
+    _leadsRealtimeSubscription = _leadRepository
+        .watchLeads(staffId: user?.id ?? '', role: user?.staffType ?? '')
+        .listen(
+          (leads) {
+            if (isClosed) return;
+            emit(
+              state.copyWith(listStatus: LeadListStatus.loaded, leads: leads),
+            );
+          },
+          onError: (e) {
+            if (isClosed) return;
+            emit(
+              state.copyWith(
+                listStatus: LeadListStatus.failure,
+                listError: _friendlyError(e),
+              ),
+            );
+          },
+        );
+  });
+}
 }
 
 Future<void> migrateCallResults() async {

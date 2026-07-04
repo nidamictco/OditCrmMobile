@@ -137,7 +137,7 @@ class ReportSelectionDialog extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const TransferReportScreen(),
+                      builder: (context) => const LeadReportScreen(reportType: LeadReportType.transferred,),
                     ),
                   );
                 },

@@ -294,7 +294,7 @@ class FollowUpModel {
       leadStage: data['leadStage'] ?? '',
       leadCategory: data['leadCategory'] ?? '',
       priority: data['priority'] ?? '',
-      remarks: data['remarks'] ?? '',
+      remarks: data['remarks'] ?? 'N/A',
       adress: data['address'] ?? '',
       email: data['email'] ?? '',
       assignedStaff: data['assignedStaff']??'',

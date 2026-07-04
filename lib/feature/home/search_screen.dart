@@ -26,6 +26,13 @@ class _SearchScreenState extends State<SearchScreen> {
   List<ValueNotifier<bool>> _closeNotifiers = [];
   final Set<String> _expandedLeadIds = {};
 
+  final ScrollController _scrollController = ScrollController();
+  int _visibleCount = 0;
+  static const int _pageSize = 10;
+  bool _isLoadingMore = false;
+  int _lastResultsLength = -1;
+  String _paginationQueryKey = '';
+
   void _onToggleExpand(String id) {
     setState(() {
       if (_expandedLeadIds.contains(id)) {
@@ -42,6 +49,7 @@ class _SearchScreenState extends State<SearchScreen> {
     // DO NOT fetch leads on screen init
     // DO NOT set up any search listeners
     // Wait for user to manually trigger search via button
+    _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -50,7 +58,49 @@ class _SearchScreenState extends State<SearchScreen> {
     for (final n in _closeNotifiers) {
       n.dispose();
     }
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final nearBottom = position.pixels >= (position.maxScrollExtent - 200);
+
+    if (nearBottom) {
+      _maybeLoadMore();
+    }
+  }
+
+  Future<void> _maybeLoadMore() async {
+    final totalResults = context.read<AddLeadCubit>().state.leads.length;
+
+    // Nothing more to show, or already loading, or no search performed yet.
+    if (_isLoadingMore || _visibleCount >= totalResults) {
+      return;
+    }
+
+    setState(() => _isLoadingMore = true);
+
+    // Simulate the async boundary so the CircularProgressIndicator has a
+    // chance to render smoothly (also matches where a real Firestore
+    // pagination call would await a network fetch).
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    if (!mounted) return;
+
+    setState(() {
+      final next = _visibleCount + _pageSize;
+      _visibleCount = next > totalResults ? totalResults : next;
+      _isLoadingMore = false;
+    });
+  }
+
+  void _resetPagination(int totalResults) {
+    _visibleCount = totalResults < _pageSize ? totalResults : _pageSize;
+    _isLoadingMore = false;
   }
 
   void _syncCloseNotifiers(int length) {
@@ -162,10 +212,25 @@ class _SearchScreenState extends State<SearchScreen> {
               );
             }
 
-            final searchResults = state.leads;
-            _syncCloseNotifiers(searchResults.length);
+            final searchResults = state.searchResults;
+
+            if (_paginationQueryKey != _lastSearchQuery ||
+                _lastResultsLength != searchResults.length) {
+              _paginationQueryKey = _lastSearchQuery;
+              _lastResultsLength = searchResults.length;
+              _resetPagination(searchResults.length);
+            }
+            final safeVisibleCount = _visibleCount.clamp(
+              0,
+              searchResults.length,
+            );
+            final visibleResults = searchResults.sublist(0, safeVisibleCount);
+
+            _syncCloseNotifiers(visibleResults.length);
+            final hasMore = safeVisibleCount < searchResults.length;
 
             return SingleChildScrollView(
+              controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
               child: Column(
@@ -265,10 +330,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: searchResults.length,
+                      itemCount: visibleResults.length,
                       separatorBuilder: (_, __) => SizedBox(height: 2.h),
                       itemBuilder: (_, index) {
-                        final lead = searchResults[index];
+                        final lead = visibleResults[index];
                         final leadData = LeadData(
                           id: lead.id ?? '',
                           name: lead.clientName,
@@ -288,6 +353,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         );
 
                         return LeadCard(
+                          key: ValueKey(lead.id ?? index),
                           data: leadData,
                           closeNotifier: _closeNotifiers[index],
                           onSwipeOpen: () => _onSwipeOpen(index),
@@ -299,6 +365,17 @@ class _SearchScreenState extends State<SearchScreen> {
                         );
                       },
                     ),
+                    if (_isLoadingMore)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2.h),
+                        child: const Center(child: CircularProgressIndicator()),
+                      )
+                    else if (hasMore)
+                      // Small invisible-ish spacer area so the scroll
+                      // listener has a bit of room to trigger before the
+                      // absolute bottom (keeps scrolling smooth per
+                      // performance requirements).
+                      SizedBox(height: 4.h),
                   ],
                   SizedBox(height: 2.h),
                 ],
@@ -450,11 +527,11 @@ class LeadHeaderCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.keyboard_arrow_up_rounded,
-            color: const Color(0xFF666666),
-            size: 6.w,
-          ),
+          // Icon(
+          //   Icons.keyboard_arrow_up_rounded,
+          //   color: const Color(0xFF666666),
+          //   size: 6.w,
+          // ),
         ],
       ),
     );

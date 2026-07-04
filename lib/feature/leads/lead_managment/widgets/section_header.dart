@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:sizer/sizer.dart';
 
 class SectionHeader extends StatelessWidget {
@@ -87,7 +88,7 @@ class SectionHeader extends StatelessWidget {
               ),
               SizedBox(width: 1.5.w),
               ActionButton(
-                icon: Icons.bar_chart_rounded,
+                iconAsset: AssetResources.reportIcon,
                 onTap: onChart,
                 bgColor: isReportActive
                     ? AppColors.bottomNavBlue
@@ -111,8 +112,8 @@ class SectionHeader extends StatelessWidget {
               ActionButton(
                 icon: Icons.search_rounded,
                 onTap: onSearch,
-                bgColor: AppColors.bottomNavBlue,
-                iconColor: Colors.white,
+                bgColor: Color(0xFFF3F4F6),
+                iconColor: Color(0xFF6B7280),
               ),
               SizedBox(width: 1.5.w),
               ActionButton(
@@ -123,9 +124,11 @@ class SectionHeader extends StatelessWidget {
               ),
               SizedBox(width: 1.5.w),
               ActionButton(
-                icon: areAllExpanded
-                    ?  Icons.table_rows_outlined
-                    :Icons.table_rows ,
+                // icon: areAllExpanded
+                //     ?  Icons.table_rows_outlined
+                //     :Icons.table_rows ,
+                iconAsset: AssetResources.expand,
+
                 onTap: onmenu,
                 bgColor: areAllExpanded
                     ? AppColors.bottomNavBlue
@@ -143,17 +146,19 @@ class SectionHeader extends StatelessWidget {
 }
 
 class ActionButton extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
   final VoidCallback onTap;
   final Color bgColor;
   final Color iconColor;
+  final String? iconAsset;
 
   const ActionButton({
     super.key,
-    required this.icon,
+    this.icon,
     required this.onTap,
     required this.bgColor,
     required this.iconColor,
+    this.iconAsset,
   });
 
   @override
@@ -167,7 +172,17 @@ class ActionButton extends StatelessWidget {
           color: bgColor,
           borderRadius: BorderRadius.circular(2.5.w),
         ),
-        child: Icon(icon, size: 4.3.w, color: iconColor),
+        child: iconAsset != null
+            ? Padding(
+                padding: EdgeInsets.all(2.w),
+                child: Image.asset(
+                  iconAsset!,
+                  height: 4.3.w,
+                  width: 4.3.w,
+                  color: iconColor,
+                ),
+              )
+            : Icon(icon, size: 4.3.w, color: iconColor),
       ),
     );
   }

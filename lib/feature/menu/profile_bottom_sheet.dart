@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:sizer/sizer.dart';
 
 class ProfileBottomSheet extends StatelessWidget {
@@ -14,7 +14,7 @@ class ProfileBottomSheet extends StatelessWidget {
   //     backgroundColor: Colors.transparent,
   //     builder: (context) => const ProfileBottomSheet(),
   //   );
-  // } 
+  // }
 
   static Future<void> show(BuildContext context, StaffModel user) async {
     showModalBottomSheet(
@@ -58,8 +58,8 @@ class ProfileBottomSheet extends StatelessWidget {
 
           // Profile Avatar
           Container(
-            width: 100,
-            height: 100,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
@@ -74,8 +74,8 @@ class ProfileBottomSheet extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF1b5d91).withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -85,14 +85,14 @@ class ProfileBottomSheet extends StatelessWidget {
                     ? user.name![0].toUpperCase()
                     : 'U',
                 style: TextStyle(
-                  fontSize: 42,
+                  fontSize: 35,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
             ),
           ),
-          SizedBox(height: 2.h),
+          SizedBox(height: 1.h),
 
           // Company Name
           Text(

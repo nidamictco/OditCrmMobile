@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/utils/app_bar.dart';
 import 'package:odit_crm_mobile/feature/reports/widgets/report_appbar.dart';
-import 'package:odit_crm_mobile/feature/staff_management/Screen/model/staff_model.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_cubit.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
@@ -170,6 +170,7 @@ class _StaffManagementContentState extends State<StaffManagementContent> {
                           final s = filteredStaff[index];
                           final counts = staffLeadCounts[s.id] ?? [0, 0];
                           return StaffPerformanceCard(
+                            key: ValueKey(s.id),
                             staff: s,
                             totalLeads: counts[0],
                             closedLeads: counts[1],
@@ -193,7 +194,7 @@ class _StaffManagementContentState extends State<StaffManagementContent> {
 // REUSABLE WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-class StaffPerformanceCard extends StatelessWidget {
+class StaffPerformanceCard extends StatefulWidget {
   final StaffModel staff;
   final int totalLeads;
   final int closedLeads;
@@ -204,6 +205,198 @@ class StaffPerformanceCard extends StatelessWidget {
     this.totalLeads = 0,
     this.closedLeads = 0,
   });
+
+  @override
+  State<StaffPerformanceCard> createState() => _StaffPerformanceCardState();
+}
+
+class _StaffPerformanceCardState extends State<StaffPerformanceCard> {
+    final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isProcessing = false;
+
+  StaffModel get staff => widget.staff;
+
+  bool get _isActive => staff.status == 'Active';
+
+  void _toggleMenu() {
+    if (_overlayEntry != null) {
+      _closeMenu();
+    } else {
+      _openMenu();
+    }
+  }
+
+  void _openMenu() {
+    final overlay = Overlay.of(context);
+
+    // Snapshot status at the moment the menu opens, so the label/color
+    // shown in the popup always matches the latest staff.status.
+    final bool isActive = _isActive;
+    final String actionLabel = isActive ? 'Disable' : 'Enable';
+    final Color actionColor = isActive ? Colors.red : Colors.green;
+
+    _overlayEntry = OverlayEntry(
+      builder: (overlayContext) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _closeMenu,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: const Offset(-120, 30),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 140,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: _isProcessing
+                        ? null
+                        : () {
+                            _closeMenu();
+                            // Use the State's own `context` (the card's context,
+                            // which is under BlocProvider<StaffCubit>), NOT the
+                            // overlay builder's local `overlayContext`.
+                            _showToggleConfirmation(context, isActive);
+                          },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Text(
+                        actionLabel,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _isProcessing
+                              ? Colors.grey.shade400
+                              : actionColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    overlay.insert(_overlayEntry!);
+  }
+
+  void _closeMenu() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Future<void> _showToggleConfirmation(
+    BuildContext context,
+    bool isActive,
+  ) async {
+    // Capture the cubit BEFORE any await — context may become invalid after.
+    final cubit = context.read<StaffCubit>();
+
+    final String title = isActive ? 'Disable Staff' : 'Enable Staff';
+    final String message = isActive
+        ? 'Are you sure you want to disable this staff member?'
+        : 'Are you sure you want to enable this staff member?';
+    final String confirmLabel = isActive ? 'Disable' : 'Enable';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && staff.id != null) {
+      await _updateStaffStatus(cubit, isActive);
+    }
+  }
+
+  Future<void> _updateStaffStatus(StaffCubit cubit, bool wasActive) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
+    final String newStatus = wasActive ? 'Inactive' : 'Active';
+
+    debugPrint('[ToggleStaffStatus] Selected staff ID: ${staff.id}');
+    debugPrint('[ToggleStaffStatus] Current status: ${staff.status}');
+    debugPrint('[ToggleStaffStatus] New status: $newStatus');
+
+    try {
+      await cubit.updateStatus(staff.id!, newStatus);
+      final resultState = cubit.state;
+      debugPrint('[ToggleStaffStatus] Cubit state after update: $resultState');
+
+      if (resultState is StaffError) {
+        debugPrint('[ToggleStaffStatus] Update FAILED: ${resultState.message}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to ${wasActive ? 'disable' : 'enable'} staff: ${resultState.message}',
+              ),
+            ),
+          );
+        }
+      } else {
+        debugPrint('[ToggleStaffStatus] Update SUCCEEDED for staffId: ${staff.id}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                wasActive
+                    ? 'Staff has been disabled successfully.'
+                    : 'Staff has been enabled successfully.',
+              ),
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _closeMenu();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,28 +417,15 @@ class StaffPerformanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Popup Menu Icon
-          // Align(
-          //   alignment: Alignment.topRight,
-          //   child: Icon(
-          //     // constraints: const BoxConstraints(),
-          //     // onPressed: () {},
-          //     Icons.more_horiz,
-          //     color: Color(0xFFBDBDBD),
-          //   ),
-          // ),
-          // Header Row
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
               Container(
                 width: 16.w,
                 height: 16.w,
                 decoration: BoxDecoration(
                   color: const Color(0xFFE0E0E0),
                   shape: BoxShape.circle,
-                  // borderRadius: BorderRadius.circular(9),
                   image: staff.imageUrl != null && staff.imageUrl!.isNotEmpty
                       ? DecorationImage(
                           image: NetworkImage(staff.imageUrl!),
@@ -258,7 +438,6 @@ class StaffPerformanceCard extends StatelessWidget {
                     : null,
               ),
               SizedBox(width: 4.w),
-              // Name and Designation Badge
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,8 +447,6 @@ class StaffPerformanceCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            // Flexible(
-                            // child:
                             Text(
                               staff.name,
                               style: TextStyle(
@@ -280,7 +457,6 @@ class StaffPerformanceCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               maxLines: 2,
                             ),
-                            // ),
                             SizedBox(width: 2.w),
                             DesignationBadge(
                               label:
@@ -292,9 +468,7 @@ class StaffPerformanceCard extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     SizedBox(height: 0.5.h),
-                    // Phone Section
                     Row(
                       children: [
                         const Icon(
@@ -319,52 +493,79 @@ class StaffPerformanceCard extends StatelessWidget {
               ),
               Align(
                 alignment: Alignment.topRight,
-                child: Icon(
-                  // constraints: const BoxConstraints(),
-                  // onPressed: () {},
-                  Icons.more_horiz,
-                  color: Color(0xFFBDBDBD),
+                child: CompositedTransformTarget(
+                  link: _layerLink,
+                  child: GestureDetector(
+                    onTap: _toggleMenu,
+                    child: const Icon(
+                      Icons.more_horiz,
+                      color: Color(0xFFBDBDBD),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           SizedBox(height: 1.h),
-          // Statistics Cards Row
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Expanded(
-                // child:
-                StaffStatBox(
-                  title: 'Leads',
-                  value: totalLeads.toString(),
-                  backgroundColor: const Color(0xFFF6F4FF),
-                  borderColor: const Color(0xFFE6E0FF),
-                  valueColor: const Color(0xFF6C63FF),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    StaffStatBox(
+                      title: 'Leads',
+                      value: widget.totalLeads.toString(),
+                      backgroundColor: const Color(0xFFF6F4FF),
+                      borderColor: const Color(0xFFE6E0FF),
+                      valueColor: const Color(0xFF6C63FF),
+                    ),
+                    SizedBox(width: 2.w),
+                    StaffStatBox(
+                      title: 'Closed',
+                      value: widget.closedLeads.toString(),
+                      backgroundColor: const Color(0xFFF0FBF8),
+                      borderColor: const Color(0xFFDDF4EE),
+                      valueColor: const Color(0xFF21B98C),
+                    ),
+                  ],
                 ),
-                // ),
-                SizedBox(width: 2.w),
-                // Expanded(
-                // child:
-                StaffStatBox(
-                  title: 'Closed',
-                  value: closedLeads.toString(),
-                  backgroundColor: const Color(0xFFF0FBF8),
-                  borderColor: const Color(0xFFDDF4EE),
-                  valueColor: const Color(0xFF21B98C),
-                ),
-                // ),
-              ],
-            ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 2.w,
+                    height: 2.w,
+                    decoration: BoxDecoration(
+                      color: widget.staff.status == 'Active'
+                          ? Colors.green.shade400
+                          : Colors.red.shade400,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 0.3.w),
+                  Text(
+                    widget.staff.status,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                      color: widget.staff.status == 'Active'
+                          ? Colors.green.shade400
+                          : Colors.red.shade400,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          // SizedBox(height: 2.h),
         ],
       ),
     );
   }
 }
+
 
 class DesignationBadge extends StatelessWidget {
   final String label;
@@ -468,3 +669,7 @@ class PerformanceProgressBar extends StatelessWidget {
     );
   }
 }
+
+
+
+
