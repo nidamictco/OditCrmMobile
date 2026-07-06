@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/utils/custom_dropdown_field.dart';
+import 'package:odit_crm_mobile/core/utils/indian_location_service.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/cubit/category_cubit.dart';
@@ -1004,7 +1005,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         email: _emailCtrl.text,
         address: _addressCtrl.text,
         pinCode: _pinCtrl.text,
-        postOffice:_postOfficeCtrl.text,
+        postOffice: _postOfficeCtrl.text,
         state: _selectedState ?? widget.lead?.state ?? '',
         district: _selectedDistrict ?? widget.lead?.district ?? '',
         remarks: _remarksCtrl.text,
@@ -1047,7 +1048,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
       email: _emailCtrl.text,
       address: _addressCtrl.text,
       pinCode: _pinCtrl.text,
-      postOffice: '',
+      postOffice: _postOfficeCtrl.text,
       remarks: _remarksCtrl.text,
       nextFollowUpDate: _nextFollowupDateValue,
     );
@@ -1200,8 +1201,15 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                         'Maharashtra',
                         'Delhi',
                       ],
+                      // onStateChanged: (v) {
+                      //   setState(() => _selectedState = v);
+                      //   context.read<AddLeadCubit>().selectState(v);
+                      // },
                       onStateChanged: (v) {
-                        setState(() => _selectedState = v);
+                        setState(() {
+                          _selectedState = v;
+                          _selectedDistrict = null;
+                        });
                         context.read<AddLeadCubit>().selectState(v);
                       },
                       onContactPickerTap: () {},
@@ -1737,7 +1745,7 @@ class PrimaryButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // CUSTOMER DETAILS CARD
 // ---------------------------------------------------------------------------
-class _CustomerDetailsCard extends StatelessWidget {
+class _CustomerDetailsCard extends StatefulWidget {
   final TextEditingController clientNameCtrl;
   final TextEditingController contactCtrl;
   final TextEditingController whatsappCtrl;
@@ -1771,6 +1779,24 @@ class _CustomerDetailsCard extends StatelessWidget {
   });
 
   @override
+  State<_CustomerDetailsCard> createState() => _CustomerDetailsCardState();
+}
+
+class _CustomerDetailsCardState extends State<_CustomerDetailsCard> {
+  Map<String, List<String>> stateDistrictMap = {};
+  Future<void> _loadLocations() async {
+    final map = await IndiaLocationService.loadStateDistricts();
+    if (mounted) setState(() => stateDistrictMap = map);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _loadLocations();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CustomSectionCard(
       header: const SectionTitle(
@@ -1782,7 +1808,7 @@ class _CustomerDetailsCard extends StatelessWidget {
         SizedBox(
           height: 6.h,
           child: CustomTextField(
-            controller: clientNameCtrl,
+            controller: widget.clientNameCtrl,
             hint: 'Client Name',
             isRequired: true,
             filled: false,
@@ -1797,7 +1823,7 @@ class _CustomerDetailsCard extends StatelessWidget {
         SizedBox(
           height: 6.h,
           child: CustomTextField(
-            controller: contactCtrl,
+            controller: widget.contactCtrl,
             hint: 'Contact Number',
             isRequired: true,
             filled: false,
@@ -1814,7 +1840,7 @@ class _CustomerDetailsCard extends StatelessWidget {
         SizedBox(
           height: 6.h,
           child: CustomTextField(
-            controller: whatsappCtrl,
+            controller: widget.whatsappCtrl,
             hint: 'Whatsapp Number',
             filled: false,
             outlined: true,
@@ -1830,7 +1856,7 @@ class _CustomerDetailsCard extends StatelessWidget {
         SizedBox(
           height: 6.h,
           child: CustomTextField(
-            controller: emailCtrl,
+            controller: widget.emailCtrl,
             hint: 'Email',
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
@@ -1842,7 +1868,7 @@ class _CustomerDetailsCard extends StatelessWidget {
 
         // Address (no validation — free text)
         CustomTextField(
-          controller: addressCtrl,
+          controller: widget.addressCtrl,
           hint: 'Address',
           prefixIcon: Icons.location_on_outlined,
           maxLines: 5,
@@ -1858,7 +1884,7 @@ class _CustomerDetailsCard extends StatelessWidget {
         SizedBox(
           height: 6.h,
           child: CustomTextField(
-            controller: pinCtrl,
+            controller: widget.pinCtrl,
             hint: 'PIN Code',
             prefixIcon: Icons.pin_drop_outlined,
             keyboardType: TextInputType.number,
@@ -1872,7 +1898,7 @@ class _CustomerDetailsCard extends StatelessWidget {
         SizedBox(
           height: 6.h,
           child: CustomTextField(
-            controller: postOfficeCtrl,
+            controller: widget.postOfficeCtrl,
             hint: 'Post Office',
             prefixIcon: Icons.pin_drop_outlined,
             keyboardType: TextInputType.text,
@@ -1881,20 +1907,40 @@ class _CustomerDetailsCard extends StatelessWidget {
         ),
         SizedBox(height: 1.2.h),
 
+        // // State dropdown
+        // SizedBox(
+        //   height: 6.h,
+        //   child: _CustomDropdownField<String>(
+        //     value: widget.selectedState,
+        //     items: stateDistrictMap.keys.toList(),
+        //     hint: 'State',
+        //     onChanged: widget.onStateChanged,
+        //     floatingLabel: 'State',
+        //   ),
+        // ),
+        // SizedBox(height: 1.2.h),
+        // // district
+        // SizedBox(
+        //   height: 6.h,
+        //   child: _CustomDropdownField<String>(
+        //     value: widget.selectedDistrict,
+        //     items: widget.selectedState == null
+        //                 ? []
+        //                 : stateDistrictMap[widget.selectedState] ?? [],
+        //     hint: 'District',
+        //     onChanged: widget.onDistrictChanged,
+        //     floatingLabel: 'District',
+        //   ),
+        // ),
+
         // State dropdown
         SizedBox(
           height: 6.h,
-          child: _CustomDropdownField<String>(
-            value: selectedState,
-            items: [
-              'Kerala',
-              'Tamil Nadu',
-              'Karnataka',
-              'Maharashtra',
-              'Delhi',
-            ],
+          child: _SearchableAlertField(
+            value: widget.selectedState,
+            items: stateDistrictMap.keys.toList(),
             hint: 'State',
-            onChanged: onStateChanged,
+            onChanged: widget.onStateChanged,
             floatingLabel: 'State',
           ),
         ),
@@ -1902,18 +1948,15 @@ class _CustomerDetailsCard extends StatelessWidget {
         // district
         SizedBox(
           height: 6.h,
-          child: _CustomDropdownField<String>(
-            value: selectedDistrict,
-            items: [
-              'Malappuram',
-              'Ernakulam',
-              'Alappuzha',
-              'Kozhikode',
-              'Thiruvananthapuram',
-            ],
+          child: _SearchableAlertField(
+            value: widget.selectedDistrict,
+            items: widget.selectedState == null
+                ? []
+                : stateDistrictMap[widget.selectedState] ?? [],
             hint: 'District',
-            onChanged: onDistrictChanged,
+            onChanged: widget.onDistrictChanged,
             floatingLabel: 'District',
+            enabled: widget.selectedState != null,
           ),
         ),
       ],
@@ -2381,6 +2424,325 @@ class CustomTextField extends StatelessWidget {
             EdgeInsets.symmetric(horizontal: 3.w, vertical: 0),
         // ✅ Error text styled to match existing design
         errorStyle: TextStyle(fontSize: 11.sp, color: ScreenColors.requiredRed),
+      ),
+    );
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// SEARCHABLE ALERT PICKER FIELD (State / District)
+// ---------------------------------------------------------------------------
+class _SearchableAlertField extends StatelessWidget {
+  final String? value;
+  final List<String> items;
+  final String hint;
+  final String? floatingLabel;
+  final void Function(String?) onChanged;
+  final bool isRequired;
+  final bool enabled;
+
+  const _SearchableAlertField({
+    super.key,
+    required this.value,
+    required this.items,
+    required this.hint,
+    required this.onChanged,
+    this.floatingLabel,
+    this.isRequired = false,
+    this.enabled = true,
+  });
+
+  Future<void> _openSearchDialog(BuildContext context) async {
+    if (!enabled) return;
+
+    final TextEditingController searchCtrl = TextEditingController();
+    String query = '';
+
+    final selected = await showDialog<String>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final filtered = items
+                .where((e) => e.toLowerCase().contains(query.toLowerCase()))
+                .toList();
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+              child: Container(
+                constraints: BoxConstraints(maxHeight: 60.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Header ───────────────────────────────
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(5.w, 5.w, 5.w, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              floatingLabel ?? hint,
+                              style: TextStyle(
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1D2433),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(dialogContext),
+                            child: Container(
+                              padding: EdgeInsets.all(1.5.w),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F3F5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 4.5.w,
+                                color: const Color(0xFF555555),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(5.w, 2.5.h, 5.w, 0),
+                      child: TextField(
+                        controller: searchCtrl,
+                        autofocus: true,
+                        style: TextStyle(
+                          fontSize: 14.5.sp,
+                          color: const Color(0xFF212121),
+                        ),
+                        onChanged: (v) => setDialogState(() => query = v),
+                        decoration: InputDecoration(
+                          hintText: 'Search $hint',
+                          hintStyle: TextStyle(
+                            fontSize: 13.5.sp,
+                            color: const Color(0xFFAAAAAA),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            size: 5.w,
+                            color: const Color(0xFF888888),
+                          ),
+                          suffixIcon: query.isNotEmpty
+                              ? GestureDetector(
+                                  onTap: () {
+                                    searchCtrl.clear();
+                                    setDialogState(() => query = '');
+                                  },
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 4.5.w,
+                                    color: const Color(0xFF888888),
+                                  ),
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: const Color(0xFFF5F5F5),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 4.w,
+                            vertical: 1.6.h,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.bottomNavBlue,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 1.5.h),
+                    const Divider(height: 1),
+
+                    // ── List ─────────────────────────────────
+                    Flexible(
+                      child: filtered.isEmpty
+                          ? Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4.h),
+                              child: Center(
+                                child: Text(
+                                  'No results found',
+                                  style: TextStyle(
+                                    fontSize: 13.5.sp,
+                                    color: const Color(0xFF888888),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              padding: EdgeInsets.symmetric(vertical: 1.h),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final item = filtered[index];
+                                final bool isSelected = item == value;
+                                return ListTile(
+                                  title: Text(
+                                    item,
+                                    style: TextStyle(
+                                      fontSize: 14.5.sp,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: isSelected
+                                          ? AppColors.bottomNavBlue
+                                          : ScreenColors.textPrimary,
+                                    ),
+                                  ),
+                                  trailing: isSelected
+                                      ? Icon(
+                                          Icons.check_circle,
+                                          color: AppColors.bottomNavBlue,
+                                          size: 5.w,
+                                        )
+                                      : null,
+                                  onTap: () => Navigator.pop(dialogContext, item),
+                                );
+                              },
+                            ),
+                    ),
+
+                    // ── Clear selection ─────────────────────
+                    if (value != null && !isRequired)
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(5.w, 1.h, 5.w, 3.h),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, '__CLEAR__'),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 1.4.h),
+                              side: const BorderSide(color: Color(0xFFE0E0E0)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Clear Selection',
+                              style: TextStyle(
+                                fontSize: 13.5.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF555555),
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(height: 2.h),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (selected == '__CLEAR__') {
+      onChanged(null);
+    } else if (selected != null) {
+      onChanged(selected);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showClearIcon = value != null && !isRequired;
+
+    return GestureDetector(
+      onTap: enabled ? () => _openSearchDialog(context) : null,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: value != null ? floatingLabel : null,
+          labelStyle: TextStyle(fontSize: 15.sp, color: ScreenColors.hintGrey),
+          filled: true,
+          fillColor: enabled ? Colors.white : const Color(0xFFF5F5F5),
+          contentPadding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.2.h),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: AppColors.bottomNavBlue,
+              width: 0.1,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: AppColors.bottomNavBlue,
+              width: 0.1,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: AppColors.bottomNavBlue,
+              width: 1.5,
+            ),
+          ),
+          isDense: true,
+          suffixIcon: showClearIcon
+              ? GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(null),
+                  child: Icon(
+                    Icons.close,
+                    color: ScreenColors.iconGrey,
+                    size: 18.sp,
+                  ),
+                )
+              : Icon(
+                  Icons.search,
+                  color: ScreenColors.iconGrey,
+                  size: 20.sp,
+                ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value != null ? value! : hint,
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  color: value != null
+                      ? ScreenColors.textPrimary
+                      : ScreenColors.hintGrey,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

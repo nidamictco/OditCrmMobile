@@ -51,6 +51,11 @@ class _SearchScreenState extends State<SearchScreen> {
     // Wait for user to manually trigger search via button
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchTextChanged);
+
+     final cubit = context.read<AddLeadCubit>();
+  if (cubit.state.leads.isEmpty) {
+    cubit.fetchLeads();
+  }
   }
 
   void _onSearchTextChanged() {
@@ -89,7 +94,9 @@ _searchController.dispose();
   }
 
   Future<void> _maybeLoadMore() async {
-    final totalResults = context.read<AddLeadCubit>().state.leads.length;
+    // final totalResults = context.read<AddLeadCubit>().state.leads.length;
+// AFTER
+final totalResults = _sourceList(context.read<AddLeadCubit>().state).length;
 
     // Nothing more to show, or already loading, or no search performed yet.
     if (_isLoadingMore || _visibleCount >= totalResults) {
@@ -111,6 +118,11 @@ _searchController.dispose();
       _isLoadingMore = false;
     });
   }
+
+  bool get _isSearchActive => _lastSearchQuery.trim().isNotEmpty;
+  List<AddLeadModel> _sourceList(AddLeadState state) {
+  return _isSearchActive ? state.searchResults : state.leads;
+}
 
   void _resetPagination(int totalResults) {
     _visibleCount = totalResults < _pageSize ? totalResults : _pageSize;
@@ -226,22 +238,37 @@ _searchController.dispose();
               );
             }
 
-            final searchResults = state.searchResults;
+            // final searchResults = state.searchResults;
 
-            if (_paginationQueryKey != _lastSearchQuery ||
-                _lastResultsLength != searchResults.length) {
-              _paginationQueryKey = _lastSearchQuery;
-              _lastResultsLength = searchResults.length;
-              _resetPagination(searchResults.length);
-            }
-            final safeVisibleCount = _visibleCount.clamp(
-              0,
-              searchResults.length,
-            );
-            final visibleResults = searchResults.sublist(0, safeVisibleCount);
+            // if (_paginationQueryKey != _lastSearchQuery ||
+            //     _lastResultsLength != searchResults.length) {
+            //   _paginationQueryKey = _lastSearchQuery;
+            //   _lastResultsLength = searchResults.length;
+            //   _resetPagination(searchResults.length);
+            // }
+            // final safeVisibleCount = _visibleCount.clamp(
+            //   0,
+            //   searchResults.length,
+            // );
+            // final visibleResults = searchResults.sublist(0, safeVisibleCount);
 
-            _syncCloseNotifiers(visibleResults.length);
-            final hasMore = safeVisibleCount < searchResults.length;
+            // _syncCloseNotifiers(visibleResults.length);
+            // final hasMore = safeVisibleCount < searchResults.length;
+
+// AFTER
+final displayedLeads = _sourceList(state);
+
+if (_paginationQueryKey != _lastSearchQuery ||
+    _lastResultsLength != displayedLeads.length) {
+  _paginationQueryKey = _lastSearchQuery;
+  _lastResultsLength = displayedLeads.length;
+  _resetPagination(displayedLeads.length);
+}
+final safeVisibleCount = _visibleCount.clamp(0, displayedLeads.length);
+final visibleResults = displayedLeads.sublist(0, safeVisibleCount);
+
+_syncCloseNotifiers(visibleResults.length);
+final hasMore = safeVisibleCount < displayedLeads.length;
 
             return SingleChildScrollView(
               controller: _scrollController,
@@ -261,49 +288,56 @@ _searchController.dispose();
 
                   LeadHeaderCard(
                     title: 'Leads',
-                    subtitle: _lastSearchQuery.isEmpty
-                        ? 'Search results will appear here'
-                        : '${searchResults.length} records found',
+                    // subtitle: _lastSearchQuery.isEmpty
+                    //     ? 'Search results will appear here'
+                    //     : '${searchResults.length} records found',
+                     subtitle: !_isSearchActive
+      ? '${state.leads.length} total leads'
+      : (displayedLeads.isEmpty
+          ? 'No matching leads found'
+          : '${displayedLeads.length} matching records found'),
                   ),
                   SizedBox(height: 2.h),
 
-                  if (_lastSearchQuery.isEmpty) ...[
-                    // Initial empty state - no search performed yet
-                    SizedBox(height: 8.h),
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search_rounded,
-                            size: 18.w,
-                            color: Colors.grey.shade400,
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            'Search for leads',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          SizedBox(height: 1.h),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w),
-                            child: Text(
-                              'Enter a customer name or phone number and tap Search',
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: Colors.grey.shade500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else if (searchResults.isEmpty) ...[
+                  // if (_lastSearchQuery.isEmpty) ...[
+                  //   // Initial empty state - no search performed yet
+                  //   SizedBox(height: 8.h),
+                  //   Center(
+                  //     child: Column(
+                  //       mainAxisAlignment: MainAxisAlignment.center,
+                  //       children: [
+                  //         Icon(
+                  //           Icons.search_rounded,
+                  //           size: 18.w,
+                  //           color: Colors.grey.shade400,
+                  //         ),
+                  //         SizedBox(height: 2.h),
+                  //         Text(
+                  //           'Search for leads',
+                  //           style: TextStyle(
+                  //             fontSize: 16.sp,
+                  //             fontWeight: FontWeight.bold,
+                  //             color: Colors.grey.shade700,
+                  //           ),
+                  //         ),
+                  //         SizedBox(height: 1.h),
+                  //         Padding(
+                  //           padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  //           child: Text(
+                  //             'Enter a customer name or phone number and tap Search',
+                  //             style: TextStyle(
+                  //               fontSize: 14.sp,
+                  //               color: Colors.grey.shade500,
+                  //             ),
+                  //             textAlign: TextAlign.center,
+                  //           ),
+                  //         ),
+                  //       ],
+                  //     ),
+                  //   ),
+                  // ] else
+                  
+                   if (displayedLeads.isEmpty) ...[
                     // No results found after search
                     SizedBox(height: 8.h),
                     Center(
@@ -317,7 +351,7 @@ _searchController.dispose();
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            'No leads found',
+                             _isSearchActive ? 'No leads found' : 'No leads available',
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -328,7 +362,9 @@ _searchController.dispose();
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8.w),
                             child: Text(
-                              'Try searching with another name or phone number',
+                              _isSearchActive
+                ? 'Try searching with another name or phone number'
+                : 'Leads you add will appear here',
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: Colors.grey.shade500,

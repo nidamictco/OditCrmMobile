@@ -1684,7 +1684,7 @@ class _LeadSourceCardState extends State<LeadSourceCard> {
 
     final Map<String, int> sourceCounts = {};
     for (var lead in leads) {
-      final src = lead.leadSource.isNotEmpty ? lead.leadSource : 'N/A';
+      final src = lead.leadSource.isNotEmpty ? lead.leadSource : 'UnSourced';
       sourceCounts[src] = (sourceCounts[src] ?? 0) + 1;
     }
 

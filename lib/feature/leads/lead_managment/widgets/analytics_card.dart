@@ -273,7 +273,7 @@ class AnalyticsProgressBar extends StatelessWidget {
           child: Text(
             pctText,
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: 13.5.sp,
               fontWeight: FontWeight.w600,
               color: progressColor,
             ),
@@ -312,9 +312,9 @@ class AnalyticsSummaryTile extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 14.sp,
-              color: _kGreyText,
-              fontWeight: FontWeight.w400,
+              fontSize: 15.sp,
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
             ),
           ),
           Text(
