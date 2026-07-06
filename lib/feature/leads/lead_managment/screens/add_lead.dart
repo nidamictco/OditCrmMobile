@@ -222,6 +222,8 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
     _emailCtrl.text = lead.email;
     _addressCtrl.text = lead.address;
     _pinCtrl.text = lead.pinCode;
+    _postOfficeCtrl.text = lead.postOffice;
+    _selectedDistrict = lead.district;
     _remarksCtrl.text = lead.remarks;
     _selectedStage = lead.leadStage;
     _selectedSource = lead.leadSource;
@@ -587,6 +589,25 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                                             Navigator.pop(dialogContext);
                                           }
 
+                                          if (parentContext.mounted) {
+                                            ScaffoldMessenger.of(
+                                              parentContext,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Category added successfully',
+                                                ),
+                                                backgroundColor: Colors.green,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                            );
+                                          }
+
                                           // NEW: auto-select the newly added
                                           // category. We already know the
                                           // exact value that was just written
@@ -850,6 +871,24 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                                           if (dialogContext.mounted) {
                                             Navigator.pop(dialogContext);
                                           }
+                                          if (parentContext.mounted) {
+                                            ScaffoldMessenger.of(
+                                              parentContext,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Lead Source added successfully',
+                                                ),
+                                                backgroundColor: Colors.green,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                            );
+                                          }
 
                                           if (mounted) {
                                             setState(() {
@@ -965,9 +1004,9 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         email: _emailCtrl.text,
         address: _addressCtrl.text,
         pinCode: _pinCtrl.text,
-        postOffice: '',
+        postOffice:_postOfficeCtrl.text,
         state: _selectedState ?? widget.lead?.state ?? '',
-        district: '',
+        district: _selectedDistrict ?? widget.lead?.district ?? '',
         remarks: _remarksCtrl.text,
         leadCategory: _selectedCategory ?? widget.lead?.leadCategory ?? '',
         leadSource: _selectedSource ?? widget.lead?.leadSource ?? '',

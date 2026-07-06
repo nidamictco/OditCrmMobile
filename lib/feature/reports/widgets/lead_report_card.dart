@@ -145,11 +145,11 @@ class LeadReportCard extends StatelessWidget {
                     ),
                     SizedBox(width: 2.w),
                     // Expand Icon
-                    Icon(
-                      Icons.keyboard_arrow_up,
-                      color: Colors.grey.shade400,
-                      size: 18.sp,
-                    ),
+                    // Icon(
+                    //   Icons.keyboard_arrow_up,
+                    //   color: Colors.grey.shade400,
+                    //   size: 18.sp,
+                    // ),
                   ],
                 ),
               ),

@@ -50,7 +50,17 @@ class _SearchScreenState extends State<SearchScreen> {
     // DO NOT set up any search listeners
     // Wait for user to manually trigger search via button
     _scrollController.addListener(_onScroll);
+    _searchController.addListener(_onSearchTextChanged);
   }
+
+  void _onSearchTextChanged() {
+  if (_searchController.text.trim().isEmpty && _lastSearchQuery.isNotEmpty) {
+    setState(() {
+      _lastSearchQuery = '';
+      _expandedLeadIds.clear();
+    });
+  }
+}
 
   @override
   void dispose() {
@@ -58,6 +68,10 @@ class _SearchScreenState extends State<SearchScreen> {
     for (final n in _closeNotifiers) {
       n.dispose();
     }
+
+     _searchController.removeListener(_onSearchTextChanged);
+_searchController.dispose();
+
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -436,7 +450,10 @@ class SearchBarWidget extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
               ),
               // Allow user to search by pressing Enter key
-              onSubmitted: (_) => onSearchPressed(),
+              onSubmitted: (_) {
+                onSearchPressed();
+                FocusScope.of(context).unfocus();
+              },
             ),
           ),
           SizedBox(width: 2.w),
@@ -588,6 +605,7 @@ class _SearchLeadCardState extends State<SearchLeadCard>
       vsync: this,
       duration: const Duration(milliseconds: 280),
     );
+    
     _slideAnim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     widget.closeNotifier?.addListener(_onCloseRequested);
   }

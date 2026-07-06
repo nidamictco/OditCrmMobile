@@ -126,13 +126,16 @@ class AuthCubit extends Cubit<AuthState> {
       await permissionCubit.loadPermissions(user.designationId);
 
       emit(Authenticated(user: user));
-    } on AuthException catch (e) {
-      log('[AuthCubit] AuthException: ${e.message}');
-      emit(AuthError(message: e.message));
-    } catch (e, st) {
-      log('[AuthCubit] Unexpected login error: $e', stackTrace: st);
-      emit(AuthError(message: 'Login failed. Please try again.'));
-    }
+    }  on AuthException catch (e) {
+  log('[AuthCubit] AuthException: ${e.message}');
+  emit(AuthError(message: e.message));
+} on FirebaseException catch (e) {
+  log('[AuthCubit] FirebaseException: ${e.code} - ${e.message}'); // ← ADD THIS
+  emit(AuthError(message: 'Login failed: ${e.message}'));
+} catch (e, st) {
+  log('[AuthCubit] Unexpected login error: $e', stackTrace: st);
+  emit(AuthError(message: 'Login failed. Please try again.'));
+}
   }
 
   // ─── Logout ───────────────────────────────────────────────────────────────

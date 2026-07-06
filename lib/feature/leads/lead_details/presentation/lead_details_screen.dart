@@ -573,9 +573,10 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
             builder: (context) =>
                 CreateLeadScreen(from: 'EDIT', lead: _leadData),
           ),
-        ).then((_) {
+        ).then((_) async {
           if (context.mounted) {
             context.read<AddLeadCubit>().fetchLeads();
+            await _loadLatestLead();
           }
         });
       } else if (value == 'delete') {
