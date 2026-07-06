@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'dart:developer';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -113,11 +114,15 @@ class AuthCubit extends Cubit<AuthState> {
     }
     emit(AuthLoading());
     try {
+
+debugPrint('🔵 Attempting login for $phoneNo'); // ADD
+
       final user = await _authService.login(
         phoneNo: phoneNo.trim(),
         password: password,
         // companyId: companyId,
       );
+      debugPrint('🟢 Login succeeded'); 
       log(
         '[AuthCubit] Login success: ${user.phone} | designation: ${user.designation}',
       );
@@ -127,16 +132,16 @@ class AuthCubit extends Cubit<AuthState> {
 
       emit(Authenticated(user: user));
     }  on AuthException catch (e) {
-  log('[AuthCubit] AuthException: ${e.message}');
-  emit(AuthError(message: e.message));
-} on FirebaseException catch (e) {
-  log('[AuthCubit] FirebaseException: ${e.code} - ${e.message}'); // ← ADD THIS
-  emit(AuthError(message: 'Login failed: ${e.message}'));
-} catch (e, st) {
-  log('[AuthCubit] Unexpected login error: $e', stackTrace: st);
-  emit(AuthError(message: 'Login failed. Please try again.'));
-}
+    debugPrint('🔴 AuthException caught: ${e.message}'); // ADD
+    emit(AuthError(message: e.message));
+  } on FirebaseException catch (e) {
+    debugPrint('🔴 FirebaseException caught: ${e.code} - ${e.message}'); // ADD
+    emit(AuthError(message: 'Login failed: ${e.message}'));
+  } catch (e, st) {
+    debugPrint('🔴 Unexpected error caught: $e'); // ADD
+    emit(AuthError(message: 'Login failed. Please try again.'));
   }
+}
 
   // ─── Logout ───────────────────────────────────────────────────────────────
 

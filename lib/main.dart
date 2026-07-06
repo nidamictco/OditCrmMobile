@@ -16,100 +16,6 @@ import 'package:odit_crm_mobile/firebase_options.dart';
 import 'package:sizer/sizer.dart';
 
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
-
-// Future<void> main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   await NotificationService.init();
-//   await Firebase.initializeApp(
-//     options: DefaultFirebaseOptions.currentPlatform,
-//   );
-//   runApp(const MyApp());
-//   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-// }
-
-// class MyApp extends StatefulWidget {
-//   const MyApp({super.key});
-
-//   @override
-//   State<MyApp> createState() => _MyAppState();
-// }
-
-// class _MyAppState extends State<MyApp> {
-//   late final FirebaseAuthService _authService;
-//   late final SessionService _sessionService;
-//   late final PermissionCubit _permissionCubit;
-//   late final AuthCubit _authCubit;
-//   late final AddLeadCubit _addLeadCubit;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _authService = FirebaseAuthService();
-//     _sessionService = SessionService();
-//     _permissionCubit = PermissionCubit();
-//     _authCubit = AuthCubit(
-//       authService: _authService,
-//       sessionService: _sessionService,
-//     )..checkSession(permissionCubit: _permissionCubit);
-//     _addLeadCubit = AddLeadCubit()..initialize()..fetchLeads();
-//   }
-
-//   @override
-//   void dispose() {
-//     _permissionCubit.close();
-//     _authCubit.close();
-//     _addLeadCubit.close();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MultiBlocProvider(
-//       providers: [
-//         BlocProvider<PermissionCubit>.value(value: _permissionCubit),
-//         BlocProvider<AuthCubit>.value(value: _authCubit),
-//         BlocProvider<AddLeadCubit>.value(value: _addLeadCubit),
-//          BlocProvider<NotificationCubit>(
-//       create: (_) => NotificationCubit(
-//         NotificationRepo(),
-//         GeneralSettingsRepository(staffId: ''), // updated via initSettings later
-//       ),
-//     ),
-//     // BlocProvider<StaffCubit>(create: (_) => StaffCubit(staffRepo(),),)
-//       ],
-//       child: MaterialApp(
-//         debugShowCheckedModeBanner: false,
-//         title: 'Flutter Demo',
-//         home: Sizer(
-//           builder: (context, orientation, deviceType) {
-//             return BlocConsumer<AuthCubit, AuthState>(
-//               listener: (context, state) {
-//                 // Initialize background notifications stream when logged in
-//                 if (state is Authenticated) {
-//                   context.read<NotificationCubit>().load(state.user.id ?? '');
-//                 }
-//               },
-//               builder: (context, state) {
-//                 if (state is AuthInitial || state is AuthLoading) {
-//                   return const Scaffold(
-//                     body: Center(
-//                       child: CircularProgressIndicator(),
-//                     ),
-//                   );
-//                 }
-//                 if (state is Authenticated) {
-//                   return const CustomBottomNavScreen();
-//                 }
-//                 return const LoginScreen();
-//               },
-//             );
-//           },
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:app_links/app_links.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/presentation/lead_details_screen.dart';
 
@@ -140,10 +46,11 @@ class _MyAppState extends State<MyApp> {
   late final AddLeadCubit _addLeadCubit;
   final _appLinks = AppLinks();
 
-  // ✅ Holds a lead ID that came in via deep link before login completed
   String? _pendingLeadId;
   bool _isAuthenticated = false;
+  bool _initialCheckDone = false; // ADDED
 
+  
   @override
   void initState() {
     super.initState();
@@ -220,6 +127,9 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
+
+  // ... initState, _initDeepLinks, _handleIncomingUri, _openLeadById unchanged ...
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -242,16 +152,21 @@ class _MyAppState extends State<MyApp> {
           builder: (context, orientation, deviceType) {
             return BlocConsumer<AuthCubit, AuthState>(
               listener: (context, state) {
+                // ADDED: mark initial session check as resolved the first
+                // time we land on any non-loading/non-initial state
+                if (state is Authenticated ||
+                    state is AuthLoggedOut ||
+                    state is AuthError) {
+                  _initialCheckDone = true;
+                }
+
                 if (state is Authenticated) {
                   context.read<NotificationCubit>().load(state.user.id ?? '');
-
                   _isAuthenticated = true;
 
-                  // ✅ If a deep link arrived before login finished, open it now
                   if (_pendingLeadId != null) {
                     final leadId = _pendingLeadId!;
                     _pendingLeadId = null;
-                    // Small delay so CustomBottomNavScreen finishes mounting
                     Future.delayed(const Duration(milliseconds: 300), () {
                       _openLeadById(leadId);
                     });
@@ -261,7 +176,12 @@ class _MyAppState extends State<MyApp> {
                 }
               },
               builder: (context, state) {
-                if (state is AuthInitial || state is AuthLoading) {
+                // CHANGED: only show splash loader before the initial
+                // session check has ever resolved. Once resolved, further
+                // AuthLoading (e.g. from a login attempt) falls through to
+                // LoginScreen, which manages its own button-only spinner.
+                if (!_initialCheckDone &&
+                    (state is AuthInitial || state is AuthLoading)) {
                   return const Scaffold(
                     body: Center(child: CircularProgressIndicator()),
                   );
@@ -278,3 +198,152 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
+
+
+// class _MyAppState extends State<MyApp> {
+//   late final FirebaseAuthService _authService;
+//   late final SessionService _sessionService;
+//   late final PermissionCubit _permissionCubit;
+//   late final AuthCubit _authCubit;
+//   late final AddLeadCubit _addLeadCubit;
+//   final _appLinks = AppLinks();
+
+//   // ✅ Holds a lead ID that came in via deep link before login completed
+//   String? _pendingLeadId;
+//   bool _isAuthenticated = false;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _authService = FirebaseAuthService();
+//     _sessionService = SessionService();
+//     _permissionCubit = PermissionCubit();
+//     _authCubit = AuthCubit(
+//       authService: _authService,
+//       sessionService: _sessionService,
+//     )..checkSession(permissionCubit: _permissionCubit);
+//     _addLeadCubit = AddLeadCubit()..initialize()..fetchLeads();
+
+//     _initDeepLinks();
+//   }
+
+//   Future<void> _initDeepLinks() async {
+//     // ── 1. Cold start: app was fully closed, opened via the link ──────────
+//     try {
+//       final initialUri = await _appLinks.getInitialLink();
+//       if (initialUri != null) {
+//         _handleIncomingUri(initialUri);
+//       }
+//     } catch (e) {
+//       debugPrint('[DeepLink] getInitialLink error: $e');
+//     }
+
+//     // ── 2. App in background OR already running: stream fires on tap ──────
+//     _appLinks.uriLinkStream.listen(
+//       (uri) => _handleIncomingUri(uri),
+//       onError: (e) => debugPrint('[DeepLink] stream error: $e'),
+//     );
+//   }
+
+//   void _handleIncomingUri(Uri uri) {
+//     debugPrint('[DeepLink] Received: $uri');
+
+//     if (uri.scheme != 'oxdocrm' || uri.host != 'lead') return;
+
+//     final leadId = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+//     if (leadId.isEmpty) return;
+
+//     if (_isAuthenticated) {
+//       _openLeadById(leadId);
+//     } else {
+//       // ✅ Save for after login completes
+//       debugPrint('[DeepLink] Not authenticated yet — queuing leadId: $leadId');
+//       _pendingLeadId = leadId;
+//     }
+//   }
+
+//   Future<void> _openLeadById(String leadId) async {
+//     final ctx = navigatorKey.currentContext;
+//     if (ctx == null) return;
+
+//     final lead = await _addLeadCubit.getLeadById(leadId);
+//     final freshCtx = navigatorKey.currentContext;
+//     if (lead != null && freshCtx != null) {
+//       // Delay slightly to ensure the home screen has finished building
+//       WidgetsBinding.instance.addPostFrameCallback((_) {
+//         if (navigatorKey.currentContext != null) {
+//           LeadDetailsScreen.show(navigatorKey.currentContext!, lead: lead);
+//         }
+//       });
+//     } else {
+//       debugPrint('[DeepLink] Lead not found for id: $leadId');
+//     }
+//   }
+
+//   @override
+//   void dispose() {
+//     _permissionCubit.close();
+//     _authCubit.close();
+//     _addLeadCubit.close();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return MultiBlocProvider(
+//       providers: [
+//         BlocProvider<PermissionCubit>.value(value: _permissionCubit),
+//         BlocProvider<AuthCubit>.value(value: _authCubit),
+//         BlocProvider<AddLeadCubit>.value(value: _addLeadCubit),
+//         BlocProvider<NotificationCubit>(
+//           create: (_) => NotificationCubit(
+//             NotificationRepo(),
+//             GeneralSettingsRepository(staffId: ''),
+//           ),
+//         ),
+//       ],
+//       child: MaterialApp(
+//         navigatorKey: navigatorKey,
+//         debugShowCheckedModeBanner: false,
+//         title: 'Flutter Demo',
+//         home: Sizer(
+//           builder: (context, orientation, deviceType) {
+//             return BlocConsumer<AuthCubit, AuthState>(
+//               listener: (context, state) {
+//                 if (state is Authenticated) {
+//                   context.read<NotificationCubit>().load(state.user.id ?? '');
+
+//                   _isAuthenticated = true;
+
+//                   // ✅ If a deep link arrived before login finished, open it now
+//                   if (_pendingLeadId != null) {
+//                     final leadId = _pendingLeadId!;
+//                     _pendingLeadId = null;
+//                     // Small delay so CustomBottomNavScreen finishes mounting
+//                     Future.delayed(const Duration(milliseconds: 300), () {
+//                       _openLeadById(leadId);
+//                     });
+//                   }
+//                 } else {
+//                   _isAuthenticated = false;
+//                 }
+//               },
+//               builder: (context, state) {
+//                 if (state is AuthInitial || state is AuthLoading) {
+//                   return const Scaffold(
+//                     body: Center(child: CircularProgressIndicator()),
+//                   );
+//                 }
+//                 if (state is Authenticated) {
+//                   return const CustomBottomNavScreen();
+//                 }
+//                 return const LoginScreen();
+//               },
+//             );
+//           },
+//         ),
+//       ),
+//     );
+//   }
+// }

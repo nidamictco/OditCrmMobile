@@ -33,8 +33,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
   //   @override
   //   Widget build(BuildContext context) {
-  //     return BlocConsumer<AuthCubit, AuthState>(
+  //     return BlocListener<AuthCubit, AuthState>(
+  //       // listener: (context, state) {
+  //       //   debugPrint('🔥 LISTENER FIRED: $state');
+  //       //   if (state is Authenticated) {
+  //       //     Navigator.pushReplacement(
+  //       //       context,
+  //       //       MaterialPageRoute(
+  //       //         builder: (context) => const CustomBottomNavScreen(),
+  //       //       ),
+  //       //     );
+  //       //   } else if (state is AuthError) {
+  //       //     log(state.message);
+  //       //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       //       if (context.mounted) {
+  //       //         ScaffoldMessenger.of(context).showSnackBar(
+  //       //           SnackBar(
+  //       //             content: Text(state.message),
+  //       //             backgroundColor: Colors.red,
+  //       //           ),
+  //       //         );
+
+  //       //       }
+  //       //     });
+  //       //   }
+  //       // },
   //       listener: (context, state) {
+  //         debugPrint('🔥 LISTENER FIRED: $state');
   //         if (state is Authenticated) {
   //           Navigator.pushReplacement(
   //             context,
@@ -44,168 +69,275 @@ class _LoginScreenState extends State<LoginScreen> {
   //           );
   //         } else if (state is AuthError) {
   //           log(state.message);
-  //           ScaffoldMessenger.of(context).showSnackBar(
-  //             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-  //           );
-  //         }
-  //       },
-  //       builder: (context, state) {
-  //         return Scaffold(
-  //           backgroundColor: Colors.white,
-  //           body: SafeArea(
-  //             top: false,
-  //             bottom: true,
-  //             child: SingleChildScrollView(
-  //               physics: const BouncingScrollPhysics(),
-  //               child: Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.stretch,
-  //                 children: [
-  //                   // ── Top Background and Logo Section ──
-  //                   Stack(
-  //                     clipBehavior: Clip.none,
-  //                     alignment: Alignment.center,
-  //                     children: [
-  //                       const TopBackgroundWidget(),
+  //           WidgetsBinding.instance.addPostFrameCallback((_) {
+  //             if (!context.mounted) return;
 
-  //                       // Logo (placed overlapping the bottom of top background)
-  //                       Positioned(bottom: -8.h, child: const LogoWidget()),
+  //             // ADDED: show an AlertDialog specifically when account isn't found
+  //             if (state.message.toLowerCase().contains('not found') ||
+  //                 state.message.toLowerCase().contains('no account') ||
+  //                 state.message.toLowerCase().contains('user-not-found')) {
+  //               showDialog(
+  //                 context: context,
+  //                 builder: (dialogContext) => AlertDialog(
+  //                   backgroundColor: Colors.white,
+  //                   shape: RoundedRectangleBorder(
+  //                     borderRadius: BorderRadius.circular(16),
+  //                   ),
+  //                   title: Row(
+  //                     children: [
+  //                       const Icon(Icons.error_outline, color: Colors.red),
+  //                       SizedBox(width: 2.w),
+  //                       Text(
+  //                         'Account Not Found',
+  //                         style: GoogleFonts.poppins(
+  //                           fontSize: 16.sp,
+  //                           fontWeight: FontWeight.w600,
+  //                         ),
+  //                       ),
   //                     ],
   //                   ),
-
-  //                   SizedBox(height: 10.h),
-
-  //                   // ── Credentials / Input Section ──
-  //                   Padding(
-  //                     padding: EdgeInsets.symmetric(horizontal: 6.w),
-  //                     child: Column(
+  //                   content: Text(
+  //                     'No account was found with this phone number. Please check and try again.',
+  //                     style: GoogleFonts.poppins(fontSize: 14.sp),
+  //                   ),
+  //                   actions: [
+  //                     TextButton(
+  //                       onPressed: () => Navigator.pop(dialogContext),
+  //                       child: Text(
+  //                         'OK',
+  //                         style: GoogleFonts.poppins(
+  //                           color: AppColors.bottomNavBlue,
+  //                           fontWeight: FontWeight.w600,
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               );
+  //             } else {
+  //               debugPrint(
+  //                 '🟣 AuthError STATE RECEIVED IN LISTENER: ${state.message}',
+  //               );
+  //               log(state.message);
+  //               WidgetsBinding.instance.addPostFrameCallback((_) {
+  //                 debugPrint(
+  //                   '🟣 postFrameCallback running, mounted=${context.mounted}',
+  //                 );
+  //                 if (!context.mounted) return;
+  //                 // fallback: keep existing snackbar for other auth errors
+  //                 ScaffoldMessenger.of(context).showSnackBar(
+  //                   SnackBar(
+  //                     content: Text(state.message),
+  //                     backgroundColor: Colors.red,
+  //                   ),
+  //                 );
+  //               });
+  //             }
+  //           });
+  //         }
+  //       },
+  //       child: BlocBuilder<AuthCubit, AuthState>(
+  //         builder: (context, state) {
+  //           return Scaffold(
+  //             backgroundColor: Colors.white,
+  //             body: SafeArea(
+  //               top: false,
+  //               bottom: true,
+  //               child: SingleChildScrollView(
+  //                 physics: const BouncingScrollPhysics(),
+  //                 child: Column(
+  //                   crossAxisAlignment: CrossAxisAlignment.stretch,
+  //                   children: [
+  //                     // ── Top Background and Logo Section ──
+  //                     Stack(
+  //                       clipBehavior: Clip.none,
+  //                       alignment: Alignment.center,
   //                       children: [
-  //                         // Welcome Texts
-  //                         Text(
-  //                           'Welcome Back',
-  //                           style: GoogleFonts.poppins(
-  //                             fontSize: 20.sp,
-  //                             fontWeight: FontWeight.bold,
-  //                             color: const Color(0xFF1D2433),
-  //                           ),
-  //                           textAlign: TextAlign.center,
-  //                         ),
-  //                         SizedBox(height: 0.8.h),
-  //                         Text(
-  //                           'Sign in to access your account',
-  //                           style: GoogleFonts.poppins(
-  //                             fontSize: 14.sp,
-  //                             color: Colors.grey.shade500,
-  //                           ),
-  //                           textAlign: TextAlign.center,
-  //                         ),
-  //                         SizedBox(height: 4.h),
-
-  //                         // Username Input
-  //                         LoginTextFieldWidget(
-  //                           controller: _usernameController,
-  //                           hintText: 'Enter your phone number',
-  //                           prefixIcon: Icons.phone_outlined,
-  //                           keyboardType: TextInputType.phone,
-  //                           phone: true,
-  //                         ),
-  //                         SizedBox(height: 2.h),
-
-  //                         // Password Input
-  //                         LoginTextFieldWidget(
-  //                           controller: _passwordController,
-  //                           hintText: 'Enter your password',
-  //                           prefixIcon: Icons.lock_outline,
-  //                           obscureText: _obscurePassword,
-  //                           suffixIcon: IconButton(
-  //                             icon: Icon(
-  //                               _obscurePassword
-  //                                   ?Icons.visibility_off_outlined
-  //                                   :Icons.visibility_outlined,
-  //                               color: Colors.grey.shade400,
-  //                               size: 20,
-  //                             ),
-  //                             onPressed: () {
-  //                               setState(() {
-  //                                 _obscurePassword = !_obscurePassword;
-  //                               });
-  //                             },
-  //                           ),
-  //                         ),
-  //                         SizedBox(height: 4.h),
-
-  //                         // Sign In Button
-  //                         // LoginButtonWidget(
-  //                         //   isLoading: state is AuthLoading,
-  //                         //   onTap: () {
-  //                         //     context.read<AuthCubit>().login(
-  //                         //       phoneNo: _usernameController.text,
-  //                         //       password: _passwordController.text,
-  //                         //       // companyId: ,
-  //                         //       permissionCubit: context.read<PermissionCubit>(),
-  //                         //     );
-  //                         //     log(_usernameController.text);
-  //                         //     log(_passwordController.text);
-  //                         //     log(_selectedCompany.toString());
-  //                         //   },
-  //                         // ),
-  //                         LoginButtonWidget(
-  //   isLoading: state is AuthLoading,
-  //   onTap: () {
-  //     final phone = _usernameController.text.trim();
-  //     final password = _passwordController.text.trim();
-  //     if(phone.isEmpty){
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('Please enter your phone number'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //       return;
-  //     }
-  //     if(password.isEmpty){
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('Please enter your password'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //       return;
-  //     }
-
-  //     if (phone.length != 10) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('Please enter a valid 10-digit phone number'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //       return;
-  //     }
-
-  //     context.read<AuthCubit>().login(
-  //       phoneNo: phone,
-  //       password: password,
-  //       permissionCubit: context.read<PermissionCubit>(),
-  //     );
-  //   },
-  // ),
-  //                         SizedBox(height: 2.5.h),
+  //                         const TopBackgroundWidget(),
+  //                         Positioned(bottom: -8.h, child: const LogoWidget()),
   //                       ],
   //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             ),
-  //           ),
-  //         );
-  //       },
+
+  //                     SizedBox(height: 10.h),
+
+  //                     Padding(
+  //                       padding: EdgeInsets.symmetric(horizontal: 6.w),
+  //                       child: Column(
+  //                         children: [
+  //                           Text(
+  //                             'Welcome Back',
+  //                             style: GoogleFonts.poppins(
+  //                               fontSize: 20.sp,
+  //                               fontWeight: FontWeight.bold,
+  //                               color: const Color(0xFF1D2433),
+  //                             ),
+  //                             textAlign: TextAlign.center,
+  //                           ),
+  //                           SizedBox(height: 0.8.h),
+  //                           Text(
+  //                             'Sign in to access your account',
+  //                             style: GoogleFonts.poppins(
+  //                               fontSize: 14.sp,
+  //                               color: Colors.grey.shade500,
+  //                             ),
+  //                             textAlign: TextAlign.center,
+  //                           ),
+  //                           SizedBox(height: 4.h),
+
+  //                           LoginTextFieldWidget(
+  //                             controller: _usernameController,
+  //                             hintText: 'Enter your phone number',
+  //                             prefixIcon: Icons.phone_outlined,
+  //                             keyboardType: TextInputType.phone,
+  //                             phone: true,
+  //                           ),
+  //                           SizedBox(height: 2.h),
+
+  //                           LoginTextFieldWidget(
+  //                             controller: _passwordController,
+  //                             hintText: 'Enter your password',
+  //                             prefixIcon: Icons.lock_outline,
+  //                             obscureText: _obscurePassword,
+  //                             suffixIcon: IconButton(
+  //                               icon: Icon(
+  //                                 _obscurePassword
+  //                                     ? Icons.visibility_off_outlined
+  //                                     : Icons.visibility_outlined,
+  //                                 color: Colors.grey.shade400,
+  //                                 size: 20,
+  //                               ),
+  //                               onPressed: () {
+  //                                 setState(() {
+  //                                   _obscurePassword = !_obscurePassword;
+  //                                 });
+  //                               },
+  //                             ),
+  //                           ),
+  //                           SizedBox(height: 4.h),
+
+  //                           LoginButtonWidget(
+  //                             isLoading: state is AuthLoading,
+  //                             onTap: () async {
+  //   final phone = _usernameController.text.trim();
+  //   final password = _passwordController.text.trim();
+
+  //   if (phone.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please enter your phone number'),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //     return;
+  //   }
+  //   if (password.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please enter your password'),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //     return;
+  //   }
+  //   if (phone.length != 10) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please enter a valid 10-digit phone number'),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //     return;
+  //   }
+
+  //   final authCubit = context.read<AuthCubit>();
+  //   final permissionCubit = context.read<PermissionCubit>();
+
+  //   await authCubit.login(
+  //     phoneNo: phone,
+  //     password: password,
+  //     permissionCubit: permissionCubit,
+  //   );
+
+  //   if (!context.mounted) return;
+
+  //   final state = authCubit.state;
+
+  //   if (state is AuthError) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(state.message),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //   } else if (state is Authenticated) {
+  //     Navigator.pushReplacement(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => const CustomBottomNavScreen()),
   //     );
   //   }
+  // },
+  //                             // onTap: () {
+  //                             //   final phone = _usernameController.text.trim();
+  //                             //   final password = _passwordController.text.trim();
+  //                             //   if (phone.isEmpty) {
+  //                             //     ScaffoldMessenger.of(context).showSnackBar(
+  //                             //       const SnackBar(
+  //                             //         content: Text(
+  //                             //           'Please enter your phone number',
+  //                             //         ),
+  //                             //         backgroundColor: Colors.red,
+  //                             //       ),
+  //                             //     );
+  //                             //     return;
+  //                             //   }
+  //                             //   if (password.isEmpty) {
+  //                             //     ScaffoldMessenger.of(context).showSnackBar(
+  //                             //       const SnackBar(
+  //                             //         content: Text('Please enter your password'),
+  //                             //         backgroundColor: Colors.red,
+  //                             //       ),
+  //                             //     );
+  //                             //     return;
+  //                             //   }
+  //                             //   if (phone.length != 10) {
+  //                             //     ScaffoldMessenger.of(context).showSnackBar(
+  //                             //       const SnackBar(
+  //                             //         content: Text(
+  //                             //           'Please enter a valid 10-digit phone number',
+  //                             //         ),
+  //                             //         backgroundColor: Colors.red,
+  //                             //       ),
+  //                             //     );
+  //                             //     return;
+  //                             //   }
+
+  //                             //   context.read<AuthCubit>().login(
+  //                             //     phoneNo: phone,
+  //                             //     password: password,
+  //                             //     permissionCubit: context
+  //                             //         .read<PermissionCubit>(),
+  //                             //   );
+  //                             // },
+  //                           ),
+  //                           SizedBox(height: 2.5.h),
+  //                         ],
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //           );
+  //         },
+  //       ),
+  //     );
+  //   }
+  // }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
-        debugPrint('🔥 LISTENER FIRED: $state');
         if (state is Authenticated) {
           Navigator.pushReplacement(
             context,
@@ -214,103 +346,96 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         } else if (state is AuthError) {
-          log(state.message);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
         }
       },
-      child: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, state) {
-          return Scaffold(
-            backgroundColor: Colors.white,
-            body: SafeArea(
-              top: false,
-              bottom: true,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          top: false,
+          bottom: true,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
                   children: [
-                    // ── Top Background and Logo Section ──
-                    Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.center,
-                      children: [
-                        const TopBackgroundWidget(),
-                        Positioned(bottom: -8.h, child: const LogoWidget()),
-                      ],
-                    ),
+                    const TopBackgroundWidget(),
+                    Positioned(bottom: -8.h, child: const LogoWidget()),
+                  ],
+                ),
+                SizedBox(height: 10.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Welcome Back',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1D2433),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 0.8.h),
+                      Text(
+                        'Sign in to access your account',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14.sp,
+                          color: Colors.grey.shade500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 4.h),
 
-                    SizedBox(height: 10.h),
+                      LoginTextFieldWidget(
+                        controller: _usernameController,
+                        hintText: 'Enter your phone number',
+                        prefixIcon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                        phone: true,
+                      ),
+                      SizedBox(height: 2.h),
 
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6.w),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Welcome Back',
-                            style: GoogleFonts.poppins(
-                              fontSize: 20.sp,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1D2433),
-                            ),
-                            textAlign: TextAlign.center,
+                      LoginTextFieldWidget(
+                        controller: _passwordController,
+                        hintText: 'Enter your password',
+                        prefixIcon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: Colors.grey.shade400,
+                            size: 20,
                           ),
-                          SizedBox(height: 0.8.h),
-                          Text(
-                            'Sign in to access your account',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.sp,
-                              color: Colors.grey.shade500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 4.h),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
 
-                          LoginTextFieldWidget(
-                            controller: _usernameController,
-                            hintText: 'Enter your phone number',
-                            prefixIcon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            phone: true,
-                          ),
-                          SizedBox(height: 2.h),
-
-                          LoginTextFieldWidget(
-                            controller: _passwordController,
-                            hintText: 'Enter your password',
-                            prefixIcon: Icons.lock_outline,
-                            obscureText: _obscurePassword,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: Colors.grey.shade400,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-
-                          LoginButtonWidget(
+                      // ONLY this rebuilds on AuthLoading changes
+                      BlocBuilder<AuthCubit, AuthState>(
+                        buildWhen: (previous, current) =>
+                            previous is AuthLoading != current is AuthLoading,
+                        builder: (context, state) {
+                          return LoginButtonWidget(
                             isLoading: state is AuthLoading,
                             onTap: () {
                               final phone = _usernameController.text.trim();
                               final password = _passwordController.text.trim();
+
                               if (phone.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -350,17 +475,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     .read<PermissionCubit>(),
                               );
                             },
-                          ),
-                          SizedBox(height: 2.5.h),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 2.5.h),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
