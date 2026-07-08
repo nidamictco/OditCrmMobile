@@ -2077,23 +2077,26 @@ class _LeadInformationCard extends StatelessWidget {
           SizedBox(
             height: 6.h,
             child: _CustomDropdownField<String>(
-              value: selectedStage,
-              items: stages,
+              value: selectedStage == 'FOLLOWUP' ? 'FOLLOW UP' : selectedStage,
+              items: stages
+                  .map((e) => e == 'FOLLOWUP' ? 'FOLLOW UP' : e)
+                  .toList(),
               hint: 'Stages',
               floatingLabel: 'Stages',
               onChanged: onStageChanged,
               isRequired: true,
             ),
           ),
-          if (selectedStage == 'FOLLOWUP' || selectedStage == 'REJECTED') ...[
+          if (selectedStage == 'FOLLOWUP' || selectedStage == 'REJECTED' ||  selectedStage == 'FOLLOW UP') ...[
             Column(
               children: [
                 SizedBox(height: 1.2.h),
-                if (selectedStage == 'FOLLOWUP') ...[
+                if (selectedStage == 'FOLLOWUP' ||
+                    selectedStage == 'FOLLOW UP') ...[
                   Row(
                     children: [
                       Text(
-                        'Next Followup Date',
+                        'Next Follow Up Date', 
                         style: TextStyle(
                           fontSize: 13.5.sp,
                           fontWeight: FontWeight.w500,
@@ -2429,7 +2432,6 @@ class CustomTextField extends StatelessWidget {
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // SEARCHABLE ALERT PICKER FIELD (State / District)
 // ---------------------------------------------------------------------------
@@ -2471,7 +2473,10 @@ class _SearchableAlertField extends StatelessWidget {
 
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: 6.w,
+                vertical: 8.h,
+              ),
               child: Container(
                 constraints: BoxConstraints(maxHeight: 60.h),
                 decoration: BoxDecoration(
@@ -2625,7 +2630,8 @@ class _SearchableAlertField extends StatelessWidget {
                                           size: 5.w,
                                         )
                                       : null,
-                                  onTap: () => Navigator.pop(dialogContext, item),
+                                  onTap: () =>
+                                      Navigator.pop(dialogContext, item),
                                 );
                               },
                             ),
@@ -2688,7 +2694,10 @@ class _SearchableAlertField extends StatelessWidget {
           labelStyle: TextStyle(fontSize: 15.sp, color: ScreenColors.hintGrey),
           filled: true,
           fillColor: enabled ? Colors.white : const Color(0xFFF5F5F5),
-          contentPadding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.2.h),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 3.w,
+            vertical: 1.2.h,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: const BorderSide(
@@ -2721,11 +2730,7 @@ class _SearchableAlertField extends StatelessWidget {
                     size: 18.sp,
                   ),
                 )
-              : Icon(
-                  Icons.search,
-                  color: ScreenColors.iconGrey,
-                  size: 20.sp,
-                ),
+              : Icon(Icons.search, color: ScreenColors.iconGrey, size: 20.sp),
         ),
         child: Row(
           children: [

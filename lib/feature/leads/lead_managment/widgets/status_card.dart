@@ -47,7 +47,7 @@ final List<StatusCardData> statusCards = [
     borderColor: const Color(0xFFBFDBFE),
   ),
   StatusCardData(
-    label: 'Followup',
+    label: 'Follow Up',
     count: 185,
     icon: Icons.access_time_rounded,
     iconColor: const Color(0xFFF59E0B),

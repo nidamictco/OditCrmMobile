@@ -61,7 +61,7 @@ class LeadDetailsScreen extends StatefulWidget {
 }
 
 class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
-  String _selectedTab = 'Followup';
+  String _selectedTab = 'Follow Up';
   late bool _showFollowupForm;
   final ScrollController _scrollController = ScrollController();
   bool _isEditingFollowup = false;
@@ -760,7 +760,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
 
                         LeadTabBar(
                           selectedTab: _selectedTab,
-                          tabs: const ['Followup', 'Activities', 'Details'],
+                          tabs: const ['Follow Up', 'Activities', 'Details'],
                           onTabChanged: (tab) {
                             setState(() {
                               _selectedTab = tab;
@@ -769,7 +769,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                         ),
                         SizedBox(height: 2.5.h),
 
-                        if (_selectedTab == 'Followup') ...[
+                        if (_selectedTab == 'Follow Up') ...[
                           AnimatedSize(
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeInOut,
@@ -800,7 +800,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                                         size: 6.w,
                                       ),
                                       label: Text(
-                                        'Add New Followup',
+                                        'Add New Follow Up',
                                         style: TextStyle(
                                           fontSize: 15.sp,
                                           fontWeight: FontWeight.w600,
@@ -836,7 +836,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                                         size: 6.w,
                                       ),
                                       label: Text(
-                                        'Close Followup Form',
+                                        'Close Follow Up Form',
                                         style: TextStyle(
                                           fontSize: 15.sp,
                                           fontWeight: FontWeight.w600,
@@ -1394,7 +1394,7 @@ class LeadSummaryCard extends StatelessWidget {
                 ),
               ),
               StatusBadge(
-                label: lead.leadStage,
+                label: lead.leadStage=='FOLLOWUP'?'Follow Up':lead.leadStage,
                 backgroundColor: getStatusColor(
                   lead.leadStage,
                 ).withValues(alpha: 0.1),

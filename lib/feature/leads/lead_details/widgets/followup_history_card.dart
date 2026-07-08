@@ -94,7 +94,9 @@ class FollowupHistoryCard extends StatelessWidget {
               ],
               // Status Badge
               StatusBadge(
-                label: followup.leadStage,
+                label: followup.leadStage == 'FOLLOWUP'
+                    ? 'FOLLOW UP'
+                    : followup.leadStage,
                 backgroundColor: badgeBgColor,
                 textColor: Colors.white,
               ),
@@ -185,8 +187,9 @@ class FollowupHistoryCard extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(left: 6.5.w),
             child: Text(
-              followup.remarks.isNotEmpty?
-              'Remarks:  ${followup.remarks}':'Remark : N/A',
+              followup.remarks.isNotEmpty
+                  ? 'Remarks:  ${followup.remarks}'
+                  : 'Remark : N/A',
               style: TextStyle(
                 fontSize: 13.5.sp,
                 fontWeight: FontWeight.w500,

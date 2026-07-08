@@ -22,8 +22,6 @@ class FollowupFormCard extends StatelessWidget {
 
   final ValueChanged<String?> onTagChanged;
 
-  
-
   // More Details fields
   final TextEditingController remarksController;
   final TextEditingController whtsppController;
@@ -145,10 +143,14 @@ class FollowupFormCard extends StatelessWidget {
           // Section 3: Lead Stages
           CustomDropdownField(
             label: 'Lead Stages',
-            value: selectedLeadStage,
+            value: selectedLeadStage == 'FOLLOWUP'
+                ? 'FOLLOW UP'
+                : selectedLeadStage,
             hintText: 'Select Lead Stage',
             isRequired: true,
-            items: leadStagesList,
+            items: leadStagesList
+                .map((e) => e == 'FOLLOWUP' ? 'FOLLOW UP' : e)
+                .toList(),
             onChanged: onLeadStageChanged,
           ),
           SizedBox(height: 1.h),
@@ -161,7 +163,7 @@ class FollowupFormCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Next Followup Date',
+                      'Next Follow Up Date',
                       style: TextStyle(
                         fontSize: 13.5.sp,
                         fontWeight: FontWeight.w500,
@@ -369,11 +371,12 @@ class _ExpandableMoreDetailsSectionState
                   keyboardType: TextInputType.number,
                   suffixIcon: Icons.phone_outlined,
                   validator: (value) {
-                     if (value == null || value.trim().isEmpty) return null; // optional
-  if (value.trim().length != 10) {
-    return 'WhatsApp Number must be 10 digits';
-  }
-  return null;
+                    if (value == null || value.trim().isEmpty)
+                      return null; // optional
+                    if (value.trim().length != 10) {
+                      return 'WhatsApp Number must be 10 digits';
+                    }
+                    return null;
                   },
                 ),
               ),
@@ -397,12 +400,15 @@ class _ExpandableMoreDetailsSectionState
                   keyboardType: TextInputType.emailAddress,
                   suffixIcon: Icons.email_outlined,
                   validator: (value) {
-                     if (value == null || value.trim().isEmpty) return null; // optional
-  final emailRegex = RegExp(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$');
-  if (!emailRegex.hasMatch(value.trim())) {
-    return 'Enter a valid email address';
-  }
-  return null;
+                    if (value == null || value.trim().isEmpty)
+                      return null; // optional
+                    final emailRegex = RegExp(
+                      r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+                    );
+                    if (!emailRegex.hasMatch(value.trim())) {
+                      return 'Enter a valid email address';
+                    }
+                    return null;
                   },
                 ),
               ),

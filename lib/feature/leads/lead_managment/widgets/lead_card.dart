@@ -307,7 +307,7 @@ class _LeadCardBody extends StatelessWidget {
                       Row(
                         children: [
                           _StatusChip(
-                            label: data.status,
+                            label: data.status=='FOLLOWUP'?'Follow Up':data.status,
                             color: getStatusColor(data.status),
                           ),
                           const Spacer(),
