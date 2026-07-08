@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/utils/notification_service.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
@@ -61,7 +62,7 @@ class _MyAppState extends State<MyApp> {
       authService: _authService,
       sessionService: _sessionService,
     )..checkSession(permissionCubit: _permissionCubit);
-    _addLeadCubit = AddLeadCubit()..initialize()..fetchLeads();
+    _addLeadCubit = AddLeadCubit();
 
     _initDeepLinks();
   }
@@ -163,6 +164,11 @@ class _MyAppState extends State<MyApp> {
                 if (state is Authenticated) {
                   context.read<NotificationCubit>().load(state.user.id ?? '');
                   _isAuthenticated = true;
+
+                  if (FirestorePath.companyId != null) {
+                    _addLeadCubit.initialize();
+                    _addLeadCubit.fetchLeads();
+                  }
 
                   if (_pendingLeadId != null) {
                     final leadId = _pendingLeadId!;
