@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '71617127087',
     projectId: 'odit-crm',
     storageBucket: 'odit-crm.firebasestorage.app',
-    iosBundleId: 'com.example.oditCrmMobile',
+    iosBundleId: 'com.oditbiz.crm',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '71617127087',
     projectId: 'odit-crm',
     storageBucket: 'odit-crm.firebasestorage.app',
-    iosBundleId: 'com.example.oditCrmMobile',
+    iosBundleId: 'com.oditbiz.crm',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

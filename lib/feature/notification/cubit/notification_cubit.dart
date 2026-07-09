@@ -49,11 +49,13 @@ class NotificationCubit extends Cubit<NotificationState> {
   //   );
   // }
   void load(String staffId) {
+    log('[NotificationCubit] load called with staffId: $staffId');
   if (isClosed) return;  // ← ADD THIS GUARD
   emit(NotificationLoading());
   _subscription?.cancel();
 
   _settingsRepo.fetchSettings().then((s) {
+    log('[NotificationCubit] settings fetched: ${s.toMap()}');
     if (isClosed) return;  // ← AND HERE
     _settings = s;
     log('[NotificationCubit] settings loaded: ${s.toMap()}');
@@ -63,6 +65,7 @@ class NotificationCubit extends Cubit<NotificationState> {
 
   _subscription = _repo.streamByStaff(staffId).listen(
     (notifications) async {
+      log('[NotificationCubit] notifications received: ${notifications.length}');
       if (isClosed) return;  // ← AND HERE
       _currentList = notifications;
       await _triggerLocalForNew(notifications);
@@ -190,6 +193,7 @@ Future<void> _triggerLocalForNew(List<NotificationModel> notifications) async {
     if (isClosed) return;
     log('[NotificationCubit] _isAllowed("${n.title}") = ${_isAllowed(n)}');
     if (_isAllowed(n)) {
+      log('[NotificationCubit] showing notification-----------: ${n.title}');
       await NotificationService.show(
         title: n.title,
         body: n.message,
