@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
@@ -105,7 +107,8 @@ class _StaffReportContentState extends State<StaffReportContent> {
                   final List<StaffModel> adminStaff = [];
 
                   for (var staff in state.staffList) {
-                    final isCompanyAdmin = staff.designation?.toLowerCase() == 'company_admin' ||
+                    final isCompanyAdmin =
+                        staff.designation?.toLowerCase() == 'company_admin' ||
                         staff.designation?.toLowerCase() == 'company admin' ||
                         staff.staffType?.toLowerCase() == 'admin';
 
@@ -120,16 +123,26 @@ class _StaffReportContentState extends State<StaffReportContent> {
                   final filteredTelecalling = telecallingStaff.where((staff) {
                     final query = _searchQuery.trim().toLowerCase();
                     final matchName = staff.name.toLowerCase().contains(query);
-                    final matchDesig = (staff.designation ?? staff.staffType ?? '').toLowerCase().contains(query);
-                    final matchPhone = staff.phone.toLowerCase().contains(query);
+                    final matchDesig =
+                        (staff.designation ?? staff.staffType ?? '')
+                            .toLowerCase()
+                            .contains(query);
+                    final matchPhone = staff.phone.toLowerCase().contains(
+                      query,
+                    );
                     return matchName || matchDesig || matchPhone;
                   }).toList();
 
                   final filteredAdmin = adminStaff.where((staff) {
                     final query = _searchQuery.trim().toLowerCase();
                     final matchName = staff.name.toLowerCase().contains(query);
-                    final matchDesig = (staff.designation ?? staff.staffType ?? '').toLowerCase().contains(query);
-                    final matchPhone = staff.phone.toLowerCase().contains(query);
+                    final matchDesig =
+                        (staff.designation ?? staff.staffType ?? '')
+                            .toLowerCase()
+                            .contains(query);
+                    final matchPhone = staff.phone.toLowerCase().contains(
+                      query,
+                    );
                     return matchName || matchDesig || matchPhone;
                   }).toList();
 
@@ -155,9 +168,9 @@ class _StaffReportContentState extends State<StaffReportContent> {
                     children: [
                       // Telecalling Section
                       if (filteredTelecalling.isNotEmpty) ...[
-                        _buildSectionHeader('Telecalling'),
+                        _buildSectionHeader(filteredTelecalling[0].staffType!),
                         SizedBox(height: 1.5.h),
-                        ListView.separated(
+                        ListView.separated( 
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: filteredTelecalling.length,
@@ -233,4 +246,3 @@ class _StaffReportContentState extends State<StaffReportContent> {
     );
   }
 }
-
