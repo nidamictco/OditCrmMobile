@@ -143,16 +143,30 @@ class StaffCubit extends Cubit<StaffState> {
 
   // ─── Fetch all ────────────────────────────────────────────────────────────
 
+  // Future<void> fetchAll() async {
+  //   emit(StaffLoading());
+  //   try {
+  //     final list = await _repository.fetchAll();
+  //     emit(StaffListLoaded(list));
+  //   } catch (e, st) {
+  //     log('[StaffCubit] FetchAll error: $e', stackTrace: st);
+  //     emit(StaffError(e.toString()));
+  //   }
+  // }
+
   Future<void> fetchAll() async {
-    emit(StaffLoading());
-    try {
-      final list = await _repository.fetchAll();
-      emit(StaffListLoaded(list));
-    } catch (e, st) {
-      log('[StaffCubit] FetchAll error: $e', stackTrace: st);
-      emit(StaffError(e.toString()));
-    }
+  if (isClosed) return;
+  emit(StaffLoading());
+  try {
+    final list = await _repository.fetchAll();
+    if (isClosed) return;
+    emit(StaffListLoaded(list));
+  } catch (e, st) {
+    log('[StaffCubit] FetchAll error: $e', stackTrace: st);
+    if (isClosed) return;
+    emit(StaffError(e.toString()));
   }
+}
 
   // // ─── Restore deleted staff ────────────────────────────────────────────────
 

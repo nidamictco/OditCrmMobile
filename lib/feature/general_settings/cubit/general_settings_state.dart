@@ -14,6 +14,7 @@ class GeneralSettingsLoading extends GeneralSettingsState {
 
 class GeneralSettingsLoaded extends GeneralSettingsState {
   final GeneralSettingsModel settings;
+  // ignore: unused_field — intentional: ensures each emit() is a distinct object
   final DateTime _ts;
 
   GeneralSettingsLoaded(this.settings) : _ts = DateTime.now();
@@ -22,6 +23,7 @@ class GeneralSettingsLoaded extends GeneralSettingsState {
 
 class GeneralSettingsUpdating extends GeneralSettingsState {
   final GeneralSettingsModel settings;
+  // ignore: unused_field — intentional: ensures each emit() is a distinct object
   final DateTime _ts;
 
   GeneralSettingsUpdating(this.settings) : _ts = DateTime.now();

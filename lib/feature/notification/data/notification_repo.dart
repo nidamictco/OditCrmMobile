@@ -118,6 +118,11 @@ class NotificationRepo {
     }
   }
 
+  Future<String?> getFcmTokenForStaff(String staffId) async {
+  final doc = await FirestorePath.companyCollection('STAFF').doc(staffId).get();
+  return doc.data()?['fcmToken'] as String?;
+}
+
    // in notification_repo.dart
 Future<void> markAllRead(String staffId) async {
   final snapshot = await FirestorePath.companyCollection('NOTIFICATIONS')

@@ -148,6 +148,7 @@ debugPrint('🔵 Attempting login for $phoneNo'); // ADD
   Future<void> logout({PermissionCubit? permissionCubit}) async {
     emit(AuthLoading());
     await _sessionService.clearSession();
+    FirestorePath.clear();
     permissionCubit?.clear();
     emit(AuthLoggedOut());
   }

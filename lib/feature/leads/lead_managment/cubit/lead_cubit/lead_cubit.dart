@@ -56,6 +56,8 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   Future<void> initialize() async {
+    if (FirestorePath.companyId == null) return;
+
     emit(state.copyWith(status: AddLeadStatus.loading));
 
     // Load staff name + additional fields in parallel; streams fire independently
@@ -212,6 +214,8 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   // ── Fetch list ────────────────────────────────────────────────────────────
 
   Future<void> fetchLeads() async {
+    if (FirestorePath.companyId == null) return;
+
     emit(
       state.copyWith(listStatus: LeadListStatus.loading, clearListError: true),
     );

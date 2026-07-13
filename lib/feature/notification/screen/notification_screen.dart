@@ -21,6 +21,7 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   String? _staffId;
+   bool _hasMarkedRead = false;
 
   @override
   void initState() {
@@ -51,12 +52,21 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: BlocConsumer<NotificationCubit, NotificationState>(
         listener: (context, state) {
           // Mark all as read as soon as the list lands on screen
-          if (state is NotificationLoaded) {
+          // if (state is NotificationLoaded) {
+          //   final id = _staffId;
+          //   if (id != null && id.isNotEmpty) {
+          //     context.read<NotificationCubit>().markAllRead(id);
+          //   }
+          // }
+
+ if (state is NotificationLoaded && !_hasMarkedRead) {
+            _hasMarkedRead = true; // guard so it only fires once per visit
             final id = _staffId;
             if (id != null && id.isNotEmpty) {
               context.read<NotificationCubit>().markAllRead(id);
             }
           }
+
         },
         builder: (context, state) {
           // ── Loading ─────────────────────────────────────────────────
