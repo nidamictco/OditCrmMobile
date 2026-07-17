@@ -130,12 +130,12 @@ static String? _currentStaffId;
    _currentStaffId = staffId;
     try {
       String? token;
-      if (kIsWebSafe()) {
-        // Web requires a VAPID key from Firebase console > Cloud Messaging.
-        token = await _fcm.getToken(vapidKey: 'YOUR_WEB_VAPID_KEY');
-      } else {
+      // if (kIsWebSafe()) {
+      //   // Web requires a VAPID key from Firebase console > Cloud Messaging.
+      //   token = await _fcm.getToken(vapidKey: 'YOUR_WEB_VAPID_KEY');
+      // } else {
         token = await _fcm.getToken();
-      }
+      // }
       if (token == null) return;
       await _saveToken(staffId, token);
       log('[FCM] token saved for staff $staffId: $token');
@@ -151,15 +151,38 @@ static String? _currentStaffId;
     await _saveToken(staffId, token);
   }
 
-  static Future<void> _saveToken(String staffId, String token) async {
-    // await FirestorePath.companyCollection('STAFF').doc(staffId).update({
-    //   'fcmToken': token,
-    // });
-    await FirestorePath.companyCollection('STAFF').doc(staffId).set(
-  {'fcmToken': token},
-  SetOptions(merge: true),
-);
+//   static Future<void> _saveToken(String staffId, String token) async {
+//     // await FirestorePath.companyCollection('STAFF').doc(staffId).update({
+//     //   'fcmToken': token,
+//     // });
+//     await FirestorePath.companyCollection('STAFF').doc(staffId).set(
+//   {'fcmToken': token},
+//   SetOptions(merge: true),
+// );
+//   }
+static Future<void> _saveToken(String staffId, String token) async {
+  final staffCollection = FirestorePath.companyCollection('STAFF');
+
+  // Prevent token collisions: if this exact device token is still
+  // sitting on a DIFFERENT staff doc (e.g. logout didn't clear it,
+  // or multiple accounts were tested on one device), strip it from
+  // that doc first so only the current owner keeps it.
+  final stale = await staffCollection
+      .where('fcmToken', isEqualTo: token)
+      .get();
+
+  for (final doc in stale.docs) {
+    if (doc.id != staffId) {
+      await doc.reference.update({'fcmToken': FieldValue.delete()});
+      log('[FCM] cleared stale token from previous owner ${doc.id}');
+    }
   }
+
+  await staffCollection.doc(staffId).set(
+    {'fcmToken': token},
+    SetOptions(merge: true),
+  );
+}
 
   /// Optional: call on logout so stale tokens don't receive pushes for
   /// a user who is no longer signed in on this device.

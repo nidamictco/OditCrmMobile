@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/feature/auth/cubit/auth_cubit.dart';
 import 'package:odit_crm_mobile/feature/auth/login_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
 import 'package:sizer/sizer.dart';
 
 class LogoutDialog extends StatelessWidget {
@@ -140,17 +142,19 @@ class LogoutDialog extends StatelessWidget {
                   height: 55,
                   child: ElevatedButton(
                     onPressed: () async {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.clear();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                          (route) => false,
-                        );
-                      }
+                       final authCubit = context.read<AuthCubit>();
+        final permissionCubit = context.read<PermissionCubit>();
+
+        await authCubit.logout(permissionCubit: permissionCubit);
+
+        if (context.mounted) {
+          Navigator.of(context).pop(); // close the dialog itself
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.bottomNavBlue,

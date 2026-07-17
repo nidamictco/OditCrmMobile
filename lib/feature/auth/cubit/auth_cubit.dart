@@ -5,6 +5,7 @@ import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
+import 'package:odit_crm_mobile/core/utils/notification_service.dart';
 import 'package:odit_crm_mobile/feature/auth/data/auth_data.dart';
 import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
 import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
@@ -87,6 +88,9 @@ class AuthCubit extends Cubit<AuthState> {
             }
           }
 
+if (user.id != null && user.id!.isNotEmpty) {
+  await NotificationService.registerTokenAfterLogin(user.id!);
+}
           // ✅ Restore permissions
           await permissionCubit?.loadPermissions(user.designationId);
           emit(Authenticated(user: user));
@@ -127,7 +131,7 @@ debugPrint('🔵 Attempting login for $phoneNo'); // ADD
         '[AuthCubit] Login success: ${user.phone} | designation: ${user.designation}',
       );
       await _sessionService.saveSession(user);
-
+      await NotificationService.registerTokenAfterLogin(user.id!);  
       await permissionCubit.loadPermissions(user.designationId);
 
       emit(Authenticated(user: user));
@@ -147,9 +151,17 @@ debugPrint('🔵 Attempting login for $phoneNo'); // ADD
 
   Future<void> logout({PermissionCubit? permissionCubit}) async {
     emit(AuthLoading());
+
+
+ final user = await _sessionService.getSavedUser();
+  if (user?.id != null && user!.id!.isNotEmpty) {
+    await NotificationService.clearTokenOnLogout(user.id!);
+  }
+
     await _sessionService.clearSession();
     FirestorePath.clear();
     permissionCubit?.clear();
+    
     emit(AuthLoggedOut());
   }
 

@@ -21,6 +21,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/le
 import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/lead_management.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/widgets/lead_card.dart';
+import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -563,6 +564,24 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
             ],
           ),
         ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'transfer',
+          child: Row(
+            children: [
+              const Icon(Icons.swap_horiz, color: Colors.green, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                'Transfer',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     ).then((value) {
       if (!context.mounted) return;
@@ -586,9 +605,268 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      } else if (value == 'transfer') {
+        final cubitStaffList = context.read<AddLeadCubit>().state.staffList; // real list, from your cubit
+
+  showTransferLeadDialog(
+    context: context,
+    staffList: cubitStaffList,
+     currentStaffId: _leadData.assignedStaffId,  
+    // currentStaffName: _leadData.assignedStaff,   
+    onSubmit: (staffId, staffName) {
+      context
+          .read<AddLeadCubit>()
+          .transferLead(
+            leadId: _leadData.id!,
+            leadName: _leadData.clientName,
+            contactNumber: _leadData.contactNumber,
+            leadCategory: _leadData.leadCategory,
+            leadStage: _leadData.leadStage,
+            fromStaffId: _leadData.assignedStaffId,
+            fromStaff: _leadData.assignedStaff,
+            toStaffId: staffId,
+            toStaff: staffName,
+          )
+          .then((_) async {
+            context.read<AddLeadCubit>().fetchLeads();
+            await _loadLatestLead();
+            if (mounted) setState(() {});
+          })
+          .catchError((error) {
+            if (mounted) _showError('Failed to transfer lead: $error');
+          });
+
+      _showSuccess('Lead transferred to $staffName');
+    },
+  );
+
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(
+        //     content: Text('The lead has been transferred successfully.'),
+        //     backgroundColor: Colors.green,
+        //   ),
+        // );
       }
     });
   }
+
+Future<void> showTransferLeadDialog({
+  required BuildContext context,
+  required List<StaffModel> staffList,
+  required String? currentStaffId,   // still needed to know who to exclude
+  required void Function(String staffId, String staffName) onSubmit,
+}) async {
+  // ✅ Exclude the currently assigned staff from the selectable list
+  final selectableStaffList = staffList
+      .where((s) => s.id != currentStaffId)
+      .toList();
+
+  String? selectedStaffId; // starts empty — current staff isn't an option anymore
+  String? selectedStaffName;
+
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 24,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEAF4FC),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(18),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            "Transfer Lead",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.pop(dialogContext),
+                          child: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Staff",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // ✅ Handle the edge case: no other staff to transfer to
+                        if (selectableStaffList.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xffF7F7F7),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xffE2E2E2)),
+                            ),
+                            child: const Text(
+                              "No other staff available to transfer to",
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          )
+                        else
+                          DropdownMenu<String>(
+                            initialSelection: selectedStaffId,
+                            hintText: "Select Staff",
+                            expandedInsets: EdgeInsets.zero,
+                            menuHeight: 250,
+                            menuStyle: MenuStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.all(const Color(0xffF7F7F7)),
+                              surfaceTintColor:
+                                  WidgetStateProperty.all(Colors.transparent),
+                              elevation: WidgetStateProperty.all(4),
+                              shape: WidgetStateProperty.all(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(color: Color(0xffE2E2E2)),
+                                ),
+                              ),
+                            ),
+                            inputDecorationTheme: InputDecorationTheme(
+                              filled: true,
+                              fillColor: const Color(0xffF7F7F7),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xffE2E2E2)),
+                              ),
+                            ),
+                            dropdownMenuEntries: selectableStaffList.map((staff) {
+                              return DropdownMenuEntry<String>(
+                                value: staff.id!,
+                                label: staff.name,
+                                style: MenuItemButton.styleFrom(
+                                  foregroundColor: Colors.black87,
+                                  textStyle: const TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }).toList(),
+                            onSelected: (id) {
+                              setState(() {
+                                selectedStaffId = id;
+                                selectedStaffName = id != null
+                                    ? selectableStaffList
+                                        .firstWhere((s) => s.id == id)
+                                        .name
+                                    : null;
+                              });
+                            },
+                          ),
+
+                        const SizedBox(height: 30),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                              width: 110,
+                              height: 45,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: const Color(0xffF6DDDD),
+                                  side: BorderSide.none,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                ),
+                                onPressed: () => Navigator.pop(dialogContext),
+                                child: const Text(
+                                  "Close",
+                                  style: TextStyle(color: Colors.black87),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              width: 130,
+                              height: 45,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xff5666A7),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  if (selectedStaffId == null ||
+                                      selectedStaffName == null) {
+                                    return;
+                                  }
+                                  Navigator.pop(dialogContext);
+                                  // Navigator.pop(dialogContext);
+                                  Navigator.pop(context);
+                                  onSubmit(selectedStaffId!, selectedStaffName!);
+                                },
+                                child: const Text(
+                                  "Submit",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -858,7 +1136,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
                                   SizedBox(height: 2.5.h),
 
                                   if (stages.isNotEmpty &&
-                                      categories.isNotEmpty &&
+                                      // categories.isNotEmpty &&
                                       _selectedLeadStage != null)
                                     FollowupFormCard(
                                       calledDate: DateFormat(
@@ -1394,7 +1672,9 @@ class LeadSummaryCard extends StatelessWidget {
                 ),
               ),
               StatusBadge(
-                label: lead.leadStage=='FOLLOWUP'?'Follow Up':lead.leadStage,
+                label: lead.leadStage == 'FOLLOWUP'
+                    ? 'Follow Up'
+                    : lead.leadStage,
                 backgroundColor: getStatusColor(
                   lead.leadStage,
                 ).withValues(alpha: 0.1),

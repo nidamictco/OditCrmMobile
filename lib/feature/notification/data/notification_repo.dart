@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
+import 'package:odit_crm_mobile/core/services/push_notification_api.dart';
 import '../model/notification_model.dart';
 
 class NotificationRepo {
@@ -15,56 +16,56 @@ class NotificationRepo {
     return '$prefix-$datePart-$id';
   }
 
-  Future<void> create({
-    required String staffId,
-    required String title,
-    required String message,
-  }) async {
-    final String id = _generateDateId('NOTIF');
-    await FirestorePath.companyCollection('NOTIFICATIONS').doc(id).set({
-      'staffId': staffId,
-      'title': title,
-      'message': message,
-      'createdAt': FieldValue.serverTimestamp(),
-      'isRead': false,
-    });
-  }
-  Future<void> createForAdmins({
-    required String title,
-    required String message,
-    String? excludeStaffId,
-  }) async {
-    try {
-      // Fetch all admin users
-      final snapshot = await FirestorePath.companyCollection('STAFF')
-          .where('staffType', isEqualTo: 'Admin')
-          .get();
+  // Future<void> create({
+  //   required String staffId,
+  //   required String title,
+  //   required String message,
+  // }) async {
+  //   final String id = _generateDateId('NOTIF');
+  //   await FirestorePath.companyCollection('NOTIFICATIONS').doc(id).set({
+  //     'staffId': staffId,
+  //     'title': title,
+  //     'message': message,
+  //     'createdAt': FieldValue.serverTimestamp(),
+  //     'isRead': false,
+  //   });
+  // }
+  // Future<void> createForAdmins({
+  //   required String title,
+  //   required String message,
+  //   String? excludeStaffId,
+  // }) async {
+  //   try {
+  //     // Fetch all admin users
+  //     final snapshot = await FirestorePath.companyCollection('STAFF')
+  //         .where('staffType', isEqualTo: 'Admin')
+  //         .get();
 
-      for (final doc in snapshot.docs) {
-        final adminId = doc.id;
+  //     for (final doc in snapshot.docs) {
+  //       final adminId = doc.id;
 
-        // Skip if this admin is already the assigned staff (already notified above)
-        if (excludeStaffId != null &&
-            excludeStaffId.isNotEmpty &&
-            adminId == excludeStaffId) {
-          continue;
-        }
+  //       // Skip if this admin is already the assigned staff (already notified above)
+  //       if (excludeStaffId != null &&
+  //           excludeStaffId.isNotEmpty &&
+  //           adminId == excludeStaffId) {
+  //         continue;
+  //       }
 
-        log('Creating admin notification for: $adminId');
-        final String id = _generateDateId('NOTIF');
-        await FirestorePath.companyCollection('NOTIFICATIONS').doc(id).set({
-          'staffId': adminId,
-          'title': title,
-          'message': message,
-          'createdAt': FieldValue.serverTimestamp(),
-          'isRead': false,
-        });
-        log('Notification saved successfully');
-      }
-    } catch (e) {
-      log('[NotificationRepo] createForAdmins error: $e');
-    }
-  }
+  //       log('Creating admin notification for: $adminId');
+  //       final String id = _generateDateId('NOTIF');
+  //       await FirestorePath.companyCollection('NOTIFICATIONS').doc(id).set({
+  //         'staffId': adminId,
+  //         'title': title,
+  //         'message': message,
+  //         'createdAt': FieldValue.serverTimestamp(),
+  //         'isRead': false,
+  //       });
+  //       log('Notification saved successfully');
+  //     }
+  //   } catch (e) {
+  //     log('[NotificationRepo] createForAdmins error: $e');
+  //   }
+  // }
   Stream<List<NotificationModel>> streamByStaff(String staffId) {
     log('Listening for notifications of $staffId');
     return FirestorePath.companyCollection('NOTIFICATIONS')
@@ -118,6 +119,92 @@ class NotificationRepo {
     }
   }
 
+  Future<void> create({
+    required String staffId,
+    required String title,
+    required String message,
+    Map<String, dynamic>? pushData,
+  }) async {
+    final String id = _generateDateId('NOTIF');
+    await FirestorePath.companyCollection('NOTIFICATIONS').doc(id).set({
+      'staffId': staffId,
+      'title': title,
+      'message': message,
+      'createdAt': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
+
+    // Fire the actual push to the recipient's device(s). This is what
+    // makes the notification show up on the phone — the Firestore write
+    // above only creates the in-app notification-history record.
+    final token = await getFcmTokenForStaff(staffId);
+    if (token != null && token.isNotEmpty) {
+      await PushNotificationApi.sendPush(
+        tokens: [token],
+        title: title,
+        body: message,
+        data: {'notificationId': id, ...?pushData},
+      );
+    } else {
+      log('[NotificationRepo] no fcmToken for staff $staffId, skipping push');
+    }
+  }
+Future<void> createForAdmins({
+    required String title,
+    required String message,
+    String? excludeStaffId,
+    Map<String, dynamic>? pushData,
+  }) async {
+    try {
+      // Fetch all admin users
+      final snapshot = await FirestorePath.companyCollection('STAFF')
+          .where('staffType', isEqualTo: 'Admin')
+          .get();
+
+      final adminTokens = <String>[];
+
+      for (final doc in snapshot.docs) {
+        final adminId = doc.id;
+
+        // Skip if this admin is already the assigned staff (already notified above)
+        if (excludeStaffId != null &&
+            excludeStaffId.isNotEmpty &&
+            adminId == excludeStaffId) {
+          continue;
+        }
+
+        log('Creating admin notification for: $adminId');
+        final String id = _generateDateId('NOTIF');
+        await FirestorePath.companyCollection('NOTIFICATIONS').doc(id).set({
+          'staffId': adminId,
+          'title': title,
+          'message': message,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+        log('Notification saved successfully');
+
+        final token = doc.data()['fcmToken'] as String?;
+        if (token != null && token.isNotEmpty) {
+          adminTokens.add(token);
+        }
+      }
+
+      // Batch all admin devices into a single push call.
+      if (adminTokens.isNotEmpty) {
+        await PushNotificationApi.sendPush(
+          tokens: adminTokens,
+          title: title,
+          body: message,
+          data: pushData,
+        );
+      } else {
+        log('[NotificationRepo] no admin fcmTokens found, skipping push');
+      }
+    } catch (e) {
+      log('[NotificationRepo] createForAdmins error: $e');
+    }
+  }
   Future<String?> getFcmTokenForStaff(String staffId) async {
   final doc = await FirestorePath.companyCollection('STAFF').doc(staffId).get();
   return doc.data()?['fcmToken'] as String?;
