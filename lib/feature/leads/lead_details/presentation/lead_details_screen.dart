@@ -701,7 +701,7 @@ Future<void> showTransferLeadDialog({
                           child: Text(
                             "Transfer Lead",
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
                             ),
@@ -723,7 +723,7 @@ Future<void> showTransferLeadDialog({
                         const Text(
                           "Staff",
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -750,6 +750,10 @@ Future<void> showTransferLeadDialog({
                           DropdownMenu<String>(
                             initialSelection: selectedStaffId,
                             hintText: "Select Staff",
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                             expandedInsets: EdgeInsets.zero,
                             menuHeight: 250,
                             menuStyle: MenuStyle(
@@ -821,7 +825,7 @@ Future<void> showTransferLeadDialog({
                                 onPressed: () => Navigator.pop(dialogContext),
                                 child: const Text(
                                   "Close",
-                                  style: TextStyle(color: Colors.black87),
+                                  style: TextStyle(color: Colors.black87,fontSize: 14,fontWeight: FontWeight.w500),
                                 ),
                               ),
                             ),
@@ -849,7 +853,7 @@ Future<void> showTransferLeadDialog({
                                 },
                                 child: const Text(
                                   "Submit",
-                                  style: TextStyle(color: Colors.white),
+                                  style: TextStyle(color: Colors.white,fontSize: 14,fontWeight: FontWeight.w500),
                                 ),
                               ),
                             ),
