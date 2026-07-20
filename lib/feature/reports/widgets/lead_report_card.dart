@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
+import 'package:odit_crm_mobile/core/utils/lead_name_resolver.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/presentation/lead_details_screen.dart';
 import 'package:sizer/sizer.dart';
@@ -12,6 +13,9 @@ class LeadReportCard extends StatelessWidget {
   final VoidCallback? onFollowUp;
   final VoidCallback? onCall;
   final VoidCallback? onWhatsApp;
+  final String? categoryDisplayName;
+  final String? stageDisplayName;
+
 
   const LeadReportCard({
     super.key,
@@ -20,10 +24,21 @@ class LeadReportCard extends StatelessWidget {
     this.onFollowUp,
     this.onCall,
     this.onWhatsApp,
+    this.categoryDisplayName,
+    this.stageDisplayName,
   });
 
   @override
   Widget build(BuildContext context) {
+
+
+ final resolvedCategory = (categoryDisplayName?.isNotEmpty ?? false)
+        ? categoryDisplayName!
+        : lead.leadCategory;
+    final resolvedStageDisplay = humanizeStageName(
+      (stageDisplayName?.isNotEmpty ?? false) ? stageDisplayName! : lead.leadStage,
+    );
+
     // Determine status badge colors
     Color statusBgColor = const Color(0xFFFFEAEB);
     Color statusTextColor = const Color(0xFFEB5757);
@@ -133,9 +148,9 @@ class LeadReportCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        lead.leadCategory.isEmpty
-                            ? 'Uncategorized'
-                            : capitalizeFirst(lead.leadCategory.toLowerCase()),
+                        resolvedCategory.isEmpty
+      ? 'Uncategorized'
+      : capitalizeFirst(resolvedCategory.toLowerCase()),
                         style: TextStyle(
                           fontSize: 13.5.sp,
                           fontWeight: FontWeight.w600,
@@ -373,7 +388,7 @@ class LeadReportCard extends StatelessWidget {
                             ),
 
                             child: Text(
-                              lead.leadStage,
+                              resolvedStageDisplay,
                               style: TextStyle(
                                 color: getStatusColor(
                                   lead.leadStage.toUpperCase(),

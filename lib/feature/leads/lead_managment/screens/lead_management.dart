@@ -29,14 +29,6 @@ class _LeadManagmentScreenBodyState extends State<LeadManagmentScreenBody> {
   int _selectedTab = 0;
 
   @override
-  void initState() {
-    super.initState();
-    context.read<AddLeadCubit>().initialize(); 
-    context.read<AddLeadCubit>().watchLeadsRealtime();
-    
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CommonAppBar(

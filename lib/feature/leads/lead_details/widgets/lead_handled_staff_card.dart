@@ -86,32 +86,32 @@ class LeadHandledStaffCard extends StatelessWidget {
             ),
           ),
           // Right: Call count badge
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.6.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF5FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.call,
-                  color: AppColors.bottomNavBlue,
-                  size: 4.w,
-                ),
-                SizedBox(width: 1.5.w),
-                // Text(
-                //   callCount.toString(),
-                //   style: TextStyle(
-                //     fontSize: 13.sp,
-                //     fontWeight: FontWeight.bold,
-                //     color: AppColors.bottomNavBlue,
-                //   ),
-                // ),
-              ],
-            ),
-          ),
+          // Container(
+          //   padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.6.h),
+          //   decoration: BoxDecoration(
+          //     color: const Color(0xFFEAF5FF),
+          //     borderRadius: BorderRadius.circular(12),
+          //   ),
+          //   child: Row(
+          //     mainAxisSize: MainAxisSize.min,
+          //     children: [
+          //       Icon(
+          //         Icons.call,
+          //         color: AppColors.bottomNavBlue,
+          //         size: 4.w,
+          //       ),
+          //       SizedBox(width: 1.5.w),
+          //       // Text(
+          //       //   callCount.toString(),
+          //       //   style: TextStyle(
+          //       //     fontSize: 13.sp,
+          //       //     fontWeight: FontWeight.bold,
+          //       //     color: AppColors.bottomNavBlue,
+          //       //   ),
+          //       // ),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );

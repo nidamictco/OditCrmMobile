@@ -55,6 +55,7 @@ dependencies:
   package_info_plus: ^9.0.0
   app_links: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:

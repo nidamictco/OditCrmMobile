@@ -9,11 +9,13 @@ import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/shared_prefference/session_service.dart';
 import 'package:odit_crm_mobile/feature/general_settings/data/general_setting_repo.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/data/Lead_tag.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/data/additional_field_repo.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/data/lead_category_repo.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/data/lead_repo.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/data/lead_source_repo.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/data/lead_stage_repo.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/data/subCategory.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/activity_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_count_model.dart';
@@ -21,6 +23,37 @@ import 'package:odit_crm_mobile/feature/notification/data/notification_repo.dart
 import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 
 
+
+// class AddLeadCubit extends Cubit<AddLeadState> {
+//   final IAddLeadRepository _leadRepository;
+//   final ILeadCategoryRepository _categoryRepository;
+//   final ILeadSourceRepository _sourceRepository;
+//   final ILeadStageRepository _leadStageRepository;
+//   final AdditionalFieldsRepository _additionalFieldsRepo;
+//   final StaffRepository _staffRepository;
+//   final NotificationRepo notificationRepo = NotificationRepo();
+
+//   StreamSubscription? _categorySubscription;
+//   StreamSubscription? _sourceSubscription;
+//   StreamSubscription? _leadStageSubscription;
+//   GeneralSettingsRepository? _settingsRepo;
+//   StreamSubscription<List<AddLeadModel>>? _leadsRealtimeSubscription;
+
+//   AddLeadCubit({
+//     IAddLeadRepository? leadRepository,
+//     ILeadCategoryRepository? categoryRepository,
+//     ILeadSourceRepository? sourceRepository,
+//     ILeadStageRepository? leadStageRepository,
+//     AdditionalFieldsRepository? additionalFieldsRepo,
+//     StaffRepository? staffRepository,
+//   }) : _leadRepository = leadRepository ?? AddLeadRepository(),
+//        _categoryRepository = categoryRepository ?? LeadCategoryRepository(),
+//        _sourceRepository = sourceRepository ?? LeadSourceRepository(),
+//        _leadStageRepository = leadStageRepository ?? LeadStageRepository(),
+//        _additionalFieldsRepo =
+//            additionalFieldsRepo ?? AdditionalFieldsRepositoryImpl(),
+//        _staffRepository = staffRepository ?? StaffRepository(),
+//        super(const AddLeadState());
 
 class AddLeadCubit extends Cubit<AddLeadState> {
   final IAddLeadRepository _leadRepository;
@@ -31,27 +64,47 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   final StaffRepository _staffRepository;
   final NotificationRepo notificationRepo = NotificationRepo();
 
+  // ── Sub Category ──────────────────────────────────────────────────────────
+  // Cannot be constructed eagerly in the initializer list because
+  // SubCategoryRepository requires a categoryId, which isn't known until
+  // the user selects a Lead Category. Built lazily in selectCategory().
+  ISubCategoryRepository? _subCategoryRepository;
+  final ISubCategoryRepository Function(String categoryId)?
+  _subCategoryRepositoryFactory;
+
+  ILeadTagRepository? _leadTagRepository;
+  final ILeadTagRepository Function(String leadTagId)?
+  _leadTagRepositoryFactory;
+
   StreamSubscription? _categorySubscription;
   StreamSubscription? _sourceSubscription;
   StreamSubscription? _leadStageSubscription;
+  StreamSubscription? _subCategorySubscription;
+  StreamSubscription? _leadTagSubscription;
   GeneralSettingsRepository? _settingsRepo;
-  StreamSubscription<List<AddLeadModel>>? _leadsRealtimeSubscription;
+   StreamSubscription<List<AddLeadModel>>? _leadsRealtimeSubscription;
 
   AddLeadCubit({
     IAddLeadRepository? leadRepository,
     ILeadCategoryRepository? categoryRepository,
     ILeadSourceRepository? sourceRepository,
     ILeadStageRepository? leadStageRepository,
+    ISubCategoryRepository Function(String categoryId)?
+    subCategoryRepositoryFactory, // NEW — optional, for tests/DI only
+    ILeadTagRepository Function(String leadTagId)? leadTagRepositoryFactory,
     AdditionalFieldsRepository? additionalFieldsRepo,
     StaffRepository? staffRepository,
   }) : _leadRepository = leadRepository ?? AddLeadRepository(),
        _categoryRepository = categoryRepository ?? LeadCategoryRepository(),
        _sourceRepository = sourceRepository ?? LeadSourceRepository(),
        _leadStageRepository = leadStageRepository ?? LeadStageRepository(),
+       _subCategoryRepositoryFactory = subCategoryRepositoryFactory, // NEW
+       _leadTagRepositoryFactory = leadTagRepositoryFactory,
        _additionalFieldsRepo =
            additionalFieldsRepo ?? AdditionalFieldsRepositoryImpl(),
        _staffRepository = staffRepository ?? StaffRepository(),
        super(const AddLeadState());
+
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -75,6 +128,19 @@ class AddLeadCubit extends Cubit<AddLeadState> {
       ),
     );
   }
+
+  // NEW — ensures Category and Lead Stage streams are running even if the
+// Add Lead form's initialize() hasn't executed yet this session. Safe to
+// call repeatedly (no-op once loaded). Deliberately does NOT touch
+// selectedPriority/selectedLeadStage/staff name/additional fields the way
+// initialize() does, so it can't clobber an in-progress Add Lead form
+// sharing the same cubit instance.
+void ensureLeadDropdownDataLoaded() {
+  if (FirestorePath.companyId == null) return;
+  if (state.categories.isEmpty) _watchCategories();
+  if (state.stages.isEmpty) _watchLeadStages();
+  if (state.sources.isEmpty) _watchSources();
+}
 
   void resetStatus() {
     emit(
@@ -114,14 +180,62 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     }
   }
 
-  void _watchCategories() {
+  // void _watchCategories() {
+  //   _categorySubscription?.cancel();
+  //   _categorySubscription = _categoryRepository.watchCategories().listen((
+  //     cats,
+  //   ) {
+  //     if (isClosed) return;
+  //     emit(state.copyWith(categories: [...cats]));
+  //   }, onError: (_) {});
+  // }
+
+  // void _watchSources() {
+  //   _sourceSubscription?.cancel();
+  //   _sourceSubscription = _sourceRepository.watchSource().listen((srcs) {
+  //     if (isClosed) return;
+  //     emit(state.copyWith(sources: [...srcs]));
+  //   }, onError: (_) {});
+  // }
+
+  // void _watchLeadStages() {
+  //   _leadStageSubscription?.cancel();
+  //   _leadStageSubscription = _leadStageRepository.watchCategories().listen((
+  //     stages,
+  //   ) {
+  //     if (isClosed) return;
+  //     emit(state.copyWith(stages: [...stages]));
+  //   }, onError: (_) {});
+  // }
+
+   void _watchCategories() {
     _categorySubscription?.cancel();
     _categorySubscription = _categoryRepository.watchCategories().listen((
       cats,
     ) {
       if (isClosed) return;
       emit(state.copyWith(categories: [...cats]));
-    }, onError: (_) {});
+
+      // ── Edit-mode race condition fix ────────────────────────────────────────
+      // selectCategory() may have been called (via _prefillIfEditing) before
+      // this stream fired its first event.  If a category is already recorded
+      // in state but no sub-category subscription is running yet, start it now.
+      final alreadySelected = state.selectedCategory;
+      if (alreadySelected != null && alreadySelected.isNotEmpty &&
+          _subCategorySubscription == null) {
+        log('[AddLeadCubit] _watchCategories: auto-starting subCat watcher '
+            'for already-selected category="$alreadySelected"');
+        final match = cats.where((c) => c.name == alreadySelected);
+        if (match.isNotEmpty && match.first.id.isNotEmpty) {
+          _watchSubCategoriesForCategory(match.first.id);
+        } else {
+          log('[AddLeadCubit] _watchCategories: no match found for '
+              'selectedCategory="$alreadySelected" in loaded cats=${cats.map((c) => c.name).toList()}');
+        }
+      }
+    }, onError: (e) {
+      log('[AddLeadCubit] _watchCategories error: $e');
+    });
   }
 
   void _watchSources() {
@@ -139,7 +253,93 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     ) {
       if (isClosed) return;
       emit(state.copyWith(stages: [...stages]));
+       if (state.selectedLeadStage == null) {
+      selectLeadStage('NEW');
+    }
     }, onError: (_) {});
+  }
+
+  // ── Sub Category watcher — depends on a resolved categoryId ───────────────
+ // ── Sub Category watcher — depends on a resolved categoryId ───────────────
+  // ── Sub Category watcher — depends on a resolved categoryId ───────────────
+  void _watchSubCategoriesForCategory(
+    String categoryId, {
+    String? pendingSubCategoryName,
+  }) {
+    log('[AddLeadCubit] _watchSubCategoriesForCategory: categoryId="$categoryId"');
+    _subCategorySubscription?.cancel();
+    _subCategorySubscription = null;
+
+    _subCategoryRepository = _subCategoryRepositoryFactory != null
+        ? _subCategoryRepositoryFactory!(categoryId)
+        : SubCategoryRepository(categoryId: categoryId);
+
+    _subCategorySubscription = _subCategoryRepository!
+        .watchSubCategories()
+        .listen((subs) {
+          log('[AddLeadCubit] subCategories received: ${subs.length} items');
+          if (isClosed) return;
+          emit(state.copyWith(subCategories: [...subs]));
+
+          // Resolve a pending sub-category selection once the list arrives.
+          if (pendingSubCategoryName != null &&
+              pendingSubCategoryName.isNotEmpty) {
+            final match = subs.where((s) => s.name == pendingSubCategoryName);
+            if (match.isNotEmpty) {
+              log('[AddLeadCubit] auto-resolved pending subCategory '
+                  '"$pendingSubCategoryName" -> id="${match.first.id}"');
+              emit(
+                state.copyWith(
+                  selectedSubCategory: pendingSubCategoryName,
+                  selectedSubCategoryId: match.first.id,
+                ),
+              );
+            } else {
+              log('[AddLeadCubit] pending subCategory "$pendingSubCategoryName" '
+                  'not found in loaded subs=${subs.map((s) => s.name).toList()}');
+            }
+          }
+        }, onError: (e) {
+          log('[AddLeadCubit] _watchSubCategoriesForCategory error: $e');
+        });
+  }
+
+ void _watchLeadTagForLeadStage(
+    String leadTagId, {
+    String? pendingTagName,
+  }) {
+    log('[AddLeadCubit] _watchLeadTagForLeadStage: stageId="$leadTagId"');
+    _leadTagSubscription?.cancel();
+    _leadTagRepository = _leadTagRepositoryFactory != null
+        ? _leadTagRepositoryFactory!(leadTagId)
+        : LeadTagRepository(tagId: leadTagId);
+    _leadTagSubscription = _leadTagRepository!.watchLeadTags().listen((
+      leadTags,
+    ) {
+      log('[AddLeadCubit] leadTags received: ${leadTags.length} items for stageId="$leadTagId"');
+      if (isClosed) return;
+      emit(state.copyWith(leadTag: [...leadTags]));
+
+      // Resolve a pending tag selection once the list arrives.
+      if (pendingTagName != null && pendingTagName.isNotEmpty) {
+        final match = leadTags.where((t) => t.name == pendingTagName);
+        if (match.isNotEmpty) {
+          log('[AddLeadCubit] auto-resolved pending tag '
+              '"$pendingTagName" -> id="${match.first.id}"');
+          emit(
+            state.copyWith(
+              selectedLeadTag: pendingTagName,
+              selectedLeadTagId: match.first.id,
+            ),
+          );
+        } else {
+          log('[AddLeadCubit] pending tag "$pendingTagName" not found in '
+              'loaded tags=${leadTags.map((t) => t.name).toList()}');
+        }
+      }
+    }, onError: (e) {
+      log('[AddLeadCubit] _watchLeadTagForLeadStage error: $e');
+    });
   }
 
   @override
@@ -147,45 +347,188 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     _categorySubscription?.cancel();
     _sourceSubscription?.cancel();
     _leadStageSubscription?.cancel();
+    _subCategorySubscription?.cancel();
+    _leadTagSubscription?.cancel();
     _leadsRealtimeSubscription?.cancel();
     return super.close();
   }
 
   // ── Selection helpers ─────────────────────────────────────────────────────
 
-  void selectCategory(String? value) => emit(
-    state.copyWith(selectedCategory: value, clearCategory: value == null),
-  );
+  // void selectCategory(String? value) => emit(
+  //   state.copyWith(selectedCategory: value, clearCategory: value == null),
+  // );
 
-  void selectSource(String? value) =>
-      emit(state.copyWith(selectedSource: value, clearSource: value == null));
+  // void selectSource(String? value) =>
+  //     emit(state.copyWith(selectedSource: value, clearSource: value == null));
 
-  void selectLeadStage(String? value) => emit(
-    state.copyWith(selectedLeadStage: value, clearLeadStage: value == null),
-  );
+  // void selectLeadStage(String? value) => emit(
+  //   state.copyWith(selectedLeadStage: value, clearLeadStage: value == null),
+  // );
+
+  // void selectPriority(String? value) => emit(
+  //   state.copyWith(selectedPriority: value, clearPriority: value == null),
+  // );
+
+  // void selectLeadTag(String? value) => emit(
+  //   state.copyWith(
+  //     selectedLeadTag: value,
+  //     clearLeadTag: value == null, // add this flag if missing
+  //   ),
+  // );
+
+  // // void selectCategory(String? value) =>
+  // //     emit(state.copyWith(selectedCategory: value));
+
+  // // void selectSource(String? value) =>
+  // //     emit(state.copyWith(selectedSource: value));
+
+  // // void selectPriority(String? value) =>
+  // //     emit(state.copyWith(selectedPriority: value));
+
+  // // void selectLeadStage(String? value) =>
+  // //     emit(state.copyWith(selectedLeadStage: value));
+
+  // void selectState(String? value) => emit(
+  //   state.copyWith(
+  //     selectedState: value,
+  //     clearState: value == null,
+  //     clearDistrict: true,
+  //   ),
+  // );
+
+  // void selectDistrict(String? value) => emit(
+  //   state.copyWith(selectedDistrict: value, clearDistrict: value == null),
+  // );
+
+  // void selectTheme(String? value) =>
+  //     emit(state.copyWith(selectedCallResult: value));
+
+  // void selectCallResult(String? value) =>
+  //     emit(state.copyWith(selectedCallResult: value));
+
+  // // void selectLeadTag(String? value) =>
+  // //     emit(state.copyWith(selectedLeadTag: value));
+
+  // void selectAssignedStaff({required String name, required String id}) {
+  //   emit(state.copyWith(assignedStaffName: name, assignedStaffId: id));
+  // }
+
+
+ void selectCategory(String? value, {String? pendingSubCategory}) {
+    log('[AddLeadCubit] selectCategory: value="$value", '
+        'cats loaded=${state.categories.length}');
+    emit(state.copyWith(selectedCategory: value, clearCategory: value == null));
+
+    // Reset sub-category selection + list + stream whenever the category changes
+    _subCategorySubscription?.cancel();
+    _subCategorySubscription = null;
+    emit(state.copyWith(subCategories: [], clearSubCategory: true));
+
+    if (value == null) return;
+
+    // Resolve the Firestore doc ID of the chosen category from already-loaded list.
+    final match = state.categories.where((c) => c.name == value);
+    if (match.isEmpty) {
+      log('[AddLeadCubit] selectCategory: no match for "$value" in '
+          'categories=${state.categories.map((c) => c.name).toList()} — '
+          'sub-category watcher NOT started (stream not yet loaded?)');
+      return;
+    }
+
+    final categoryId = match.first.id;
+    emit(state.copyWith(selectedCategoryId: categoryId));
+
+    _watchSubCategoriesForCategory(
+      categoryId,
+      pendingSubCategoryName: pendingSubCategory,
+    );
+  }
+void selectCategoryDirect({required String name, required String id}) {
+  emit(state.copyWith(selectedCategory: name, selectedCategoryId: id));
+  _watchSubCategoriesForCategory(id);
+}
+
+
+
+void selectSourceDirect({required String name, required String id}) {
+  emit(state.copyWith(selectedSource: name, selectedSourceId: id));
+}
+
+  // void selectSubCategory(String? value) => emit(
+  //   state.copyWith(selectedSubCategory: value, clearSubCategory: value == null),
+  // );
+  void selectSubCategory(String? value) {
+  emit(state.copyWith(selectedSubCategory: value, clearSubCategory: value == null));
+  if (value == null) return;
+  final match = state.subCategories.where((s) => s.name == value);
+  if (match.isNotEmpty) {
+    emit(state.copyWith(selectedSubCategoryId: match.first.id));
+  }
+}
+
+
+  // void selectSource(String? value) =>
+  //     emit(state.copyWith(selectedSource: value, clearSource: value == null));
+void selectSource(String? value) {
+  emit(state.copyWith(selectedSource: value, clearSource: value == null));
+  if (value == null) return;
+  final match = state.sources.where((s) => s.name == value);
+  if (match.isNotEmpty) {
+    emit(state.copyWith(selectedSourceId: match.first.id));
+  }
+}
+ 
+
+ void selectLeadStage(String? value, {String? pendingTag}) {
+    log('[AddLeadCubit] selectLeadStage: value="$value", '
+        'stages loaded=${state.stages.length}');
+    emit(state.copyWith(selectedLeadStage: value, clearLeadStage: value == null));
+
+    if (value == null) {
+      _leadTagSubscription?.cancel();
+      emit(state.copyWith(leadTag: [], tagMandatory: false));
+      return;
+    }
+
+    final match = state.stages.where((s) => s.name == value);
+    if (match.isEmpty) {
+      log('[AddLeadCubit] selectLeadStage: no match for "$value" in '
+          'stages=${state.stages.map((s) => s.name).toList()} — '
+          'tag watcher NOT started');
+      _leadTagSubscription?.cancel();
+      emit(state.copyWith(leadTag: [], tagMandatory: false));
+      return;
+    }
+
+    emit(state.copyWith(selectedLeadStageId: match.first.id));
+    log('[AddLeadCubit] selectLeadStage: matched stage id="${match.first.id}", '
+        'tagMandatory=${match.first.tagMandatory}');
+    _watchLeadTagForLeadStage(match.first.id, pendingTagName: pendingTag);
+    emit(state.copyWith(tagMandatory: match.first.tagMandatory));
+  }
+
+  // void selectLeadTag(String? value) =>
+  //     emit(state.copyWith(selectedLeadTag: value, clearLeadTag: value == null));
+void selectLeadTag(String? value) {
+  emit(state.copyWith(selectedLeadTag: value, clearLeadTag: value == null));
+  if (value == null) return;
+  final match = state.leadTag.where((t) => t.name == value);
+  if (match.isNotEmpty) {
+    emit(state.copyWith(selectedLeadTagId: match.first.id));
+  }
+}
 
   void selectPriority(String? value) => emit(
     state.copyWith(selectedPriority: value, clearPriority: value == null),
   );
 
-  void selectLeadTag(String? value) => emit(
-    state.copyWith(
-      selectedLeadTag: value,
-      clearLeadTag: value == null, // add this flag if missing
-    ),
-  );
-
-  // void selectCategory(String? value) =>
-  //     emit(state.copyWith(selectedCategory: value));
-
-  // void selectSource(String? value) =>
-  //     emit(state.copyWith(selectedSource: value));
-
-  // void selectPriority(String? value) =>
-  //     emit(state.copyWith(selectedPriority: value));
-
-  // void selectLeadStage(String? value) =>
-  //     emit(state.copyWith(selectedLeadStage: value));
+  // void selectLeadTag(String? value) => emit(
+  //   state.copyWith(
+  //     selectedLeadTag: value,
+  //     clearLeadTag: value == null, // add this flag if missing
+  //   ),
+  // );
 
   void selectState(String? value) => emit(
     state.copyWith(
@@ -205,12 +548,11 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   void selectCallResult(String? value) =>
       emit(state.copyWith(selectedCallResult: value));
 
-  // void selectLeadTag(String? value) =>
-  //     emit(state.copyWith(selectedLeadTag: value));
-
   void selectAssignedStaff({required String name, required String id}) {
     emit(state.copyWith(assignedStaffName: name, assignedStaffId: id));
   }
+
+
   // ── Fetch list ────────────────────────────────────────────────────────────
 
   Future<void> fetchLeads() async {
@@ -424,6 +766,9 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         assignedStaff: resolvedStaffName,
         assignedStaffId: resolvedStaffId,
         leadCategory: state.selectedCategory ?? '',
+        leadSubCategory:
+            state.selectedSubCategory ??
+            '', 
         leadSource: state.selectedSource ?? '',
         priority: state.selectedPriority ?? '',
         leadStage: state.selectedLeadStage ?? '',
@@ -435,6 +780,11 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         followUpDate: nextFollowUpDate,
         additionalFields: additionalFieldValues,
         calledDate: calledDate,
+         leadCategoryId: state.selectedCategoryId ?? '',
+        leadSubCategoryId: state.selectedSubCategoryId ?? '',
+        leadSourceId: state.selectedSourceId ?? '',
+        leadStageId: state.selectedLeadStageId ?? '',
+        leadTagId: state.selectedLeadTagId ?? '',
       );
 
       final newId = await _leadRepository.addLead(lead);
@@ -458,8 +808,8 @@ class AddLeadCubit extends Cubit<AddLeadState> {
       //   title: 'New Lead Added',
       //   message: 'Name: ${lead.clientName} Phone No: ${lead.contactNumber}',
       //   excludeStaffId: user?.id,
-      // );
-      await notificationRepo.createForAdmins(
+      // ); 
+      notificationRepo.createForAdmins(
         title: 'New Lead Added',
         message: 'Name: ${lead.clientName} Phone No: ${lead.contactNumber}',
         excludeStaffId: user?.id,
@@ -480,6 +830,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
           calledDate: calledDate!,
           leadStage: state.selectedLeadStage.toString(),
           leadCategory: state.selectedCategory ?? '',
+          leadSubCategory: state.selectedSubCategory ?? '',
           priority: state.selectedPriority ?? '',
           remarks: remarks,
           adress: address,
@@ -488,6 +839,10 @@ class AddLeadCubit extends Cubit<AddLeadState> {
           assignedStaffId: resolvedStaffId,
           createdById: user?.id ?? '',
           createdAt: now,
+          leadCategoryId: state.selectedCategoryId ?? '',
+          leadSubCategoryId: state.selectedSubCategoryId ?? '',
+          leadStageId: state.selectedLeadStageId ?? '',
+          leadTagId: state.selectedLeadTagId ?? '',
         );
         await _leadRepository.addFollowUp(leadId, followup);
       }
@@ -526,9 +881,12 @@ class AddLeadCubit extends Cubit<AddLeadState> {
 
   String _friendlyError(Object error) {
     final msg = error.toString();
-    if (msg.contains('Contact Number and WhatsApp Number already exist.')) return 'Contact Number and WhatsApp Number already exist.';
-    if (msg.contains('Contact Number already exists.')) return 'Contact Number already exists.';
-    if (msg.contains('WhatsApp Number already exists.')) return 'WhatsApp Number already exists.';
+    if (msg.contains('Contact Number and WhatsApp Number already exist.'))
+      return 'Contact Number and WhatsApp Number already exist.';
+    if (msg.contains('Contact Number already exists.'))
+      return 'Contact Number already exists.';
+    if (msg.contains('WhatsApp Number already exists.'))
+      return 'WhatsApp Number already exists.';
     if (msg.contains('permission-denied'))
       return 'You do not have permission to perform this action.';
     if (msg.contains('network') || msg.contains('unavailable'))
@@ -536,7 +894,8 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     if (msg.contains('not-found'))
       return 'Record not found. It may have been deleted.';
     if (msg.contains('Client name')) return 'Client name cannot be empty.';
-    if (msg.contains('Contact number')) return 'Contact number cannot be empty.';
+    if (msg.contains('Contact number'))
+      return 'Contact number cannot be empty.';
     return 'Something went wrong. Please try again.';
   }
 
@@ -672,6 +1031,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         calledStatus: calledStatus,
         leadStage: state.selectedLeadStage ?? '',
         leadCategory: state.selectedCategory ?? '',
+        leadSubCategory: state.selectedSubCategory ?? '',
         priority: state.selectedPriority ?? '',
         remarks: remarks,
         adress: address,
@@ -680,6 +1040,10 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         createdAt: DateTime.now(),
         assignedStaff: user?.name ?? '',
         assignedStaffId: user?.id ?? '',
+        leadCategoryId: state.selectedCategoryId ?? '',
+        leadSubCategoryId: state.selectedSubCategoryId ?? '',
+        leadStageId: state.selectedLeadStageId ?? '',
+        leadTagId: state.selectedLeadTagId ?? '',
       );
 
       await _leadRepository.addFollowUp(leadId, followUp);
@@ -757,7 +1121,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
       log("state.selectedLeadStage : ${state.selectedLeadStage}");
       log("state.selectedLeadTag : ${state.selectedLeadTag}");
 
-      final followUp = FollowUpModel(
+       final followUp = FollowUpModel(
         id: id,
         leadId: leadId,
         leadName: leadName,
@@ -769,6 +1133,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         leadTag: state.selectedLeadTag ?? '',
         leadStage: state.selectedLeadStage ?? '',
         leadCategory: state.selectedCategory ?? '',
+        leadSubCategory: state.selectedSubCategory ?? '',
         priority: state.selectedPriority ?? '',
         remarks: remarks,
         createdById: user?.id ?? '',
@@ -777,6 +1142,10 @@ class AddLeadCubit extends Cubit<AddLeadState> {
         email: email,
         assignedStaff: user!.name,
         assignedStaffId: user.id ?? '',
+        leadCategoryId: state.selectedCategoryId ?? '',
+        leadSubCategoryId: state.selectedSubCategoryId ?? '',
+        leadStageId: state.selectedLeadStageId ?? '',
+        leadTagId: state.selectedLeadTagId ?? '',
       );
       log(
         'followup date : ${followUp.nextFollowUpDate}, called date : ${followUp.calledDate},followup datail: $followUp',
@@ -823,6 +1192,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     required String leadName,
     required String contactNumber,
     required String leadCategory,
+    required String leadSubCategory,
     required String leadStage,
     required String fromStaffId,
     required String fromStaff,
@@ -835,11 +1205,12 @@ class AddLeadCubit extends Cubit<AddLeadState> {
     try {
       final user = await SessionService().getSavedUser();
 
-      final transfer = TransferDetails(
+       final transfer = TransferDetails(
         leadId: leadId,
         leadName: leadName,
         contactNumber: contactNumber,
         leadCategory: leadCategory,
+        leadSubCategory: leadSubCategory,
         leadStage: leadStage,
         fromStaffId: fromStaffId,
         fromStaff: fromStaff,
@@ -864,10 +1235,11 @@ class AddLeadCubit extends Cubit<AddLeadState> {
       //   );
       // }
       if (toStaffId.isNotEmpty) {
-        await notificationRepo.create(
+        notificationRepo.create(
           staffId: toStaffId,
           title: 'Lead Transferred',
-          message: 'Name :$leadName, Phone No: $contactNumber from Staff :$fromStaff',
+          message:
+              'Name :$leadName, Phone No: $contactNumber from Staff :$fromStaff',
           pushData: {'type': 'transfer', 'leadId': leadId},
         );
       }
@@ -1134,50 +1506,51 @@ class AddLeadCubit extends Cubit<AddLeadState> {
 
   List<AddLeadModel> _allLeadsCache = [];
 
-Future<void> searchLeads(String query) async {
-  if (query.trim().isEmpty) {
-    emit(state.copyWith(isSearching: false, searchResults: []));
-    return;
-  }
-
-  emit(state.copyWith(listStatus: LeadListStatus.loading, isSearching: true));
-
-  try {
-    if (_allLeadsCache.isEmpty) {
-      final user = await SessionService().getSavedUser();
-      _allLeadsCache = await _leadRepository.fetchLeads(
-        staffId: user?.id ?? '',
-        role: user?.staffType ?? '',
-      );
+  Future<void> searchLeads(String query) async {
+    if (query.trim().isEmpty) {
+      emit(state.copyWith(isSearching: false, searchResults: []));
+      return;
     }
 
-    final q = query.toLowerCase();
-    final results = _allLeadsCache
-        .where(
-          (lead) =>
-              lead.clientName?.toLowerCase().contains(q) == true ||
-              lead.contactNumber?.contains(query) == true ||
-              lead.email?.toLowerCase().contains(q) == true,
-        )
-        .toList();
+    emit(state.copyWith(listStatus: LeadListStatus.loading, isSearching: true));
 
-    emit(
-      state.copyWith(
-        listStatus: LeadListStatus.loaded,
-        isSearching: true,
-        searchResults: results, // separate field, doesn't touch `leads`
-      ),
-    );
-  } catch (e) {
-    emit(
-      state.copyWith(
-        listStatus: LeadListStatus.failure,
-        isSearching: false,
-        searchResults: [],
-      ),
-    );
+    try {
+      if (_allLeadsCache.isEmpty) {
+        final user = await SessionService().getSavedUser();
+        _allLeadsCache = await _leadRepository.fetchLeads(
+          staffId: user?.id ?? '',
+          role: user?.staffType ?? '',
+        );
+      }
+
+      final q = query.toLowerCase();
+      final results = _allLeadsCache
+          .where(
+            (lead) =>
+                lead.clientName?.toLowerCase().contains(q) == true ||
+                lead.contactNumber?.contains(query) == true ||
+                lead.email?.toLowerCase().contains(q) == true,
+          )
+          .toList();
+
+      emit(
+        state.copyWith(
+          listStatus: LeadListStatus.loaded,
+          isSearching: true,
+          searchResults: results, // separate field, doesn't touch `leads`
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          listStatus: LeadListStatus.failure,
+          isSearching: false,
+          searchResults: [],
+        ),
+      );
+    }
   }
-}
+
   // Future<void> fetchLeadChartCounts({
   //   required String staffId,
   //   required String role,
@@ -1330,39 +1703,82 @@ Future<void> searchLeads(String query) async {
     );
   }
   // ── Real-time sync ────────────────────────────────────────────────────────
-void watchLeadsRealtime() {
-  // Cancel any existing listener first — prevents duplicate listeners
-  // if this is called more than once (e.g. tab re-entry).
-  _leadsRealtimeSubscription?.cancel();
+  // void watchLeadsRealtime() {
+  //   // Cancel any existing listener first — prevents duplicate listeners
+  //   // if this is called more than once (e.g. tab re-entry).
+  //   _leadsRealtimeSubscription?.cancel();
 
-  emit(
-    state.copyWith(listStatus: LeadListStatus.loading, clearListError: true),
-  );
+  //   emit(
+  //     state.copyWith(listStatus: LeadListStatus.loading, clearListError: true),
+  //   );
 
-  SessionService().getSavedUser().then((user) {
-    if (isClosed) return;
+  //   SessionService().getSavedUser().then((user) {
+  //     if (isClosed) return;
 
-    _leadsRealtimeSubscription = _leadRepository
-        .watchLeads(staffId: user?.id ?? '', role: user?.staffType ?? '')
-        .listen(
-          (leads) {
-            if (isClosed) return;
-            emit(
-              state.copyWith(listStatus: LeadListStatus.loaded, leads: leads),
-            );
-          },
-          onError: (e) {
-            if (isClosed) return;
-            emit(
-              state.copyWith(
-                listStatus: LeadListStatus.failure,
-                listError: _friendlyError(e),
-              ),
-            );
-          },
+  //     _leadsRealtimeSubscription = _leadRepository
+  //         .watchLeads(staffId: user?.id ?? '', role: user?.staffType ?? '')
+  //         .listen(
+  //           (leads) {
+  //             if (isClosed) return;
+  //             emit(
+  //               state.copyWith(listStatus: LeadListStatus.loaded, leads: leads),
+  //             );
+  //           },
+  //           onError: (e) {
+  //             if (isClosed) return;
+  //             emit(
+  //               state.copyWith(
+  //                 listStatus: LeadListStatus.failure,
+  //                 listError: _friendlyError(e),
+  //               ),
+  //             );
+  //           },
+  //         );
+  //   });
+  // }
+  // }
+  void watchLeadsRealtime() {
+    _leadsRealtimeSubscription?.cancel();
+    emit(
+      state.copyWith(listStatus: LeadListStatus.loading, clearListError: true),
+    );
+
+    SessionService().getSavedUser().then((user) {
+      if (isClosed) return;
+
+      // Guard: don't start a query with an unresolved session — wait and retry
+      // rather than silently falling through to role: '' semantics.
+      if (user == null || user.id == null || user.id!.isEmpty) {
+        log(
+          '[AddLeadCubit] watchLeadsRealtime: session not ready, retrying shortly',
         );
-  });
-}
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!isClosed) watchLeadsRealtime();
+        });
+        return;
+      }
+
+      _leadsRealtimeSubscription = _leadRepository
+          .watchLeads(staffId: user.id!, role: user.staffType ?? '')
+          .listen(
+            (leads) {
+              if (isClosed) return;
+              emit(
+                state.copyWith(listStatus: LeadListStatus.loaded, leads: leads),
+              );
+            },
+            onError: (e) {
+              if (isClosed) return;
+              emit(
+                state.copyWith(
+                  listStatus: LeadListStatus.failure,
+                  listError: _friendlyError(e),
+                ),
+              );
+            },
+          );
+    });
+  }
 }
 
 Future<void> migrateCallResults() async {

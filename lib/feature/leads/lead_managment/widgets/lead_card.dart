@@ -163,6 +163,8 @@ class _LeadCardState extends State<LeadCard>
                             clientName: widget.data.name,
                             leadStage: widget.data.status,
                             leadCategory: widget.data.category,
+                            
+                            leadSubCategory: widget.data.subCategory,
                             contactNumber: widget.data.phone,
                             assignedStaff: widget.data.assignedTo,
                             createdAt: widget.data.createdAt,

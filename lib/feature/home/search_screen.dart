@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
+import 'package:odit_crm_mobile/core/utils/lead_name_resolver.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
@@ -67,20 +68,19 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    for (final n in _closeNotifiers) {
-      n.dispose();
-    }
+ @override
+void dispose() {
+  _searchController.removeListener(_onSearchTextChanged);
+  _searchController.dispose();
 
-     _searchController.removeListener(_onSearchTextChanged);
-_searchController.dispose();
-
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
+  for (final n in _closeNotifiers) {
+    n.dispose();
   }
+
+  _scrollController.removeListener(_onScroll);
+  _scrollController.dispose();
+  super.dispose();
+}
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
@@ -189,6 +189,8 @@ final totalResults = _sourceList(context.read<AddLeadCubit>().state).length;
     return DateFormat('dd-MM-yyyy').format(dt);
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -257,6 +259,10 @@ final totalResults = _sourceList(context.read<AddLeadCubit>().state).length;
 
 // AFTER
 final displayedLeads = _sourceList(state);
+
+final categoryNameById = {for (final c in state.categories) c.id: c.name};
+final stageNameById = {for (final s in state.stages) s.id: s.name};
+final sourceNameById = {for (final s in state.sources) s.id: s.name};
 
 if (_paginationQueryKey != _lastSearchQuery ||
     _lastResultsLength != displayedLeads.length) {
@@ -384,19 +390,28 @@ final hasMore = safeVisibleCount < displayedLeads.length;
                       separatorBuilder: (_, __) => SizedBox(height: 2.h),
                       itemBuilder: (_, index) {
                         final lead = visibleResults[index];
+
+  final resolvedCategoryName = categoryNameById[lead.leadCategoryId] ??
+      (lead.leadCategory.isEmpty ? 'Uncategorized' : lead.leadCategory);
+  final resolvedStageRaw = stageNameById[lead.leadStageId] ?? lead.leadStage;
+  final resolvedSourceName = sourceNameById[lead.leadSourceId] ??
+      (lead.leadSource.isEmpty ? '' : lead.leadSource);
+
                         final leadData = LeadData(
                           id: lead.id ?? '',
                           name: lead.clientName,
                           phone: lead.contactNumber,
                           assignedTo: lead.assignedStaff,
-                          category: lead.leadCategory.isEmpty
-                              ? 'Uncategorized'
-                              : lead.leadCategory,
+                          category: resolvedCategoryName,
+                          categoryId: lead.leadCategoryId,
+                          subCategory: lead.leadSubCategory,
+                          subCategoryId: lead.leadSubCategoryId,
                           status: lead.leadStage,
+                           statusName: humanizeStageName(resolvedStageRaw),
+                          statusId: lead.leadStageId,
                           notificationCount: 0,
-                          source: lead.leadSource.isEmpty
-                              ? ''
-                              : lead.leadSource,
+                          source:resolvedSourceName,
+                          sourceId: lead.leadSourceId,
                           priority: lead.priority,
                           createdAt: lead.createdAt,
                           isExpanded: _expandedLeadIds.contains(lead.id ?? ''),

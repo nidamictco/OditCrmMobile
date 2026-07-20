@@ -8,6 +8,7 @@ class SessionService {
   static const _keyIsLoggedIn = 'session_is_logged_in';
   static const _keyUser = 'session_user';
   static const _keyUserId = 'session_user_id';
+  static const _keySessionId = 'session_active_session_id';
 
   Future<void> saveSession(StaffModel user) async {
     final prefs = await SharedPreferences.getInstance();
@@ -49,6 +50,21 @@ class SessionService {
       await clearSession();
       return null;
     }
+  }
+
+ Future<void> saveSessionId(String sessionId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keySessionId, sessionId);
+  }
+
+  Future<String?> getSessionId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keySessionId);
+  }
+
+  Future<void> clearSessionId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keySessionId);
   }
 
   /// Firestore [Timestamp] serialises to `{"_seconds": x, "_nanoseconds": y}`

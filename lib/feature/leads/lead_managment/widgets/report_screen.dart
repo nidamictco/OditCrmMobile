@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_state.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/models/leads_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/filtering.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/models/add_lead_model.dart';
 import 'package:sizer/sizer.dart';
@@ -25,6 +26,7 @@ class _ReportScreenState extends State<ReportScreen> {
   void initState() {
     super.initState();
     context.read<AddLeadCubit>().fetchStaff();
+     context.read<AddLeadCubit>().ensureLeadDropdownDataLoaded();
   }
 
   DateTime? _parseDate(String dateStr) {
@@ -184,7 +186,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     title: 'Lead Source Report',
                   ),
                   SizedBox(height: 1.5.h),
-                  LeadSourceCard(leads: sharedLeads),
+                  LeadSourceCard(leads: sharedLeads,sources: state.sources,),
                   SizedBox(height: 3.h),
 
                   // SECTION 4: Category Report
@@ -193,7 +195,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     title: 'Category Report',
                   ),
                   SizedBox(height: 1.5.h),
-                  CategoryReportCard(leads: sharedLeads),
+                  CategoryReportCard(leads: sharedLeads,categories: state.categories,),
                   SizedBox(height: 8.h),
                 ],
               ),
@@ -696,8 +698,9 @@ class ActiveLeadSummaryCard extends StatelessWidget {
 
 class LeadSourceCard extends StatefulWidget {
   final List<AddLeadModel> leads;
+   final List<LeadsModel> sources; 
 
-  const LeadSourceCard({super.key, required this.leads});
+  const LeadSourceCard({super.key, required this.leads, required this.sources});
 
   @override
   State<LeadSourceCard> createState() => _LeadSourceCardState();
@@ -710,25 +713,34 @@ class _LeadSourceCardState extends State<LeadSourceCard> {
   Widget build(BuildContext context) {
     final leads = widget.leads;
 
-    final Map<String, int> sourceCounts = {};
-    for (var lead in leads) {
-      final src = lead.leadSource.isNotEmpty ? lead.leadSource : 'UnSourced';
-      sourceCounts[src] = (sourceCounts[src] ?? 0) + 1;
-    }
+    final sourceNameById = {for (final s in widget.sources) s.id: s.name};
 
-    final total = leads.length;
-    final sortedSources = sourceCounts.entries.toList()
+    final Map<String, int> countsByKey = {};
+    final Map<String, String> displayNameByKey = {};
+
+    for (final lead in leads) {
+      final hasId = lead.leadSourceId.isNotEmpty;
+      final key = hasId ? lead.leadSourceId : 'name:${lead.leadSource}';
+      final fallbackName = lead.leadSource.isNotEmpty ? lead.leadSource : 'UNSOURCED';
+      final resolvedName =
+          hasId ? (sourceNameById[lead.leadSourceId] ?? fallbackName) : fallbackName;
+
+      countsByKey[key] = (countsByKey[key] ?? 0) + 1;
+      displayNameByKey[key] = resolvedName;
+    }
+     final total = leads.length;
+    final sortedEntries = countsByKey.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final displayedSources = _isExpanded
-        ? sortedSources
-        : sortedSources.take(5).toList();
+    final displayedEntries =
+        _isExpanded ? sortedEntries : sortedEntries.take(5).toList();
+
 
     return ReportCard(
       // backgroundColor: Colors.,
       child: Column(
         children: [
-          if (sortedSources.isEmpty)
+          if (sortedEntries.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 2.h),
               child: Text(
@@ -737,17 +749,17 @@ class _LeadSourceCardState extends State<LeadSourceCard> {
               ),
             )
           else
-            ...displayedSources.map((entry) {
+            ...displayedEntries.map((entry) {
               final pct = total > 0 ? entry.value / total : 0.0;
               return ProgressAnalyticsRow(
-                title: entry.key,
+                title:  displayNameByKey[entry.key] ?? entry.key,
                 count: entry.value,
                 percentage: pct,
                 progressColor: const Color(0xFF2F80ED),
                 // isDarkBackground: true,
               );
             }),
-          if (sortedSources.length > 5) ...[
+          if (sortedEntries.length > 5) ...[
             SizedBox(height: 1.h),
             Center(
               child: InkWell(
@@ -784,8 +796,10 @@ class _LeadSourceCardState extends State<LeadSourceCard> {
 
 class CategoryReportCard extends StatefulWidget {
   final List<AddLeadModel> leads;
+   final List<LeadsModel> categories; // NEW
 
-  const CategoryReportCard({super.key, required this.leads});
+
+  const CategoryReportCard({super.key, required this.leads, required this.categories});
 
   @override
   State<CategoryReportCard> createState() => _CategoryReportCardState();
@@ -797,27 +811,35 @@ class _CategoryReportCardState extends State<CategoryReportCard> {
   @override
   Widget build(BuildContext context) {
     final leads = widget.leads;
+     final categoryNameById = {for (final c in widget.categories) c.id: c.name};
 
-    final Map<String, int> categoryCounts = {};
-    for (var lead in leads) {
-      final cat = lead.leadCategory.isNotEmpty
-          ? lead.leadCategory
-          : 'Uncategorized';
-      categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+
+     final Map<String, int> countsByKey = {};
+    final Map<String, String> displayNameByKey = {};
+
+    for (final lead in leads) {
+      final hasId = lead.leadCategoryId.isNotEmpty;
+      final key = hasId ? lead.leadCategoryId : 'name:${lead.leadCategory}';
+      final fallbackName =
+          lead.leadCategory.isNotEmpty ? lead.leadCategory : 'UNCATEGORIZED';
+      final resolvedName =
+          hasId ? (categoryNameById[lead.leadCategoryId] ?? fallbackName) : fallbackName;
+
+      countsByKey[key] = (countsByKey[key] ?? 0) + 1;
+      displayNameByKey[key] = resolvedName; // always the current name
     }
 
     final total = leads.length;
-    final sortedCategories = categoryCounts.entries.toList()
+    final sortedEntries = countsByKey.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final displayedCategories = _isExpanded
-        ? sortedCategories
-        : sortedCategories.take(5).toList();
+    final displayedEntries =
+        _isExpanded ? sortedEntries : sortedEntries.take(5).toList();
 
     return ReportCard(
       child: Column(
         children: [
-          if (sortedCategories.isEmpty)
+          if (sortedEntries.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 2.h),
               child: Text(
@@ -826,16 +848,16 @@ class _CategoryReportCardState extends State<CategoryReportCard> {
               ),
             )
           else
-            ...displayedCategories.map((entry) {
+            ...displayedEntries.map((entry) {
               final pct = total > 0 ? entry.value / total : 0.0;
               return ProgressAnalyticsRow(
-                title: entry.key,
+                title: displayNameByKey[entry.key] ?? entry.key,
                 count: entry.value,
                 percentage: pct,
                 progressColor: const Color(0xFF2F80ED),
               );
             }),
-          if (sortedCategories.length > 5) ...[
+          if (sortedEntries.length > 5) ...[
             SizedBox(height: 1.h),
             Center(
               child: InkWell(

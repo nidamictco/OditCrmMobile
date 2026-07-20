@@ -18,9 +18,15 @@ class FollowupFormCard extends StatelessWidget {
   final ValueChanged<String?> onCategoryChanged;
   final List<String> categoryList;
 
+  final String? selectedSubCategory;
+  final ValueChanged<String?> onSubCategoryChanged;
+  final List<String> subCategoryList;
+
   final String? selectedTag;
 
   final ValueChanged<String?> onTagChanged;
+  final bool tagManditory;
+  final List<String> leadTagOptions; 
 
   // More Details fields
   final TextEditingController remarksController;
@@ -45,9 +51,14 @@ class FollowupFormCard extends StatelessWidget {
     required this.selectedLeadStage,
     required this.onLeadStageChanged,
     required this.leadStagesList,
+    required this.leadTagOptions,
+    required this.tagManditory,
     required this.selectedCategory,
     required this.onCategoryChanged,
     required this.categoryList,
+    required this.selectedSubCategory,
+    required this.onSubCategoryChanged,
+    required this.subCategoryList,
     required this.remarksController,
     required this.whtsppController,
     required this.addressController,
@@ -218,17 +229,15 @@ class FollowupFormCard extends StatelessWidget {
               ],
             ),
 
-          if (selectedLeadStage == 'REJECTED')
+          if (leadTagOptions.isNotEmpty)
             Column(
               children: [
                 CustomDropdownField(
                   label: 'Tag',
                   value: selectedTag,
                   hintText: 'Select Tag',
-                  isRequired: true,
-                  items: const ['Spam Call', 'Wrong Number', 'Invalid Enquiry'],
-                  // FIX: Now uses the real onTagChanged callback from the
-                  // widget parameter instead of the former uninitialized local.
+                  isRequired: tagManditory,
+                  items: leadTagOptions,
                   onChanged: onTagChanged,
                 ),
                 SizedBox(height: 1.h),
@@ -242,6 +251,19 @@ class FollowupFormCard extends StatelessWidget {
             hintText: 'Select Category',
             items: categoryList,
             onChanged: onCategoryChanged,
+          ),
+          if (subCategoryList.isNotEmpty)
+          Column(
+            children: [
+              SizedBox(height: 1.h),
+              CustomDropdownField(
+                label: 'Sub Category',
+                value: selectedSubCategory,
+                hintText: 'Select Sub Category',
+                items: subCategoryList,
+                onChanged: onSubCategoryChanged,
+              ),
+            ],
           ),
           SizedBox(height: 2.5.h),
 

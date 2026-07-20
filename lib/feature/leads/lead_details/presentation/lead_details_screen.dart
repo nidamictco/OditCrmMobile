@@ -8,6 +8,7 @@ import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
 import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
+import 'package:odit_crm_mobile/core/utils/lead_name_resolver.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/followup_form_card.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/followup_history_card.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/lead_tab_bar.dart';
@@ -77,6 +78,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
   );
 
   String? _selectedCategory;
+  String? _selectedSubCategory;
 
   // More Details Fields State
   final TextEditingController _remarksController = TextEditingController();
@@ -348,7 +350,9 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
       _selectedLeadStage = null;
       _selectedProducts = [null];
       _costController.text = '0';
-      _selectedCategory = null;
+        _selectedCategory = null;
+        _selectedSubCategory = null;
+
       _selectedTag = null;
       _remarksController.clear();
       _whatsaapCntrlr.text = _leadData.whatsappNumber;
@@ -414,7 +418,10 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
 
     final cubit = context.read<AddLeadCubit>();
     cubit.selectLeadStage(_selectedLeadStage!);
-    cubit.selectCategory(_selectedCategory);
+    // NOTE: Do NOT call cubit.selectCategory() here — it cancels the
+    // sub-category stream and clears selectedSubCategoryId from state, so
+    // the followup would be saved with an empty leadSubCategoryId.
+    // Category & sub-category were already selected via the form callbacks.
     cubit.selectPriority(_selectedPriority);
     cubit.selectLeadTag(_selectedTag);
 
@@ -621,6 +628,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
             leadName: _leadData.clientName,
             contactNumber: _leadData.contactNumber,
             leadCategory: _leadData.leadCategory,
+            leadSubCategory: _leadData.leadSubCategory,
             leadStage: _leadData.leadStage,
             fromStaffId: _leadData.assignedStaffId,
             fromStaff: _leadData.assignedStaff,
@@ -913,11 +921,11 @@ Future<void> showTransferLeadDialog({
               }
             },
             child: BlocBuilder<AddLeadCubit, AddLeadState>(
-              buildWhen: (previous, current) =>
-                  previous.stages != current.stages ||
-                  previous.categories != current.categories ||
-                  previous.isSubmitting != current.isSubmitting ||
-                  previous.status != current.status,
+              // buildWhen: (previous, current) =>
+              //     previous.stages != current.stages ||
+              //     previous.categories != current.categories ||
+              //     previous.isSubmitting != current.isSubmitting ||
+              //     previous.status != current.status,
               builder: (context, state) {
                 final stages = state.stages.map((st) => st.name).toList();
                 final categories = state.categories.map((c) => c.name).toList();
@@ -979,7 +987,15 @@ Future<void> showTransferLeadDialog({
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        LeadSummaryCard(lead: _leadData),
+                        LeadSummaryCard(lead: _leadData,  categoryDisplayName: resolveLeadName(
+    state.categories, _leadData.leadCategoryId, _leadData.leadCategory,
+  ),
+  stageDisplayName: humanizeStageName(
+    resolveLeadName(state.stages, _leadData.leadStageId, _leadData.leadStage),
+  ),
+  sourceDisplayName: resolveLeadName(
+    state.sources, _leadData.leadSourceId, _leadData.leadSource,
+  ),),
                         SizedBox(height: 3.h),
 
                         Row(
@@ -1067,6 +1083,13 @@ Future<void> showTransferLeadDialog({
                                           _showFollowupForm = true;
                                           _isEditingFollowup = false;
                                           _selectedLeadStage = null;
+                                            _selectedCategory = _leadData.leadCategory.isNotEmpty
+      ? _leadData.leadCategory
+      : null;
+
+  _selectedSubCategory = _leadData.leadSubCategory.isNotEmpty
+      ? _leadData.leadSubCategory
+      : null;
                                           // ✅ Reset date to tomorrow whenever
                                           // a fresh form is opened
                                           _nextFollowupDateValue =
@@ -1075,6 +1098,9 @@ Future<void> showTransferLeadDialog({
                                               );
                                           _nextFollowupDate = null;
                                         });
+                                        final cubit = context.read<AddLeadCubit>();
+cubit.selectCategory(_selectedCategory);
+cubit.selectSubCategory(_selectedSubCategory);
                                       },
                                       icon: Icon(
                                         Icons.add_circle_outline,
@@ -1177,28 +1203,38 @@ Future<void> showTransferLeadDialog({
                                                   ? stages.first
                                                   : followupStages.first);
                                         });
+                                         context.read<AddLeadCubit>().selectLeadStage(val);
                                       },
+                                      leadTagOptions: state.leadTag.map((e) => e.name).toList(),
+                                      tagManditory: state.tagMandatory,
+                                      
                                       leadStagesList: _isEditingFollowup
                                           ? stages
                                           : followupStages,
                                       selectedCategory: _selectedCategory,
-                                      onCategoryChanged: (val) {
-                                        setState(() {
-                                          _selectedCategory =
-                                              val ?? categories.first;
-                                          // _leadTag = null;
-                                        });
-                                      },
-                                      categoryList: categories,
-                                      // selectedSubCategory: _selectedSubCategory,
-                                      // subCategoryList:
-                                      //     _subCategoriesMap[_selectedCategory] ??
-                                      //     [],
-                                      // onSubCategoryChanged: (val) {
+                                      // onCategoryChanged: (val) {
                                       //   setState(() {
-                                      //     _selectedSubCategory = val;
+                                      //     _selectedCategory =
+                                      //         val ?? categories.first;
+                                      //     // _leadTag = null;
                                       //   });
                                       // },
+                                      onCategoryChanged: (v) {
+                        setState(() => _selectedCategory = v);
+                        context.read<AddLeadCubit>().selectCategory(v);
+                      },
+                      
+                                      categoryList: categories,
+                                     selectedSubCategory: _selectedSubCategory,
+                                      subCategoryList: state.subCategories
+                          .map((s) => s.name)
+                          .toList(), 
+                           onSubCategoryChanged: (v) {
+                        setState(() => _selectedSubCategory = v);
+                        context.read<AddLeadCubit>().selectSubCategory(
+                          v,
+                        ); // add this method to your cubit if missing
+                      },
                                       priorityList: _priorityList,
                                       onPriorityChanged: (val) {
                                         setState(() {
@@ -1233,6 +1269,7 @@ Future<void> showTransferLeadDialog({
                                         setState(() {
                                           _selectedTag = val;
                                         });
+                                         context.read<AddLeadCubit>().selectLeadTag(val);
                                       },
                                     )
                                   else if (state.status ==
@@ -1613,11 +1650,35 @@ class _CustomLeadDetailsHeader extends StatelessWidget
 
 class LeadSummaryCard extends StatelessWidget {
   final AddLeadModel lead;
+ final String? categoryDisplayName;
+  final String? stageDisplayName;
+  final String? sourceDisplayName;
 
-  const LeadSummaryCard({super.key, required this.lead});
+
+  const LeadSummaryCard({super.key, required this.lead, this.categoryDisplayName,
+    this.stageDisplayName,
+    this.sourceDisplayName,});
 
   @override
   Widget build(BuildContext context) {
+    final resolvedCategory = (categoryDisplayName?.isNotEmpty ?? false)
+        ? categoryDisplayName!
+        : (lead.leadCategory.isNotEmpty ? lead.leadCategory : 'Uncategorized');
+
+    final resolvedStageRaw = (stageDisplayName?.isNotEmpty ?? false)
+        ? stageDisplayName!
+        : lead.leadStage;
+    final resolvedStageLabel =
+        resolvedStageRaw.toUpperCase() == 'FOLLOWUP' ? 'Follow Up' : resolvedStageRaw;
+    // NOTE: if you pass stageDisplayName already humanized (via
+    // humanizeStageName()), this .toUpperCase() check becomes a harmless
+    // no-op — kept here only so the widget is still correct if ever called
+    // without stageDisplayName.
+
+    final resolvedSource = (sourceDisplayName?.isNotEmpty ?? false)
+        ? sourceDisplayName!
+        : (lead.leadSource.isNotEmpty ? lead.leadSource : 'N/A');
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1676,9 +1737,7 @@ class LeadSummaryCard extends StatelessWidget {
                 ),
               ),
               StatusBadge(
-                label: lead.leadStage == 'FOLLOWUP'
-                    ? 'Follow Up'
-                    : lead.leadStage,
+                label: resolvedStageLabel,
                 backgroundColor: getStatusColor(
                   lead.leadStage,
                 ).withValues(alpha: 0.1),
@@ -1694,9 +1753,7 @@ class LeadSummaryCard extends StatelessWidget {
           Row(
             children: [
               StatusBadge(
-                label: lead.leadCategory.isNotEmpty
-                    ? lead.leadCategory
-                    : 'Uncategorized',
+                label: resolvedCategory,
                 backgroundColor: const Color(0xFFFFEBEB),
                 textColor: Colors.red,
               ),
@@ -1753,7 +1810,7 @@ class LeadSummaryCard extends StatelessWidget {
               Expanded(
                 child: _InfoTile(
                   icon: Icons.folder_open,
-                  value: lead.leadSource.isNotEmpty ? lead.leadSource : 'N/A',
+                  value: resolvedSource,
                 ),
               ),
             ],

@@ -16,6 +16,7 @@ class AddLeadModel {
   final String assignedStaff;
   final String assignedStaffId;
   final String leadCategory;
+  final String leadSubCategory;
   final String leadSource;
   final String priority;
   final String leadStage;
@@ -29,9 +30,14 @@ class AddLeadModel {
   final List<FollowUpModel>? followUp;
   final DateTime? followUpDate;
   final DateTime? calledDate;
-  final String? leadTag;
+  final String leadTag;
   final String? callResult;
   final List<TransferDetails>? transferLeads;
+  final String leadCategoryId;
+final String leadSubCategoryId;
+final String leadSourceId;
+final String leadStageId;
+final String leadTagId;
 
   const AddLeadModel({
     this.id,
@@ -49,6 +55,7 @@ class AddLeadModel {
     required this.assignedStaff,
     required this.assignedStaffId,
     this.leadCategory = '',
+    this.leadSubCategory = '',
     this.leadSource = '',
     this.priority = '',
     this.leadStage = '',
@@ -66,6 +73,11 @@ class AddLeadModel {
     this.leadTag = '',
     this.callResult = '',
     this.transferLeads,
+    this.leadCategoryId = '',
+    this.leadSubCategoryId = '',
+    this.leadSourceId = '',
+    this.leadStageId = '',
+    this.leadTagId = '',
   });
 
   Map<String, dynamic> toFirestore() {
@@ -84,6 +96,7 @@ class AddLeadModel {
       'assignedStaff': assignedStaff,
       'assignedStaffId': assignedStaffId,
       'leadCategory': leadCategory.toString().toUpperCase(),
+      'leadSubCategory':leadSubCategory.toString().toUpperCase(),
       'leadSource': leadSource.toString().toUpperCase(),
       'priority': priority,
       'leadStage': leadStage.toString().toUpperCase(),
@@ -102,11 +115,16 @@ class AddLeadModel {
           ? Timestamp.fromDate(calledDate!)
           : null,
       // 'followUp': followUp != null ? followUp!.map((e) => e.toFirestore()).toList() : [],
-      'leadTag': leadTag,
+      'leadTag': leadTag.toString(),
       'callResult': callResult,
       'transferLeads': transferLeads != null
           ? transferLeads!.map((e) => e.toFirestore()).toList()
           : [],
+      'leadCategoryId': leadCategoryId,
+      'leadSubCategoryId': leadSubCategoryId,
+      'leadSourceId': leadSourceId,
+      'leadStageId': leadStageId,
+      'leadTagId': leadTagId, 
     };
   }
 
@@ -127,6 +145,7 @@ class AddLeadModel {
       assignedStaff: data['assignedStaff'] ?? '',
       assignedStaffId: data['assignedStaffId'] ?? '',
       leadCategory: data['leadCategory'] ?? '',
+      leadSubCategory: data['leadSubCategory'] ?? '',
       leadSource: data['leadSource'] ?? '',
       priority: data['priority'] ?? '',
       leadStage: data['leadStage'] ?? '',
@@ -153,6 +172,11 @@ class AddLeadModel {
                 .map((e) => TransferDetails.fromFirestore(e, ''))
                 .toList()
           : null,
+      leadCategoryId: data['leadCategoryId'] ?? '',
+      leadSubCategoryId: data['leadSubCategoryId'] ?? '',
+      leadSourceId: data['leadSourceId'] ?? '',
+      leadStageId: data['leadStageId'] ?? '',
+      leadTagId: data['leadTagId'] ?? '',
     );
   }
 
@@ -172,6 +196,7 @@ class AddLeadModel {
     String? assignedStaff,
     String? assignedStaffId,
     String? leadCategory,
+    String? leadSubCategory,
     String? leadSource,
     String? priority,
     String? leadStage,
@@ -188,6 +213,11 @@ class AddLeadModel {
     String? leadTag,
     String? callResult,
     List<TransferDetails>? transferLeads,
+    String? leadCategoryId,
+    String? leadSubCategoryId,
+    String? leadSourceId,
+    String? leadStageId,
+    String? leadTagId,
   }) {
     return AddLeadModel(
       id: id ?? this.id,
@@ -205,6 +235,7 @@ class AddLeadModel {
       assignedStaff: assignedStaff ?? this.assignedStaff,
       assignedStaffId: assignedStaffId ?? this.assignedStaffId,
       leadCategory: leadCategory ?? this.leadCategory,
+      leadSubCategory: leadSubCategory ?? this.leadSubCategory,
       leadSource: leadSource ?? this.leadSource,
       priority: priority ?? this.priority,
       leadStage: leadStage ?? this.leadStage,
@@ -221,6 +252,11 @@ class AddLeadModel {
       leadTag: leadTag ?? this.leadTag,
       callResult: callResult ?? this.callResult,
       transferLeads: transferLeads ?? this.transferLeads,
+      leadCategoryId: leadCategoryId ?? this.leadCategoryId,
+      leadSubCategoryId: leadSubCategoryId ?? this.leadSubCategoryId,
+      leadSourceId: leadSourceId ?? this.leadSourceId,
+      leadStageId: leadStageId ?? this.leadStageId,
+      leadTagId: leadTagId ?? this.leadTagId,
     );
   }
 
@@ -246,6 +282,7 @@ class FollowUpModel {
   final DateTime calledDate;
   final String leadStage;
   final String leadCategory;
+  final String leadSubCategory;
   final String priority;
   final String remarks;
   final String adress;
@@ -255,6 +292,11 @@ class FollowUpModel {
 
   final String createdById;
   final DateTime? createdAt;
+  
+  final String leadCategoryId;
+  final String leadSubCategoryId;
+  final String leadStageId;
+  final String leadTagId;
 
   const FollowUpModel({
     this.id,
@@ -268,6 +310,7 @@ class FollowUpModel {
     required this.calledDate,
     required this.leadStage,
     required this.leadCategory,
+    required this.leadSubCategory,
     required this.priority,
     required this.remarks,
     required this.adress,
@@ -276,6 +319,10 @@ class FollowUpModel {
     required this.assignedStaffId,
     required this.createdById,
     this.createdAt,
+    this.leadCategoryId = '',
+    this.leadSubCategoryId = '',
+    this.leadStageId = '',
+    this.leadTagId = '',
   });
 
   factory FollowUpModel.fromFirestore(Map<String, dynamic> data, String docId) {
@@ -293,14 +340,19 @@ class FollowUpModel {
           (data['calledDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       leadStage: data['leadStage'] ?? '',
       leadCategory: data['leadCategory'] ?? '',
+      leadSubCategory: data['leadSubCategory'] ?? '',
       priority: data['priority'] ?? '',
-      remarks: data['remarks'] ?? 'N/A',
+      remarks: data['remarks'] ?? '',
       adress: data['address'] ?? '',
       email: data['email'] ?? '',
-      assignedStaff: data['assignedStaff']??'',
-      assignedStaffId: data['assignedStaffId']??'',
+      assignedStaff: data['assignedStaff'] ?? '',
+      assignedStaffId: data['assignedStaffId'] ?? '',
       createdById: data['createdById'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+       leadCategoryId: data['leadCategoryId'] ?? '',
+      leadSubCategoryId: data['leadSubCategoryId'] ?? '',
+      leadStageId: data['leadStageId'] ?? '',
+      leadTagId: data['leadTagId'] ?? '',
     );
   }
 
@@ -316,16 +368,21 @@ class FollowUpModel {
       'calledDate': Timestamp.fromDate(calledDate),
       'leadStage': leadStage,
       'leadCategory': leadCategory,
+      'leadSubCategory':leadSubCategory,
       'priority': priority,
       'remarks': remarks,
       'address': adress,
       'email': email,
-      'assignedStaff':assignedStaff,
-      'assignedStaffId':assignedStaffId,
+      'assignedStaff': assignedStaff,
+      'assignedStaffId': assignedStaffId,
       'createdById': createdById,
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
+      'leadCategoryId': leadCategoryId,
+      'leadSubCategoryId': leadSubCategoryId,
+      'leadStageId': leadStageId,
+      'leadTagId': leadTagId,
     };
   }
 
@@ -341,6 +398,7 @@ class FollowUpModel {
     DateTime? calledDate,
     String? leadStage,
     String? leadCategory,
+    String? leadSubCategory,
     String? priority,
     String? remarks,
     String? adress,
@@ -349,6 +407,10 @@ class FollowUpModel {
     String? assignedStaffId,
     String? createdById,
     DateTime? createdAt,
+      String? leadCategoryId,
+    String? leadSubCategoryId,
+    String? leadStageId,
+    String? leadTagId,
   }) {
     return FollowUpModel(
       id: id ?? this.id,
@@ -362,14 +424,19 @@ class FollowUpModel {
       calledDate: calledDate ?? this.calledDate,
       leadStage: leadStage ?? this.leadStage,
       leadCategory: leadCategory ?? this.leadCategory,
+      leadSubCategory: leadSubCategory ?? this.leadSubCategory,
       priority: priority ?? this.priority,
       remarks: remarks ?? this.remarks,
       adress: adress ?? this.adress,
       email: email ?? this.email,
-      assignedStaff: assignedStaff?? this.assignedStaff,
-      assignedStaffId: assignedStaffId??this.assignedStaffId,
+      assignedStaff: assignedStaff ?? this.assignedStaff,
+      assignedStaffId: assignedStaffId ?? this.assignedStaffId,
       createdById: createdById ?? this.createdById,
       createdAt: createdAt ?? this.createdAt,
+      leadCategoryId: leadCategoryId ?? this.leadCategoryId,
+      leadSubCategoryId: leadSubCategoryId ?? this.leadSubCategoryId,
+      leadStageId: leadStageId ?? this.leadStageId,
+      leadTagId: leadTagId ?? this.leadTagId,
     );
   }
 }
@@ -380,6 +447,7 @@ class TransferDetails {
   final String leadName;
   final String contactNumber;
   final String leadCategory;
+  final String leadSubCategory;
   final String leadStage;
   final String fromStaffId;
   final String fromStaff;
@@ -393,6 +461,7 @@ class TransferDetails {
     required this.leadName,
     required this.contactNumber,
     required this.leadCategory,
+    required this.leadSubCategory,
     required this.leadStage,
     required this.fromStaffId,
     required this.fromStaff,
@@ -411,6 +480,7 @@ class TransferDetails {
       leadName: data['leadName'] ?? '',
       contactNumber: data['contactNumber'] ?? '',
       leadCategory: data['leadCategory'] ?? '',
+      leadSubCategory: data['leadSubCategory'] ?? '',
       leadStage: data['leadStage'] ?? '',
       fromStaffId: data['fromStaffId'] ?? '',
       fromStaff: data['fromStaff'] ?? '',
@@ -427,6 +497,7 @@ class TransferDetails {
       'leadName': leadName,
       'contactNumber': contactNumber,
       'leadCategory': leadCategory,
+      'leadSubCategory':leadSubCategory,
       'leadStage': leadStage,
       'fromStaffId': fromStaffId,
       'fromStaff': fromStaff,
@@ -445,6 +516,7 @@ class TransferDetails {
     String? contactNumber,
     String? leadCategory,
     String? leadStage,
+    String? leadSubCategory,
     String? fromStaffId,
     String? fromStaff,
     String? toStaffId,
@@ -457,6 +529,7 @@ class TransferDetails {
       leadName: leadName ?? this.leadName,
       contactNumber: contactNumber ?? this.contactNumber,
       leadCategory: leadCategory ?? this.leadCategory,
+      leadSubCategory: leadSubCategory ?? this.leadSubCategory,
       leadStage: leadStage ?? this.leadStage,
       fromStaffId: fromStaffId ?? this.fromStaffId,
       fromStaff: fromStaff ?? this.fromStaff,

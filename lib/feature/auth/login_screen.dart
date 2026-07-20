@@ -349,7 +349,44 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
-        }
+        }else if (state is AuthAlreadyLoggedIn) {           // ← add this
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Already Logged In'),
+        content: const Text(
+          'This account is already logged in on another device. '
+          // 'Continuing here will log out that device. Do you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              context.read<AuthCubit>().cancelForceLogin();
+            },
+            child: const Text('OK'),
+          ),
+          // TextButton(
+          //   onPressed: () {
+          //     Navigator.of(dialogCtx).pop();
+          //     context.read<AuthCubit>().login(
+          //       phoneNo: _usernameController.text.trim(),
+          //       password: _passwordController.text.trim(),
+          //       permissionCubit: context.read<PermissionCubit>(),
+          //       forceLogin: true,
+          //     );
+          //   },
+          //   child: Text(
+          //     'Continue',
+          //     style: TextStyle(color: AppColors.bottomNavBlue, fontWeight: FontWeight.bold),
+          //   ),
+          // ),
+        ],
+      ),
+    );
+  }
       },
       child: Scaffold(
         backgroundColor: Colors.white,

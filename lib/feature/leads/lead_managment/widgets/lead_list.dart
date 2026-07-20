@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/feature/home/search_screen.dart';
+import 'package:odit_crm_mobile/feature/leads/lead_managment/models/leads_model.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/add_lead.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/cubit/lead_cubit/lead_cubit.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_managment/screens/filtering.dart';
@@ -40,6 +41,30 @@ export 'package:odit_crm_mobile/feature/leads/lead_managment/models/lead_data.da
 //   Transferred  → leadStage == TRANSFERRED && createdAt inside [from, to]
 //   Closed       → leadStage == CLOSED && createdAt inside [from, to]
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Display-only humanizer for Lead Stage codes. NEW — used only for
+// `LeadData.statusName`. Business logic never touches this; it only ever
+// reads `LeadData.status` (the raw code), so LeadFilter is unaffected.
+// ─────────────────────────────────────────────────────────────────────────────
+String _humanizeStageName(String raw) {
+  final upper = raw.trim().toUpperCase();
+  const specialCases = {
+    'FOLLOWUP': 'Follow Up',
+    'NEW': 'New',
+    'TRANSFERRED': 'Transferred',
+    'CLOSED': 'Closed',
+  };
+  if (specialCases.containsKey(upper)) return specialCases[upper]!;
+  if (raw.isEmpty) return raw;
+  return raw
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LeadFilter — UNCHANGED. All predicates, window logic, and rules are exactly
@@ -329,6 +354,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
       if (mounted) {
         log('[LeadListScreen] fetchLeads() on init');
         context.read<AddLeadCubit>().watchLeadsRealtime();
+        context.read<AddLeadCubit>().ensureLeadDropdownDataLoaded();
       }
     });
 
@@ -399,25 +425,49 @@ class _LeadListScreenState extends State<LeadListScreen> {
 
   // ── Mapped leads — UNCHANGED ───────────────────────────────────────────────
 
-  List<LeadData> _mapLeads(List<dynamic> firestoreLeads) {
-    return firestoreLeads.map((lead) {
-      return LeadData(
-        id: lead.id ?? '',
-        name: lead.clientName,
-        phone: lead.contactNumber,
-        assignedTo: lead.assignedStaff,
-        category: lead.leadCategory.isEmpty
-            ? 'Uncategorized'
-            : lead.leadCategory,
-        status: lead.leadStage,
-        notificationCount: 0,
-        isExpanded: _expandedLeadPhones.contains(lead.contactNumber),
-        source: lead.leadSource,
-        priority: lead.priority,
-        createdAt: lead.createdAt,
-      );
-    }).toList();
-  }
+  List<LeadData> _mapLeads(
+  List<dynamic> firestoreLeads,
+  List<LeadsModel> categories, // NEW
+  List<LeadsModel> stages,     // NEW
+) {
+  // Build lookup maps ONCE per call — never per lead (requirement #12).
+  final categoryNameById = {
+    for (final c in categories) c.id: c.name,
+  };
+  final stageNameById = {
+    for (final s in stages) s.id: s.name,
+  };
+
+  return firestoreLeads.map((lead) {
+    // Resolve Category by ID first; fall back to the raw stored value.
+    final resolvedCategoryName = categoryNameById[lead.leadCategoryId] ??
+        (lead.leadCategory.isEmpty ? 'Uncategorized' : lead.leadCategory);
+
+    // Resolve Lead Stage display name by ID first; fall back to raw value.
+    final resolvedStageDisplay =
+        stageNameById[lead.leadStageId] ?? lead.leadStage;
+
+    return LeadData(
+      id: lead.id ?? '',
+      name: lead.clientName,
+      phone: lead.contactNumber,
+      assignedTo: lead.assignedStaff,
+      category: resolvedCategoryName,       // display name, resolved
+      categoryId: lead.leadCategoryId,       // ID kept separate
+      subCategory: lead.leadSubCategory,
+      subCategoryId: lead.leadSubCategoryId,
+      status: lead.leadStage,                // UNCHANGED — business code, drives LeadFilter
+      statusName: _humanizeStageName(resolvedStageDisplay), // NEW — display only
+      statusId: lead.leadStageId,
+      notificationCount: 0,
+      isExpanded: _expandedLeadPhones.contains(lead.contactNumber),
+      source: lead.leadSource,
+      sourceId: lead.leadSourceId,
+      priority: lead.priority,
+      createdAt: lead.createdAt,
+    );
+  }).toList();
+}
 
   // ── Filtered list for the active status tab — UNCHANGED logic, this still
   // returns the FULL filtered+sorted list. Pagination windowing happens
@@ -437,7 +487,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
       case 'New':
         return candidates.where(filter.isNew).toList();
 
-      case 'Followup':
+      case 'Follow Up':
         final todayGroup = <LeadData>[];
         final pendingGroup = <LeadData>[];
 
@@ -532,7 +582,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
 
     return {
       'New': candidates.where(filter.isNew).length,
-      'Followup': followupCount,
+      'Follow Up': followupCount,
       'Missed': candidates.where((l) => filter.isMissed(l, rawLeads)).length,
       'Called': candidates.where((l) => filter.isCalled(l, rawLeads)).length,
       'Transferred': candidates.where(filter.isTransferred).length,
@@ -543,7 +593,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
   // ── Sorting — UNCHANGED ─────────────────────────────────────────────────────
 
   List<LeadData> _applySorting(List<LeadData> leads) {
-    if (_selectedStatus == 'Followup') return leads;
+    if (_selectedStatus == 'Follow Up') return leads;
     final sorted = List<LeadData>.from(leads);
     sorted.sort((a, b) {
       if (a.createdAt == null) return 1;
@@ -640,7 +690,7 @@ class _LeadListScreenState extends State<LeadListScreen> {
           _isFirstLoad = false;
         }
 
-        final mappedLeads = _mapLeads(state.leads);
+        final mappedLeads = _mapLeads(state.leads,state.categories,state.stages);
         _syncCloseNotifiers(mappedLeads.length);
 
         final filter = LeadFilter(_appliedFilters);

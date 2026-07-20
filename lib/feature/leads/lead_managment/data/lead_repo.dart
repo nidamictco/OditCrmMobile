@@ -606,46 +606,115 @@ Stream<List<AddLeadModel>> watchLeads({
     await _collection.doc(id).delete();
   }
 
-  @override
-  Future<void> moveToDeleted(AddLeadModel lead) async {
-    assert(lead.id != null, 'ID must not be null');
+//   @override
+//   Future<void> moveToDeleted(AddLeadModel lead) async {
+//     assert(lead.id != null, 'ID must not be null');
 
-    final deletedLead = lead.copyWith(deletedAt: DateTime.now());
+//      await _collection.doc(lead.id).update({
+//     'isDeleted': true,
+//     'deletedAt': Timestamp.fromDate(DateTime.now()),
+//   });
 
-    await _deletedCollection.add(deletedLead.toFirestore());
-    await _collection.doc(lead.id).delete();
+//      log('[AddLeadRepository] Lead soft-deleted (subcollections untouched): ${lead.id}');
+//   }
 
-    log('[StaffRepository] Staff moved to DELETED_STAFF: ${lead.id}');
-  }
+//  @override
+// Future<String> restoreLead(AddLeadModel lead) async {
+//   assert(lead.id != null, 'ID must not be null');
 
-  @override
-  Future<String> restoreLead(AddLeadModel lead) async {
-    if (lead.clientName.trim().isEmpty) {
-      throw ArgumentError('Client name cannot be empty.');
+//   await _collection.doc(lead.id).update({
+//     'isDeleted': false,
+//     'deletedAt': null,
+//   });
+
+//   log('[AddLeadRepository] Lead restored with full history intact: ${lead.id}');
+//   return lead.id!;
+// }
+@override
+Future<void> moveToDeleted(AddLeadModel lead) async {
+  assert(lead.id != null, 'ID must not be null');
+  final leadId = lead.id!;
+
+  final batch = FirebaseFirestore.instance.batch();
+
+  // 1. Write the lead doc to DELETED_LEADS using the SAME id
+  final deletedLead = lead.copyWith(deletedAt: DateTime.now());
+  batch.set(_deletedCollection.doc(leadId), deletedLead.toFirestore());
+
+  // 2. Copy each subcollection's docs across
+  for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
+    final subSnap = await _collection.doc(leadId).collection(sub).get();
+    for (final doc in subSnap.docs) {
+      batch.set(_deletedCollection.doc(leadId).collection(sub).doc(doc.id), doc.data());
     }
-    if (lead.contactNumber.trim().isEmpty) {
-      throw ArgumentError('Contact number cannot be empty.');
+  }
+
+  await batch.commit();
+
+  // 3. Now it's safe to delete the original — everything was copied first
+  await _deleteWithSubcollections(_collection.doc(leadId));
+
+  log('[AddLeadRepository] Lead moved to DELETED_LEADS with history intact: $leadId');
+}
+
+Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> docRef) async {
+  final batch = FirebaseFirestore.instance.batch();
+  for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
+    final subSnap = await docRef.collection(sub).get();
+    for (final doc in subSnap.docs) {
+      batch.delete(doc.reference);
     }
-    final doc = await _collection.add(lead.toFirestore());
-    await _deletedCollection.doc(lead.id).delete();
-    return doc.id;
+  }
+  batch.delete(docRef);
+  await batch.commit();
+}
+
+@override
+Future<String> restoreLead(AddLeadModel lead) async {
+  final leadId = lead.id!;
+  final batch = FirebaseFirestore.instance.batch();
+
+  batch.set(_collection.doc(leadId), lead.copyWith(deletedAt: null).toFirestore());
+
+  for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
+    final subSnap = await _deletedCollection.doc(leadId).collection(sub).get();
+    for (final doc in subSnap.docs) {
+      batch.set(_collection.doc(leadId).collection(sub).doc(doc.id), doc.data());
+    }
   }
 
-  @override
-  Future<List<AddLeadModel>> fetchDeletedLeads() async {
-    final snap = await _deletedCollection
-        .orderBy('deletedAt', descending: true)
-        .get();
-    return snap.docs
-        .map((d) => AddLeadModel.fromFirestore(d.data(), d.id))
-        .toList();
-  }
+  await batch.commit();
+  await _deleteWithSubcollections(_deletedCollection.doc(leadId));
 
-  @override
-  Future<void> permanentlyDeleteLead(String id) async {
-    await _deletedCollection.doc(id).delete();
-    log('[AddLeadRepository] Lead permanently deleted: $id');
+  return leadId;
+}
+
+ @override
+Future<List<AddLeadModel>> fetchDeletedLeads() async {
+  final snap = await _collection
+      .where('isDeleted', isEqualTo: true)
+      .orderBy('deletedAt', descending: true)
+      .get();
+  return snap.docs
+      .map((d) => AddLeadModel.fromFirestore(d.data(), d.id))
+      .toList();
+}
+
+ @override
+Future<void> permanentlyDeleteLead(String id) async {
+  final batch = FirebaseFirestore.instance.batch();
+
+  for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
+    final subSnap = await _collection.doc(id).collection(sub).get();
+    for (final doc in subSnap.docs) {
+      batch.delete(doc.reference);
+    }
   }
+  batch.delete(_collection.doc(id));
+
+  await batch.commit();
+  log('[AddLeadRepository] Lead permanently deleted with subcollections: $id');
+}
 
   @override
   Future<void> assignStaff(
@@ -722,14 +791,19 @@ Stream<List<AddLeadModel>> watchLeads({
     //   'updatedAt': FieldValue.serverTimestamp(),
     //   // 'remarks' : followUp.remarks,
     // });
-    final Map<String, dynamic> leadUpdates = {
+   final Map<String, dynamic> leadUpdates = {
       'leadStage': followUp.leadStage,
+      'leadStageId':followUp.leadStageId,
       'priority': followUp.priority,
       'leadCategory': followUp.leadCategory,
+      'leadCategoryId':followUp.leadCategoryId,
+      'leadSubCategory':followUp.leadSubCategory,
+      'leadSubCategoryId':followUp.leadSubCategoryId,
       'nextFollowUpDate': followUp.nextFollowUpDate,
       'lastCalledDate': followUp.calledDate,
       'callResult': followUp.calledStatus,
       'leadTag': followUp.leadTag,
+      'leadTagId':followUp.leadTagId,
       'updatedAt': FieldValue.serverTimestamp(),
       'hasFollowUp': true,
     };
@@ -741,6 +815,9 @@ Stream<List<AddLeadModel>> watchLeads({
     }
     if ((followUp.remarks ?? '').isNotEmpty) {
       leadUpdates['remarks'] = followUp.remarks;
+    }
+    if((followUp.leadWhatsappNo ?? '').isNotEmpty){
+      leadUpdates['whatsappNumber'] = followUp.leadWhatsappNo;
     }
     batch.update(leadRef, leadUpdates);
 
@@ -1415,7 +1492,7 @@ Stream<List<AddLeadModel>> watchLeads({
         case 'NEW':
           counts['New'] = (counts['New'] ?? 0) + 1;
           break;
-        case 'FOLLOW UP':
+        // case 'FOLLOW UP':
         case 'FOLLOWUP':
           counts['Follow Up'] = (counts['Follow Up'] ?? 0) + 1;
           break;
@@ -1721,8 +1798,12 @@ Stream<List<AddLeadModel>> watchLeads({
 
       await leadRef.update({
         'leadStage': latest.leadStage,
+        'leadStageId':latest.leadStageId,
         'priority': latest.priority,
         'leadCategory': latest.leadCategory,
+        'leadCategoryId':latest.leadCategoryId,
+        'leadSubCategory':latest.leadSubCategory,
+        'leadSubCategoryId':latest.leadSubCategoryId,
         'followUpDate': latest.nextFollowUpDate,
         'calledDate': latest.calledDate,
         'callResult': latest.calledStatus,

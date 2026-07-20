@@ -129,11 +129,16 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
   // Product Info
   final _costCtrl = TextEditingController();
 
+  // ── Additional Fields ─────────────────────────────────────────────────────
+  // Keyed by field.id ?? field.fieldName — persists across rebuilds.
+  final Map<String, TextEditingController> _additionalCtrlMap = {};
+
   // Dropdown values
   String? _selectedState;
   String? _selectedDistrict;
   String? _selectedStaff;
   String? _selectedCategory;
+  String? _selectedSubCategory;
   String? _selectedSource;
   String? _selectedPriority = 'Normal';
   String? _selectedStage;
@@ -229,6 +234,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
     _selectedStage = lead.leadStage;
     _selectedSource = lead.leadSource;
     _selectedCategory = lead.leadCategory;
+    _selectedSubCategory = lead.leadSubCategory;
     _selectedPriority = lead.priority;
     _selectedStaff = lead.assignedStaff.isNotEmpty ? lead.assignedStaff : null;
     _selectedState = lead.state.isNotEmpty ? lead.state : null;
@@ -249,6 +255,23 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
           id: lead.assignedStaffId,
         );
       }
+
+      // ── Prefill additional field controllers (edit mode) ────────────────
+      // Wait for cubit to load fields, then fill controllers with saved values.
+      if ((lead.additionalFields?.isNotEmpty) == true) {
+        final fields = cubit.state.additionalFields;
+        final saved = lead.additionalFields!;
+        for (final field in fields) {
+          final key = field.id ?? field.fieldName;
+          final ctrl = _additionalCtrlMap[key] ??
+              (_additionalCtrlMap[key] = TextEditingController());
+          if (saved.containsKey(key)) {
+            ctrl.text = saved[key]!;
+          }
+        }
+        debugPrint('[AddLead][EDIT] prefilled additionalCtrlMap: '
+            '${_additionalCtrlMap.map((k, v) => MapEntry(k, v.text))}');
+      }
     });
   }
 
@@ -262,6 +285,10 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
     _pinCtrl.dispose();
     _remarksCtrl.dispose();
     _costCtrl.dispose();
+    // Dispose all additional field controllers
+    for (final ctrl in _additionalCtrlMap.values) {
+      ctrl.dispose();
+    }
     super.dispose();
   }
 
@@ -977,13 +1004,25 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
           return;
         }
       }
-      if (_selectedStage == 'REJECTED') {
+      if (state.tagMandatory == true) {
         if ((_selectedLeadTag ?? '').isEmpty) {
           _showError('Tag is required');
           return;
         }
       }
     }
+
+    // ── Collect additional field values ────────────────────────────────────
+    final Map<String, String> additionalFieldValues = {};
+    for (final entry in _additionalCtrlMap.entries) {
+      final val = entry.value.text.trim();
+      if (val.isNotEmpty) {
+        additionalFieldValues[entry.key] = val;
+      }
+    }
+    debugPrint('[AddLead][SUBMIT] _additionalCtrlMap keys: '
+        '${_additionalCtrlMap.map((k, v) => MapEntry(k, v.text))}');
+    debugPrint('[AddLead][SUBMIT] additionalFieldValues: $additionalFieldValues');
 
     if (widget.from == 'EDIT' && widget.lead != null) {
       if (widget.lead?.id == null) {
@@ -994,6 +1033,13 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         debugPrint('Staff is empty');
         return;
       }
+
+      // Merge: preserve existing additional fields, then overlay current values
+      final existingAdditional =
+          Map<String, String>.from(widget.lead!.additionalFields ?? {});
+      existingAdditional.addAll(additionalFieldValues);
+
+      debugPrint('[AddLead][EDIT] merged additionalFields: $existingAdditional');
 
       final updatedLead = AddLeadModel(
         id: widget.lead?.id,
@@ -1010,8 +1056,10 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         district: _selectedDistrict ?? widget.lead?.district ?? '',
         remarks: _remarksCtrl.text,
         leadCategory: _selectedCategory ?? widget.lead?.leadCategory ?? '',
+        leadSubCategory:
+            _selectedSubCategory ?? widget.lead?.leadSubCategory ?? '',
         leadSource: _selectedSource ?? widget.lead?.leadSource ?? '',
-        leadTag: _selectedLeadTag,
+        leadTag: _selectedLeadTag ?? widget.lead?.leadTag ?? '',
         priority: _selectedPriority ?? widget.lead?.priority ?? '',
         assignedStaffId:
             state.assignedStaffId ?? widget.lead?.assignedStaffId ?? '',
@@ -1023,22 +1071,25 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         callResult: widget.lead!.callResult,
         followUpDate: widget.lead!.followUpDate,
         followUp: widget.lead!.followUp,
+        additionalFields: existingAdditional.isEmpty ? null : existingAdditional,
       );
+
+      debugPrint('[AddLead][EDIT] updatedLead.additionalFields: '
+          '${updatedLead.additionalFields}');
+      debugPrint('[AddLead][EDIT] updatedLead.toFirestore() additionalFields: '
+          '${updatedLead.toFirestore()["additionalFields"]}');
+
       context.read<AddLeadCubit>().updateLead(
         widget.lead?.id ?? '',
         updatedLead,
       );
-      // () async {
-      //   final cubit = context.read<AddLeadCubit>();
-      //   await cubit.updateLead(widget.lead?.id ?? '', updatedLead);
-      //   debugPrint('Lead Updated Successfully');
-      //   await cubit.fetchLeads();
-      //   debugPrint('Lead Count: ${cubit.state.leads.length}');
-      // }();
       return;
     }
 
     // CREATE MODE
+    debugPrint('[AddLead][CREATE] Calling submitLead with '
+        'additionalFieldValues: $additionalFieldValues');
+
     context.read<AddLeadCubit>().submitLead(
       clientName: _clientNameCtrl.text,
       contactNumber: _contactCtrl.text,
@@ -1051,6 +1102,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
       postOffice: _postOfficeCtrl.text,
       remarks: _remarksCtrl.text,
       nextFollowUpDate: _nextFollowupDateValue,
+      additionalFieldValues: additionalFieldValues,
     );
   }
 
@@ -1172,35 +1224,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                       postOfficeCtrl: _postOfficeCtrl,
                       selectedState: _selectedState,
                       selectedDistrict: _selectedDistrict,
-                      districts: [
-                        'wayanad',
-                        'malappuram',
-                        'kozhikode',
-                        'palakad',
-                        'thrissur',
-                        'ernakulam',
-                        'kannur',
-                        'kasargod',
-                        'kollam',
-                        'pathanamthitta',
-                        'alappuzha',
-                        'kottayam',
-                        'idukki',
-                        'kannur',
-                        'kasargod',
-                        'kollam',
-                        'pathanamthitta',
-                        'alappuzha',
-                        'kottayam',
-                        'idukki',
-                      ],
-                      states: [
-                        'Kerala',
-                        'Tamil Nadu',
-                        'Karnataka',
-                        'Maharashtra',
-                        'Delhi',
-                      ],
+
                       // onStateChanged: (v) {
                       //   setState(() => _selectedState = v);
                       //   context.read<AddLeadCubit>().selectState(v);
@@ -1249,6 +1273,16 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                         setState(() => _selectedCategory = v);
                         context.read<AddLeadCubit>().selectCategory(v);
                       },
+                      selectedSubCategory: _selectedSubCategory,
+                      subCategories: state.subCategories
+                          .map((s) => s.name)
+                          .toList(), // adjust to your actual model
+                      onSubCategoryChanged: (v) {
+                        setState(() => _selectedSubCategory = v);
+                        context.read<AddLeadCubit>().selectSubCategory(
+                          v,
+                        ); // add this method to your cubit if missing
+                      },
                       onAddCategory: () => _showAddCategoryDialog(context),
                       selectedSource: _selectedSource,
                       onSourceChanged: (v) {
@@ -1268,6 +1302,8 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                         setState(() => _selectedStage = v);
                         context.read<AddLeadCubit>().selectLeadStage(v);
                       },
+                      leadTagOptions: state.leadTag.map((e) => e.name).toList(),
+                      tagMandatory: state.tagMandatory,
                       remarksCtrl: _remarksCtrl,
                       onPickNextFollowupDate: _pickNextFollowupDate,
                       nextFollowupDate:
@@ -1290,6 +1326,44 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
                       selectedTag: _selectedLeadTag,
                       selectedCallStatus: _selectedCallStatus,
                     ),
+                    SizedBox(height: 2.h),
+                    BlocBuilder<AddLeadCubit, AddLeadState>(
+                      buildWhen: (p, c) =>
+                          p.additionalFields != c.additionalFields ||
+                          p.isLoadingAdditionalFields !=
+                              c.isLoadingAdditionalFields,
+                      builder: (context, state) {
+                        if (state.isLoadingAdditionalFields) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 2.w),
+                            child: SectionTitle(
+                              icon: Icons.add_circle_outline_rounded,
+                              title: 'Additional Details',
+                            ),
+                          );
+                        }
+                        if (state.additionalFields.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        // ── Ensure controllers exist for every field ───────
+                        // This runs when fields first load (or change) and
+                        // seeds any missing entries in the shared map without
+                        // clobbering values the user already typed or that were
+                        // prefilled from the existing lead.
+                        for (final field in state.additionalFields) {
+                          final key = field.id ?? field.fieldName;
+                          _additionalCtrlMap.putIfAbsent(
+                            key,
+                            () => TextEditingController(),
+                          );
+                        }
+                        return _LeadAditionalFieldCard(
+                          state: state,
+                          ctrlMap: _additionalCtrlMap,
+                        );
+                      },
+                    ),
+
                     SizedBox(height: 2.h),
                     if (isSaving)
                       const Center(child: CircularProgressIndicator())
@@ -1755,8 +1829,7 @@ class _CustomerDetailsCard extends StatefulWidget {
   final TextEditingController postOfficeCtrl;
   final String? selectedState;
   final String? selectedDistrict;
-  final List<String> states;
-  final List<String> districts;
+
   final void Function(String?) onStateChanged;
   final void Function(String?) onDistrictChanged;
   final VoidCallback onContactPickerTap;
@@ -1771,8 +1844,6 @@ class _CustomerDetailsCard extends StatefulWidget {
     required this.postOfficeCtrl,
     required this.selectedState,
     required this.selectedDistrict,
-    required this.districts,
-    required this.states,
     required this.onStateChanged,
     required this.onDistrictChanged,
     required this.onContactPickerTap,
@@ -1995,6 +2066,14 @@ class _LeadInformationCard extends StatelessWidget {
   final String? selectedCallStatus;
   final ValueChanged<String?> onCallStatusChanged;
 
+  final String? selectedSubCategory;
+  final List<String> subCategories;
+  final void Function(String?) onSubCategoryChanged;
+  // final VoidCallback onAddSubCategory;
+
+  final List<String> leadTagOptions;
+  final bool tagMandatory;
+
   const _LeadInformationCard({
     required this.from,
     required this.selectedStaff,
@@ -2021,6 +2100,12 @@ class _LeadInformationCard extends StatelessWidget {
     this.selectedCallStatus,
     this.selectedTag,
     required this.onTagChanged,
+    required this.selectedSubCategory,
+    required this.subCategories,
+    required this.onSubCategoryChanged,
+    // required this.onAddSubCategory,
+    required this.leadTagOptions,
+    required this.tagMandatory,
   });
 
   @override
@@ -2051,6 +2136,26 @@ class _LeadInformationCard extends StatelessWidget {
           onChanged: onCategoryChanged,
           onAdd: onAddCategory,
         ),
+        if (subCategories.isNotEmpty) ...[
+          SizedBox(height: 1.2.h),
+          //  _CustomDropdownField<String>(
+          //   value: selectedSubCategory,
+          //   items: subCategories,
+          //   hint: 'Lead Sub Category',
+          //   floatingLabel: 'Lead Sub Category',
+          //   onChanged: onSubCategoryChanged,
+          // ),
+          SizedBox(
+            height: 6.h,
+            child: _SearchableAlertField(
+              value: selectedSubCategory,
+              items: subCategories,
+              hint: 'Lead Sub Category',
+              floatingLabel: 'Lead Sub Category',
+              onChanged: onSubCategoryChanged,
+            ),
+          ),
+        ],
         SizedBox(height: 1.2.h),
         _DropdownWithAdd(
           value: selectedSource,
@@ -2063,7 +2168,15 @@ class _LeadInformationCard extends StatelessWidget {
         SizedBox(height: 1.2.h),
         SizedBox(
           height: 6.h,
-          child: _CustomDropdownField<String>(
+          // child: _CustomDropdownField<String>(
+          //   value: selectedPriority,
+          //   items: priorities,
+          //   hint: 'Priority',
+          //   floatingLabel: 'Priority',
+          //   onChanged: onPriorityChanged,
+          //   isRequired: true,
+          // ),
+          child: _SearchableAlertField(
             value: selectedPriority,
             items: priorities,
             hint: 'Priority',
@@ -2076,7 +2189,17 @@ class _LeadInformationCard extends StatelessWidget {
           SizedBox(height: 1.2.h),
           SizedBox(
             height: 6.h,
-            child: _CustomDropdownField<String>(
+            // child: _CustomDropdownField<String>(
+            //   value: selectedStage == 'FOLLOWUP' ? 'FOLLOW UP' : selectedStage,
+            //   items: stages
+            //       .map((e) => e == 'FOLLOWUP' ? 'FOLLOW UP' : e)
+            //       .toList(),
+            //   hint: 'Stages',
+            //   floatingLabel: 'Stages',
+            //   onChanged: onStageChanged,
+            //   isRequired: true,
+            // ),
+            child: _SearchableAlertField(
               value: selectedStage == 'FOLLOWUP' ? 'FOLLOW UP' : selectedStage,
               items: stages
                   .map((e) => e == 'FOLLOWUP' ? 'FOLLOW UP' : e)
@@ -2087,7 +2210,9 @@ class _LeadInformationCard extends StatelessWidget {
               isRequired: true,
             ),
           ),
-          if (selectedStage == 'FOLLOWUP' || selectedStage == 'REJECTED' ||  selectedStage == 'FOLLOW UP') ...[
+          if (selectedStage == 'FOLLOWUP' ||
+              leadTagOptions.isNotEmpty ||
+              selectedStage == 'FOLLOW UP') ...[
             Column(
               children: [
                 SizedBox(height: 1.2.h),
@@ -2096,7 +2221,7 @@ class _LeadInformationCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Next Follow Up Date', 
+                        'Next Follow Up Date',
                         style: TextStyle(
                           fontSize: 13.5.sp,
                           fontWeight: FontWeight.w500,
@@ -2148,23 +2273,25 @@ class _LeadInformationCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (selectedStage == 'REJECTED') ...[
-                  CustomDropdownField(
-                    label: 'Tag',
-                    value: selectedTag,
-                    hintText: 'Select Tag',
-                    isRequired: true,
-                    items: const [
-                      'Costly',
-                      'Not interested',
-                      'Bad Quality',
-                      'Pending',
-                      'Rejected',
-                      'Switched Off',
-                    ],
-                    // FIX: Now uses the real onTagChanged callback from the
-                    // widget parameter instead of the former uninitialized local.
-                    onChanged: onTagChanged,
+                if (leadTagOptions.isNotEmpty) ...[
+                  //            CustomDropdownField(
+                  //   label: 'Tag',
+                  //   value: selectedTag,
+                  //   hintText: 'Select Tag',
+                  //   isRequired: tagMandatory,
+                  //   items: leadTagOptions,
+                  //   onChanged: onTagChanged, // use the callback already passed in
+                  // ),
+                  SizedBox(
+                    height: 6.h,
+                    child: _SearchableAlertField(
+                      value: selectedTag,
+                      items: leadTagOptions,
+                      hint: 'Select Tag',
+                      floatingLabel: 'Tag',
+                      onChanged: onTagChanged,
+                      isRequired: tagMandatory,
+                    ),
                   ),
                 ],
                 SizedBox(height: 1.2.h),
@@ -2246,6 +2373,151 @@ class _LeadInformationCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// ADDITIONAL DETAILS CARD
+// ---------------------------------------------------------------------------
+// Accepts the controller map from the parent state so controllers survive
+// across rebuilds and their values are accessible at submit time.
+class _LeadAditionalFieldCard extends StatelessWidget {
+  final AddLeadState state;
+  final Map<String, TextEditingController> ctrlMap;
+
+  const _LeadAditionalFieldCard({
+    super.key,
+    required this.state,
+    required this.ctrlMap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomSectionCard(
+      header: const SectionTitle(
+        icon: Icons.add_circle_outline_rounded,
+        title: 'Additional Details',
+      ),
+      children: [_buildAdditionalDetails(state, ctrlMap)],
+    );
+  }
+}
+
+Widget _buildAdditionalDetails(
+  AddLeadState state,
+  Map<String, TextEditingController> ctrlMap,
+) {
+  final fields = state.additionalFields;
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final crossAxisCount = constraints.maxWidth >= 600 ? 2 : 1;
+      final columnSpacing = 2.w;
+      const rowSpacing = 12.0;
+
+      final fieldWidgets = fields.map((field) {
+        final key = field.id ?? field.fieldName;
+        // Reuse the controller from the shared map — never create a new one here.
+        final controller = ctrlMap[key] ?? TextEditingController();
+
+        return _field(
+          field.fieldName,
+          false,
+          Icons.description_outlined,
+          controller: controller,
+        );
+      }).toList();
+
+      final rows = <Widget>[];
+      for (var i = 0; i < fieldWidgets.length; i += crossAxisCount) {
+        final rowChildren = <Widget>[];
+        for (var j = 0; j < crossAxisCount; j++) {
+          final idx = i + j;
+          if (idx < fieldWidgets.length) {
+            rowChildren.add(Expanded(child: fieldWidgets[idx]));
+          } else {
+            rowChildren.add(const Expanded(child: SizedBox.shrink()));
+          }
+          if (j < crossAxisCount - 1) {
+            rowChildren.add(SizedBox(width: columnSpacing));
+          }
+        }
+        rows.add(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: rowChildren,
+          ),
+        );
+        if (i + crossAxisCount < fieldWidgets.length) {
+          rows.add(SizedBox(height: rowSpacing));
+        }
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rows,
+      );
+    },
+  );
+}
+
+Widget _field(
+  String label,
+  bool required,
+  IconData icons, {
+  TextInputType? keyboardtype,
+  List<TextInputFormatter>? inputFormatters,
+  TextEditingController? controller,
+  String? Function(String?)? validator,
+  FocusNode? focusNode,
+  FocusNode? nextFocusNode,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _label(label, required, icons),
+      SizedBox(height: 0.5.h),
+      Container(
+        height: 5.h,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(4),
+          // color: Colors.grey[200],
+        ),
+        child: TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          validator: validator,
+          keyboardType: keyboardtype ?? TextInputType.text,
+          inputFormatters: inputFormatters ?? [],
+          textInputAction: nextFocusNode != null
+              ? TextInputAction.next
+              : TextInputAction.done,
+          style: TextStyle(color: Colors.black, fontSize: 15.sp),
+          decoration: InputDecoration(
+            hintText: label,
+            hintStyle: TextStyle(color: Colors.grey, fontSize: 15.sp),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.all(1.w),
+          ),
+          // Enter key moves to the next node in _orderedNodes
+          onFieldSubmitted: (_) {},
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _label(String text, bool required, IconData icons) {
+  return Row(
+    children: [
+      // Icon(icons, size: 12.sp, color: AppColors.green),
+      SizedBox(width: 0.5.w),
+      Text(
+        text,
+        style: TextStyle(color: Colors.grey.shade900, fontSize: 15.sp),
+      ),
+      // if (required) Text('*', style: TextStyle(color: Colors.red)),
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
 // DROPDOWN WITH ADD BUTTON
 // ---------------------------------------------------------------------------
 class _DropdownWithAdd extends StatelessWidget {
@@ -2272,7 +2544,14 @@ class _DropdownWithAdd extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _CustomDropdownField<String>(
+            // child: _CustomDropdownField<String>(
+            //   value: value,
+            //   items: items,
+            //   hint: hint,
+            //   floatingLabel: floatingLabel,
+            //   onChanged: onChanged,
+            // ),
+            child: _SearchableAlertField(
               value: value,
               items: items,
               hint: hint,
@@ -2530,53 +2809,56 @@ class _SearchableAlertField extends StatelessWidget {
 
                     Padding(
                       padding: EdgeInsets.fromLTRB(5.w, 2.5.h, 5.w, 0),
-                      child: TextField(
-                        controller: searchCtrl,
-                        autofocus: true,
-                        style: TextStyle(
-                          fontSize: 14.5.sp,
-                          color: const Color(0xFF212121),
-                        ),
-                        onChanged: (v) => setDialogState(() => query = v),
-                        decoration: InputDecoration(
-                          hintText: 'Search $hint',
-                          hintStyle: TextStyle(
-                            fontSize: 13.5.sp,
-                            color: const Color(0xFFAAAAAA),
+                      child: SizedBox(
+                        height: 5.h,
+                        child: TextField(
+                          controller: searchCtrl,
+                          autofocus: true,
+                          style: TextStyle(
+                            fontSize: 14.5.sp,
+                            color: const Color(0xFF212121),
                           ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            size: 5.w,
-                            color: const Color(0xFF888888),
-                          ),
-                          suffixIcon: query.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () {
-                                    searchCtrl.clear();
-                                    setDialogState(() => query = '');
-                                  },
-                                  child: Icon(
-                                    Icons.close,
-                                    size: 4.5.w,
-                                    color: const Color(0xFF888888),
-                                  ),
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: const Color(0xFFF5F5F5),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 4.w,
-                            vertical: 1.6.h,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.bottomNavBlue,
-                              width: 1.5,
+                          onChanged: (v) => setDialogState(() => query = v),
+                          decoration: InputDecoration(
+                            hintText: 'Search $hint',
+                            hintStyle: TextStyle(
+                              fontSize: 13.5.sp,
+                              color: const Color(0xFFAAAAAA),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              size: 5.w,
+                              color: const Color(0xFF888888),
+                            ),
+                            suffixIcon: query.isNotEmpty
+                                ? GestureDetector(
+                                    onTap: () {
+                                      searchCtrl.clear();
+                                      setDialogState(() => query = '');
+                                    },
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 4.5.w,
+                                      color: const Color(0xFF888888),
+                                    ),
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: const Color(0xFFF5F5F5),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 4.w,
+                              vertical: 1.6.h,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.bottomNavBlue,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
@@ -2603,7 +2885,7 @@ class _SearchableAlertField extends StatelessWidget {
                             )
                           : ListView.separated(
                               shrinkWrap: true,
-                              padding: EdgeInsets.symmetric(vertical: 1.h),
+                              // padding: EdgeInsets.symmetric(vertical: 0.5.h),
                               itemCount: filtered.length,
                               separatorBuilder: (_, __) =>
                                   const Divider(height: 1),
@@ -2730,7 +3012,11 @@ class _SearchableAlertField extends StatelessWidget {
                     size: 18.sp,
                   ),
                 )
-              : Icon(Icons.search, color: ScreenColors.iconGrey, size: 20.sp),
+              : Icon(
+                  Icons.arrow_drop_down_circle_outlined,
+                  color: ScreenColors.iconGrey,
+                  size: 18.sp,
+                ),
         ),
         child: Row(
           children: [

@@ -297,6 +297,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
 
           List<AddLeadModel> leads = [...state.leads];
 
+          final categoryNameById = {for (final c in state.categories) c.id: c.name};
+final stageNameById = {for (final s in state.stages) s.id: s.name};
+
           switch (widget.reportType) {
             case LeadReportType.newLead:
               leads = leads
@@ -536,6 +539,9 @@ class _LeadReportContentState extends State<LeadReportContent> {
                           return LeadReportCard(
                             lead: lead,
                             onFollowUp: () {},
+                             categoryDisplayName: categoryNameById[lead.leadCategoryId] ?? lead.leadCategory, // NEW
+    stageDisplayName: stageNameById[lead.leadStageId] ?? lead.leadStage,             // NEW
+    
                             onCall: () {
                               launchPhoneCall(context, lead.contactNumber);
                             },

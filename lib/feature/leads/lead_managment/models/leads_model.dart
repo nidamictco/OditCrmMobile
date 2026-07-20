@@ -2,9 +2,10 @@ class LeadsModel {
   final String id;
   final String name;
   final String createdBy;
-  final String idOfCreator; 
+  final String idOfCreator;
   final DateTime createdAt;
   final bool isDefault;
+  final bool tagMandatory; // renamed, non-nullable, real default
 
   const LeadsModel({
     required this.id,
@@ -13,12 +14,10 @@ class LeadsModel {
     required this.idOfCreator,
     required this.createdAt,
     this.isDefault = false,
+    this.tagMandatory = false,
   });
 
-  factory LeadsModel.fromFirestore(
-    Map<String, dynamic> data,
-    String docId,
-  ) {
+  factory LeadsModel.fromFirestore(Map<String, dynamic> data, String docId) {
     return LeadsModel(
       id: docId,
       name: data['name'].toString().toUpperCase(),
@@ -28,6 +27,7 @@ class LeadsModel {
           ? (data['createdAt'] as dynamic).toDate() as DateTime
           : DateTime.now(),
       isDefault: data['isDefault'] as bool? ?? false,
+      tagMandatory: data['tagMandatory'] as bool? ?? false,
     );
   }
 
@@ -38,6 +38,7 @@ class LeadsModel {
       'idOfCreator': idOfCreator,
       'createdAt': createdAt,
       'isDefault': isDefault,
+      'tagMandatory': tagMandatory,
     };
   }
 
@@ -48,6 +49,7 @@ class LeadsModel {
     String? idOfCreator,
     DateTime? createdAt,
     bool? isDefault,
+    bool? tagMandatory,
   }) {
     return LeadsModel(
       id: id ?? this.id,
@@ -56,10 +58,10 @@ class LeadsModel {
       idOfCreator: idOfCreator ?? this.idOfCreator,
       createdAt: createdAt ?? this.createdAt,
       isDefault: isDefault ?? this.isDefault,
+      tagMandatory: tagMandatory ?? this.tagMandatory,
     );
   }
 
-  // Compare all fields, not just id
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -68,8 +70,9 @@ class LeadsModel {
           id == other.id &&
           name == other.name &&
           createdBy == other.createdBy &&
-          isDefault == other.isDefault;
+          isDefault == other.isDefault &&
+          tagMandatory == other.tagMandatory;
 
   @override
-  int get hashCode => Object.hash(id, name, createdBy, isDefault);
+  int get hashCode => Object.hash(id, name, createdBy, isDefault, tagMandatory);
 }

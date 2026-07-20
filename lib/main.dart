@@ -158,7 +158,8 @@ class _MyAppState extends State<MyApp> {
                 // time we land on any non-loading/non-initial state
                 if (state is Authenticated ||
                     state is AuthLoggedOut ||
-                    state is AuthError) {
+                    state is AuthError ||
+                    state is AuthForceLoggedOut) {
                   _initialCheckDone = true;
                 }
 
@@ -179,7 +180,27 @@ class _MyAppState extends State<MyApp> {
                       _openLeadById(leadId);
                     });
                   }
-                } else {
+                } else if (state is AuthForceLoggedOut) {
+    _isAuthenticated = false;
+     navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    final ctx = navigatorKey.currentContext;
+    if (ctx != null) {
+      showDialog(
+        context: ctx,
+        barrierDismissible: false,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Logged Out'),
+          content: Text(state.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  } else {
                   _isAuthenticated = false;
                 }
               },

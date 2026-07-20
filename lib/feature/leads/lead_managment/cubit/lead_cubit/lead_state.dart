@@ -6,6 +6,7 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/leads_model.
 import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
 
+
 enum AddLeadStatus { initial, loading, success, failure }
 
 enum LeadListStatus { initial, loading, loaded, failure }
@@ -31,6 +32,18 @@ class AddLeadState {
   final List<LeadsModel> categories;
   final List<LeadsModel> sources;
   final List<LeadsModel> stages;
+
+  final List<LeadsModel> subCategories;
+  final String? selectedSubCategory;
+
+  final List<LeadsModel> leadTag;
+  final bool tagMandatory; 
+
+  final String? selectedCategoryId;
+final String? selectedSourceId;
+final String? selectedLeadStageId; 
+final String? selectedLeadTagId;
+final String? selectedSubCategoryId;
 
   // ── Form selections ───────────────────────────────────────────────────────
   final String? selectedCategory;
@@ -67,8 +80,6 @@ class AddLeadState {
 
   final bool isLoadingCounts;
 
-  final bool hasLoadedOnce;
-
   final DateTime? selectedDashboardDate;
 
   final String profileClosedCount;
@@ -99,12 +110,21 @@ class AddLeadState {
     this.selectedCallResult,
     this.selectedLeadTag,
     this.selectedLeadStage,
+    this.selectedCategoryId,
+    this.selectedSourceId,
+    this.selectedLeadStageId,
+    this.selectedLeadTagId,
+    this.selectedSubCategoryId,
     this.selectedState,
     this.selectedDistrict,
     this.assignedStaffName = '',
     this.assignedStaffId,
     this.additionalFields = const [],
     this.isLoadingAdditionalFields = false,
+    this.subCategories = const [],
+    this.selectedSubCategory,
+    this.leadTag=const [],
+    this.tagMandatory=false,
     this.staffList = const [],
     this.closedLeadCount = '0',
     this.newLeadCount = '0',
@@ -125,7 +145,6 @@ class AddLeadState {
     this.profileNotConnectedCount = '0',
     this.profileCallResultCounts = const {},
     this.isLoadingProfileCounts = false,
-    this.hasLoadedOnce = true,
   });
 
   bool get isLoading => status == AddLeadStatus.loading;
@@ -146,12 +165,21 @@ class AddLeadState {
     List<LeadsModel>? categories,
     List<LeadsModel>? sources,
     List<LeadsModel>? stages,
+    List<LeadsModel>? subCategories,
+    List<LeadsModel>? leadTag,
+    bool? tagMandatory,
+    String? selectedSubCategory,
     String? selectedCategory,
     String? selectedSource,
     String? selectedPriority,
     String? selectedCallResult,
     String? selectedLeadTag,
     String? selectedLeadStage,
+    String? selectedCategoryId,
+    String? selectedSourceId,
+    String? selectedLeadStageId,
+    String? selectedLeadTagId,
+    String? selectedSubCategoryId,
     String? selectedState,
     String? selectedDistrict,
     String? assignedStaffName,
@@ -178,7 +206,7 @@ class AddLeadState {
     String? profileNotConnectedCount,
     Map<String, int>? profileCallResultCounts,
     bool? isLoadingProfileCounts,
-    // ── clear flags ──────────────────────────────────────────────────────────
+    bool clearSelectedDashboardDate = false,
     bool clearError = false,
     bool clearSuccess = false,
     bool clearListError = false,
@@ -190,6 +218,7 @@ class AddLeadState {
     bool clearLeadStage = false,
     bool clearCallResult = false,
     bool clearLeadTag = false,
+    bool clearSubCategory = false,
   }) {
     return AddLeadState(
       status: status ?? this.status,
@@ -208,6 +237,12 @@ class AddLeadState {
       categories: categories ?? this.categories,
       sources: sources ?? this.sources,
       stages: stages ?? this.stages,
+      subCategories: subCategories ?? this.subCategories,
+      leadTag: leadTag ?? this.leadTag, 
+      tagMandatory: tagMandatory ?? this.tagMandatory,
+      selectedSubCategory: clearSubCategory
+          ? null
+          : (selectedSubCategory ?? this.selectedSubCategory),
       selectedCategory: clearCategory
           ? null
           : (selectedCategory ?? this.selectedCategory),
@@ -230,6 +265,22 @@ class AddLeadState {
       selectedLeadTag: clearLeadTag
           ? null
           : (selectedLeadTag ?? this.selectedLeadTag),
+      
+     selectedCategoryId: clearCategory
+    ? null
+    : (selectedCategoryId ?? this.selectedCategoryId),
+selectedSourceId: clearSource
+    ? null
+    : (selectedSourceId ?? this.selectedSourceId),
+selectedLeadStageId: clearLeadStage
+    ? null
+    : (selectedLeadStageId ?? this.selectedLeadStageId),
+selectedLeadTagId: clearLeadTag
+    ? null
+    : (selectedLeadTagId ?? this.selectedLeadTagId),
+selectedSubCategoryId: clearSubCategory
+    ? null
+    : (selectedSubCategoryId ?? this.selectedSubCategoryId),
       assignedStaffName: assignedStaffName ?? this.assignedStaffName,
       assignedStaffId: assignedStaffId ?? this.assignedStaffId,
       additionalFields: additionalFields ?? this.additionalFields,
@@ -247,8 +298,9 @@ class AddLeadState {
       missedLeadCount: missedLeadCount ?? this.missedLeadCount,
       transferredCount: transferredCount ?? this.transferredCount,
       isLoadingCounts: isLoadingCounts ?? this.isLoadingCounts,
-      selectedDashboardDate:
-          selectedDashboardDate ?? this.selectedDashboardDate,
+      selectedDashboardDate: clearSelectedDashboardDate
+          ? null
+          : (selectedDashboardDate ?? this.selectedDashboardDate),
       leadChartCounts: leadChartCounts ?? this.leadChartCounts,
       leadCategoryTableRows:
           leadCategoryTableRows ?? this.leadCategoryTableRows,
