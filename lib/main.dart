@@ -228,6 +228,12 @@ class _MyAppState extends State<MyApp> {
                 // if (state is Authenticated) {
                 //   return const CustomBottomNavScreen();
                 // }
+                if (state is Authenticated) {
+    return const Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
                 return const LoginScreen();
               },
             );

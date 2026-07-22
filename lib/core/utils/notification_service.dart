@@ -127,7 +127,7 @@ static String? _currentStaffId;
 
   /// Fetch current device token and persist to STAFF/{staffId}.fcmToken.
   static Future<void> registerTokenAfterLogin(String staffId) async {
-    _currentStaffId = staffId;
+    _currentStaffId = staffId; 
     try {
       final token = await _fetchFcmToken();
       if (token == null) {
