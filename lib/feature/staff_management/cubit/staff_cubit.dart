@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 import 'package:odit_crm_mobile/feature/staff_management/cubit/staff_state.dart';
 import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
@@ -13,62 +14,6 @@ class StaffCubit extends Cubit<StaffState> {
         super(StaffInitial());
 
 //   // ─── Add ──────────────────────────────────────────────────────────────────
-
-//  Future<void> addStaff(
-//   StaffModel staff, {
-//   File? imageFile,
-//   Uint8List? imageBytes,
-//   String? imageFileName,
-//   File? documentFile,
-//   Uint8List? documentBytes,
-//   String? documentFileName,
-// }) async {
-//   emit(StaffSaving());
-//   try {
-//     final docId = await _repository.addStaff(
-//       staff,
-//       imageFile: imageFile,
-//       imageBytes: imageBytes,
-//       imageFileName: imageFileName,
-//       documentFile: documentFile,
-//       documentBytes: documentBytes,
-//       documentFileName: documentFileName,
-//     );
-//     emit(StaffSaved(docId));
-//   } catch (e, st) {
-//     emit(StaffError(e.toString()));
-//   }
-// }
-
-  // ─── Update ───────────────────────────────────────────────────────────────
-
-//   Future<void> updateStaff(
-//   StaffModel staff, {
-//   File? imageFile,
-//   Uint8List? imageBytes,
-//   String? imageFileName,
-//   File? documentFile,
-//   Uint8List? documentBytes,
-//   String? documentFileName,
-// }) async {
-//   emit(StaffSaving());
-//   try {
-//     await _repository.updateStaff(
-//       staff,
-//       imageFile: imageFile,
-//       imageBytes: imageBytes,
-//       imageFileName: imageFileName,
-//       documentFile: documentFile,
-//       documentBytes: documentBytes,
-//       documentFileName: documentFileName,
-//     );
-//     log('[StaffCubit] Staff updated: ${staff.id}');
-//     emit(StaffSaved(staff.id!, isUpdate: true));
-//   } catch (e, st) {
-//     log('[StaffCubit] Update error: $e', stackTrace: st);
-//     emit(StaffError(e.toString()));
-//   }
-// }
 
   // ─── Update status ────────────────────────────────────────────────────────
 
@@ -161,7 +106,10 @@ class StaffCubit extends Cubit<StaffState> {
     final list = await _repository.fetchAll();
     if (isClosed) return;
     emit(StaffListLoaded(list));
-  } catch (e, st) {
+  } on CompanyNotInitializedException {
+    // App is mid-logout/navigating away — nothing to show, don't surface an error.
+    return;
+  }  catch (e, st) {
     log('[StaffCubit] FetchAll error: $e', stackTrace: st);
     if (isClosed) return;
     emit(StaffError(e.toString()));

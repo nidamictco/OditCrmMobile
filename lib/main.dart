@@ -25,9 +25,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // await NotificationService.init();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await NotificationService.initialize(navigatorKey: navigatorKey);
   runApp(const MyApp());
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -52,7 +50,6 @@ class _MyAppState extends State<MyApp> {
   bool _isAuthenticated = false;
   bool _initialCheckDone = false; // ADDED
 
-  
   @override
   void initState() {
     super.initState();
@@ -129,7 +126,6 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-
   // ... initState, _initDeepLinks, _handleIncomingUri, _openLeadById unchanged ...
 
   @override
@@ -153,6 +149,8 @@ class _MyAppState extends State<MyApp> {
         home: Sizer(
           builder: (context, orientation, deviceType) {
             return BlocConsumer<AuthCubit, AuthState>(
+               listenWhen: (previous, current) =>
+      previous.runtimeType != current.runtimeType,
               listener: (context, state) async {
                 // ADDED: mark initial session check as resolved the first
                 // time we land on any non-loading/non-initial state
@@ -165,7 +163,9 @@ class _MyAppState extends State<MyApp> {
 
                 if (state is Authenticated) {
                   context.read<NotificationCubit>().load(state.user.id ?? '');
-                  await NotificationService.registerTokenAfterLogin(state.user.id ?? ''); 
+                  await NotificationService.registerTokenAfterLogin(
+                    state.user.id ?? '',
+                  );
                   _isAuthenticated = true;
 
                   if (FirestorePath.companyId != null) {
@@ -180,9 +180,38 @@ class _MyAppState extends State<MyApp> {
                       _openLeadById(leadId);
                     });
                   }
-                } else {
+                   navigatorKey.currentState?.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const CustomBottomNavScreen()),
+                  (route) => route.isFirst,
+                );
+                } 
+                else {
                   _isAuthenticated = false;
                 }
+                if (state is AuthForceLoggedOut ) {
+                  navigatorKey.currentState?.pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => route.isFirst,
+                  );
+
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final ctx = navigatorKey.currentContext;
+                    if (ctx != null) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(
+                          content: Text(state.message),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  });
+                }
+                 if (state is AuthLoggedOut || state is AuthError) {
+                navigatorKey.currentState?.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => route.isFirst,
+                );
+              }
               },
               builder: (context, state) {
                 // CHANGED: only show splash loader before the initial
@@ -196,53 +225,14 @@ class _MyAppState extends State<MyApp> {
                     body: Center(child: CircularProgressIndicator()),
                   );
                 }
-                if (state is Authenticated) {
-                  return const CustomBottomNavScreen();
-                }
-                return const AppRoot();
+                // if (state is Authenticated) {
+                //   return const CustomBottomNavScreen();
+                // }
+                return const LoginScreen();
               },
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-
-class AppRoot extends StatelessWidget {
-  const AppRoot({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthForceLoggedOut) {
-          // Pop everything back to a single route, then push LoginScreen,
-          // so the user can't navigate "back" into stale authenticated screens.
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-          );
-
-          // Show the message AFTER the navigation frame completes.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          });
-        }
-      },
-      child: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, state) {
-          if (state is Authenticated) {
-            return const CustomBottomNavScreen();
-          }
-          return const LoginScreen();
-        },
       ),
     );
   }

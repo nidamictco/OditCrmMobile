@@ -75,21 +75,39 @@ class AuthCubit extends Cubit<AuthState> {
   );
 }
 
+  // Future<void> _forceLogout() async {
+  //   await _sessionSub?.cancel();
+  //   _sessionSub = null;
+
+  //   final user = await _sessionService.getSavedUser();
+  //   if (user?.id != null && user!.id!.isNotEmpty) {
+  //     await NotificationService.clearTokenOnLogout(user.id!);
+  //   }
+
+  //   await _sessionService.clearSessionId();
+  //   await _sessionService.clearSession(); // prefs.clear() — wipes sessionId key too
+  //   FirestorePath.clear();
+
+  //   emit(AuthForceLoggedOut());
+  // }
   Future<void> _forceLogout() async {
-    await _sessionSub?.cancel();
-    _sessionSub = null;
+  await _sessionSub?.cancel();
+  _sessionSub = null;
 
-    final user = await _sessionService.getSavedUser();
-    if (user?.id != null && user!.id!.isNotEmpty) {
-      await NotificationService.clearTokenOnLogout(user.id!);
-    }
+  // Emit FIRST so navigation starts immediately, before anything
+  // that reads FirestorePath.companyId is invalidated.
+  emit(AuthForceLoggedOut());
 
-    await _sessionService.clearSessionId();
-    await _sessionService.clearSession(); // prefs.clear() — wipes sessionId key too
-    FirestorePath.clear();
-
-    emit(AuthForceLoggedOut());
+  // Cleanup now happens after the UI has already been told to leave.
+  final user = await _sessionService.getSavedUser();
+  if (user?.id != null && user!.id!.isNotEmpty) {
+    await NotificationService.clearTokenOnLogout(user.id!);
   }
+
+  await _sessionService.clearSessionId();
+  await _sessionService.clearSession();
+  FirestorePath.clear();
+}
 
   // ─── Check saved session on app start ────────────────────────────────────
 
@@ -236,7 +254,7 @@ Future<void> login({
     await NotificationService.registerTokenAfterLogin(user.id!);
     _startSessionWatcher(user.id!);
 
-    await permissionCubit.loadPermissions(user.designationId);
+   await permissionCubit.loadPermissions(user.designationId);
 
     emit(Authenticated(user: user));
   } on AuthException catch (e) {

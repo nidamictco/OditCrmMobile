@@ -80,10 +80,10 @@ class _OxdoDrawerState extends State<OxdoDrawer> {
                       }
                     },
                   ),
-
+if(user?.designation == 'Company_Admin' )
                   _DrawerMenuItem(
                     icon: Icons.lock_outline,
-                    title: 'Change Password',
+                    title: 'Change Password', 
                     onTap: () {
                       Navigator.pop(context);
                       if (user != null) {

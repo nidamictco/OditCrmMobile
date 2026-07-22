@@ -958,7 +958,10 @@ void selectLeadTag(String? value) {
     try {
       final list = await _staffRepository.fetchAll();
       emit(state.copyWith(staffList: list));
-    } catch (e) {
+    }  on CompanyNotInitializedException {
+    // App is mid-logout/navigating away — nothing to show, don't surface an error.
+    return;
+  } catch (e) {
       log('[AddLeadCubit] fetchStaff error: $e');
     }
   }
