@@ -127,16 +127,13 @@ static String? _currentStaffId;
 
   /// Fetch current device token and persist to STAFF/{staffId}.fcmToken.
   static Future<void> registerTokenAfterLogin(String staffId) async {
-   _currentStaffId = staffId;
+    _currentStaffId = staffId;
     try {
-      String? token;
-      // if (kIsWebSafe()) {
-      //   // Web requires a VAPID key from Firebase console > Cloud Messaging.
-      //   token = await _fcm.getToken(vapidKey: 'YOUR_WEB_VAPID_KEY');
-      // } else {
-        token = await _fcm.getToken();
-      // }
-      if (token == null) return;
+      final token = await _fetchFcmToken();
+      if (token == null) {
+        log('[FCM] token unavailable for staff $staffId (APNs not ready?)');
+        return;
+      }
       await _saveToken(staffId, token);
       log('[FCM] token saved for staff $staffId: $token');
     } catch (e) {
@@ -146,9 +143,31 @@ static String? _currentStaffId;
 
   static Future<void> saveTokenForCurrentStaff(String? staffId) async {
     if (staffId == null || staffId.isEmpty) return;
-    final token = await _fcm.getToken();
+    final token = await _fetchFcmToken();
     if (token == null) return;
     await _saveToken(staffId, token);
+  }
+
+  /// Fetches the FCM token. On iOS the FCM token is only available *after*
+  /// the APNs token has been assigned by Apple, which can lag a few seconds
+  /// on a real device. We wait for the APNs token first, otherwise
+  /// `getToken()` returns null and the device never registers for pushes.
+  static Future<String?> _fetchFcmToken() async {
+    if (Platform.isIOS) {
+      String? apnsToken = await _fcm.getAPNSToken();
+      // Retry: the APNs token may not be ready immediately after launch.
+      for (var i = 0; i < 5 && apnsToken == null; i++) {
+        await Future.delayed(const Duration(seconds: 2));
+        apnsToken = await _fcm.getAPNSToken();
+      }
+      if (apnsToken == null) {
+        log('[FCM][iOS] APNs token still null — cannot fetch FCM token. '
+            'Check APNs key in Firebase console + Push Notifications capability.');
+        return null;
+      }
+      log('[FCM][iOS] APNs token acquired: $apnsToken');
+    }
+    return _fcm.getToken();
   }
 
 //   static Future<void> _saveToken(String staffId, String token) async {
