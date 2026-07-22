@@ -368,21 +368,21 @@ class _LoginScreenState extends State<LoginScreen> {
             },
             child: const Text('OK'),
           ),
-          // TextButton(
-          //   onPressed: () {
-          //     Navigator.of(dialogCtx).pop();
-          //     context.read<AuthCubit>().login(
-          //       phoneNo: _usernameController.text.trim(),
-          //       password: _passwordController.text.trim(),
-          //       permissionCubit: context.read<PermissionCubit>(),
-          //       forceLogin: true,
-          //     );
-          //   },
-          //   child: Text(
-          //     'Continue',
-          //     style: TextStyle(color: AppColors.bottomNavBlue, fontWeight: FontWeight.bold),
-          //   ),
-          // ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              context.read<AuthCubit>().login(
+                phoneNo: _usernameController.text.trim(),
+                password: _passwordController.text.trim(),
+                permissionCubit: context.read<PermissionCubit>(),
+                forceLogin: true,
+              );
+            },
+            child: Text(
+              'Continue',
+              style: TextStyle(color: AppColors.bottomNavBlue, fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );

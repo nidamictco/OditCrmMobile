@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StaffModel {
   final String? id;
+  final bool isCompanyAdmin;
   final String name;
   final String password;
   final String phone;
@@ -30,6 +31,7 @@ class StaffModel {
 
   const StaffModel({
     this.id,
+    this.isCompanyAdmin = false,
     required this.name,
     required this.password,
     required this.phone,
@@ -61,6 +63,7 @@ class StaffModel {
 
   StaffModel copyWith({
     String? id,
+    bool? isCompanyAdmin,
     String? name,
     String? password,
     String? phone,
@@ -89,6 +92,7 @@ class StaffModel {
   }) {
     return StaffModel(
       id: id ?? this.id,
+      isCompanyAdmin: isCompanyAdmin ?? this.isCompanyAdmin,
       name: name ?? this.name,
       password: password ?? this.password,
       phone: phone ?? this.phone,
@@ -122,19 +126,22 @@ class StaffModel {
   factory StaffModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final map = doc.data()!;
     final isUsersCollection = doc.reference.parent.path == 'USERS';
-    final companyIdVal = map['companyId'] as String?;
-    final resolvedId = (isUsersCollection && companyIdVal != null && companyIdVal.isNotEmpty)
-        ? "admin-$companyIdVal"
-        : doc.id;
+    // final companyIdVal = map['companyId'] as String?;
+    // final resolvedId =
+    //     (isUsersCollection && companyIdVal != null && companyIdVal.isNotEmpty)
+    //     ? "admin-$companyIdVal"
+    //     : doc.id;
     return StaffModel(
-      id: resolvedId,
+      id: doc.id,
+      isCompanyAdmin: isUsersCollection,
       name: map['name'] ?? '',
       password: map['password'] ?? '',
       phone: map['phone'] ?? '',
       email: map['email'],
       designationId: map['designationId'],
       designation: map['designation'],
-      staffType: map['staffType'] ??
+      staffType:
+          map['staffType'] ??
           map['role'] ??
           (isUsersCollection ? 'Admin' : null),
       joiningDate: map['joiningDate'],
@@ -168,6 +175,8 @@ class StaffModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'id':id,
+      'isCompanyAdmin': isCompanyAdmin,
       'name': name,
       'password': password,
       'phone': phone,
@@ -200,6 +209,7 @@ class StaffModel {
 
   Map<String, dynamic> toJson() {
     return {
+      'isCompanyAdmin': isCompanyAdmin,
       'name': name,
       'password': password,
       'phone': phone,
@@ -231,6 +241,7 @@ class StaffModel {
   factory StaffModel.fromJson(Map<String, dynamic> map) {
     return StaffModel(
       id: map['id'],
+      isCompanyAdmin: map['isCompanyAdmin'] ?? false,
       name: map['name'] ?? '',
       password: map['password'] ?? '',
       phone: map['phone'] ?? '',

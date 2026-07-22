@@ -26,6 +26,6 @@ class AuthLoggedOut extends AuthState {}
 class AuthForceLoggedOut extends AuthState {
   final String message;
   AuthForceLoggedOut({
-    this.message = 'Your account has been logged in from another device.',
+    this.message = 'You were logged out because your account signed in on another device.',
   });
 }

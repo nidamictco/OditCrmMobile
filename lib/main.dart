@@ -180,27 +180,7 @@ class _MyAppState extends State<MyApp> {
                       _openLeadById(leadId);
                     });
                   }
-                } else if (state is AuthForceLoggedOut) {
-    _isAuthenticated = false;
-     navigatorKey.currentState?.popUntil((route) => route.isFirst);
-    final ctx = navigatorKey.currentContext;
-    if (ctx != null) {
-      showDialog(
-        context: ctx,
-        barrierDismissible: false,
-        builder: (dialogCtx) => AlertDialog(
-          title: const Text('Logged Out'),
-          content: Text(state.message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    }
-  } else {
+                } else {
                   _isAuthenticated = false;
                 }
               },
@@ -212,17 +192,57 @@ class _MyAppState extends State<MyApp> {
                 if (!_initialCheckDone &&
                     (state is AuthInitial || state is AuthLoading)) {
                   return const Scaffold(
+                    backgroundColor: Colors.white,
                     body: Center(child: CircularProgressIndicator()),
                   );
                 }
                 if (state is Authenticated) {
                   return const CustomBottomNavScreen();
                 }
-                return const LoginScreen();
+                return const AppRoot();
               },
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+
+class AppRoot extends StatelessWidget {
+  const AppRoot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthForceLoggedOut) {
+          // Pop everything back to a single route, then push LoginScreen,
+          // so the user can't navigate "back" into stale authenticated screens.
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+
+          // Show the message AFTER the navigation frame completes.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          });
+        }
+      },
+      child: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, state) {
+          if (state is Authenticated) {
+            return const CustomBottomNavScreen();
+          }
+          return const LoginScreen();
+        },
       ),
     );
   }
