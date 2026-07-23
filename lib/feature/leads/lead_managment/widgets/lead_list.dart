@@ -592,10 +592,31 @@ class _LeadListScreenState extends State<LeadListScreen> {
 
   // ── Sorting — UNCHANGED ─────────────────────────────────────────────────────
 
+  int _getPriorityValue(String? priority) {
+    if (priority == null) return 5;
+    switch (priority.trim().toLowerCase()) {
+      case 'high':
+        return 1;
+      case 'normal':
+        return 2;
+      case 'low':
+        return 3;
+      case 'negative':
+        return 4;
+      default:
+        return 5;
+    }
+  }
+
   List<LeadData> _applySorting(List<LeadData> leads) {
     if (_selectedStatus == 'Follow Up') return leads;
     final sorted = List<LeadData>.from(leads);
     sorted.sort((a, b) {
+      final aPrio = _getPriorityValue(a.priority);
+      final bPrio = _getPriorityValue(b.priority);
+      if (aPrio != bPrio) {
+        return aPrio.compareTo(bPrio);
+      }
       if (a.createdAt == null) return 1;
       if (b.createdAt == null) return -1;
       return _sortByNewest

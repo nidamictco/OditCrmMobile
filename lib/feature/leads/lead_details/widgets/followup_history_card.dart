@@ -30,9 +30,11 @@ class FollowupHistoryCard extends StatelessWidget {
     final bool isNewStatus = followup.leadStage.trim().toLowerCase().contains(
       'new',
     );
-    final Color badgeBgColor = isNewStatus
-        ? AppColors.bottomNavBlue
-        : const Color(0xFFFFA000);
+    // final Color badgeBgColor = isNewStatus
+    //     ? AppColors.bottomNavBlue
+    //     : const Color(0xFFFFA000);
+
+    final Color badgeBgColor = getStatusColor(followup.leadStage);
 
     return Container(
       decoration: BoxDecoration(

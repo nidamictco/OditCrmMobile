@@ -35,6 +35,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
+        final isQuiet = ModalRoute.of(context)?.isCurrent != true;
+        if (isQuiet) {
+          log('[LoginScreen] Ignoring state change to ${state.runtimeType} because this screen is not the current route');
+          return;
+        }
+
         if (state is Authenticated) {
           Navigator.pushReplacement(
             context,
@@ -75,8 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: isLoggingIn
                     ? null
                     : () async {
+                        log('[LoginScreen] Continue button pressed. isLoggingIn = true');
+                        log('[LoginScreen] _usernameController: "${_usernameController.text}", _passwordController: "${_passwordController.text.isNotEmpty ? '********' : 'EMPTY'}"');
                         setDialogState(() => isLoggingIn = true);
 
+                        log('[LoginScreen] Calling AuthCubit.login with forceLogin = true');
                         await context.read<AuthCubit>().login(
                               phoneNo: _usernameController.text.trim(),
                               password: _passwordController.text.trim(),
@@ -84,14 +93,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               forceLogin: true,
                             );
 
+                        log('[LoginScreen] AuthCubit.login completed.');
                         // If login succeeded, main.dart's pushAndRemoveUntil
                         // already tore down this whole screen (dialog included).
                         // If we're still here, it means login failed — reset
                         // the button and let the AuthError branch below show
                         // the error via SnackBar.
                         if (dialogCtx.mounted) {
+                          log('[LoginScreen] dialogCtx is still mounted. Resetting local states and popping dialog.');
                           setDialogState(() => isLoggingIn = false);
                           Navigator.of(dialogCtx).pop();
+                        } else {
+                          log('[LoginScreen] dialogCtx is not mounted (expected if login succeeded).');
                         }
                       },
                 child: isLoggingIn
@@ -276,6 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return;
                               }
 
+                              log('[LoginScreen] Sign In button tapped. phone: "$phone"');
                               context.read<AuthCubit>().login(
                                 phoneNo: phone,
                                 password: password,

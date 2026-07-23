@@ -151,6 +151,22 @@ class _TransferReportContentState extends State<TransferReportContent> {
     return null;
   }
 
+  int _getPriorityValue(String? priority) {
+    if (priority == null) return 5;
+    switch (priority.trim().toLowerCase()) {
+      case 'high':
+        return 1;
+      case 'normal':
+        return 2;
+      case 'low':
+        return 3;
+      case 'negative':
+        return 4;
+      default:
+        return 5;
+    }
+  }
+
   List<AddLeadModel> _applyFilters(List<AddLeadModel> leads) {
     if (_appliedFilters == null) {
       debugPrint(
@@ -324,19 +340,18 @@ class _TransferReportContentState extends State<TransferReportContent> {
             }).toList();
           }
 
-          if (_sortByNewest) {
-            transferLeads.sort((a, b) {
-              if (a.createdAt == null) return 1;
-              if (b.createdAt == null) return -1;
-              return b.createdAt!.compareTo(a.createdAt!);
-            });
-          } else {
-            transferLeads.sort((a, b) {
-              if (a.createdAt == null) return 1;
-              if (b.createdAt == null) return -1;
-              return a.createdAt!.compareTo(b.createdAt!);
-            });
-          }
+          transferLeads.sort((a, b) {
+            final aPrio = _getPriorityValue(a.priority);
+            final bPrio = _getPriorityValue(b.priority);
+            if (aPrio != bPrio) {
+              return aPrio.compareTo(bPrio);
+            }
+            if (a.createdAt == null) return 1;
+            if (b.createdAt == null) return -1;
+            return _sortByNewest
+                ? b.createdAt!.compareTo(a.createdAt!)
+                : a.createdAt!.compareTo(b.createdAt!);
+          });
 
           // ===================== PAGINATION WINDOWING =====================
           // Signature combines everything that can change the composition

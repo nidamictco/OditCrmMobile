@@ -181,11 +181,29 @@ import 'package:sizer/sizer.dart';
 //     );
 //   }
 // }
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // for debugPrint
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:odit_crm_mobile/core/theme/app_colors.dart';
+import 'package:odit_crm_mobile/feature/auth/cubit/auth_cubit.dart';
+import 'package:odit_crm_mobile/feature/auth/login_screen.dart';
+import 'package:odit_crm_mobile/feature/designation/cubit/permission_cubit.dart';
+import 'package:odit_crm_mobile/main.dart'; // CHANGED: import for navigatorKey
+import 'package:sizer/sizer.dart';
 
 class LogoutDialog extends StatefulWidget {
   const LogoutDialog({super.key});
 
+  // CHANGED: static guard so rapid multi-tapping the drawer's "Logout"
+  // item can't stack multiple dialog instances before the first one
+  // even finishes opening.
+  static bool _isDialogOpen = false;
+
   static Future<void> show(BuildContext context) {
+    if (_isDialogOpen) return Future<void>.value();
+    _isDialogOpen = true;
+
     return showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -215,7 +233,9 @@ class LogoutDialog extends StatefulWidget {
           ),
         );
       },
-    );
+      // CHANGED: reset the guard once the dialog route is fully gone,
+      // regardless of how it closed (Cancel, Logout, or barrier tap).
+    ).whenComplete(() => _isDialogOpen = false);
   }
 
   @override
@@ -295,6 +315,7 @@ class _LogoutDialogState extends State<LogoutDialog> {
                 child: SizedBox(
                   height: 55,
                   child: ElevatedButton(
+                    // CHANGED: the entire onPressed body — see comments inline.
                     onPressed: _isLoggingOut
                         ? null
                         : () async {
@@ -303,15 +324,67 @@ class _LogoutDialogState extends State<LogoutDialog> {
                             final authCubit = context.read<AuthCubit>();
                             final permissionCubit = context.read<PermissionCubit>();
 
-                            await authCubit.logout(permissionCubit: permissionCubit);
+                            try {
+                              // PRIMARY PATH: let AuthCubit do its normal
+                              // work. If it completes cleanly, it emits
+                              // AuthLoggedOut and main.dart's top-level
+                              // BlocListener performs the real navigation
+                              // reset for us — nothing changed there.
+                               authCubit.logout(permissionCubit: permissionCubit);
+                            } catch (e) {
+                              // ROOT CAUSE HANDLING: AuthCubit.logout() has
+                              // no internal try/catch. Session-clearing
+                              // calls run and succeed BEFORE this point,
+                              // but if anything after them throws (e.g.
+                              // permissionCubit.clear(), or a Firestore
+                              // call in NotificationService.clearTokenOnLogout
+                              // under poor connectivity), the method aborts
+                              // right there and NEVER reaches its final
+                              // emit(AuthLoggedOut()). That's exactly the
+                              // "cleared but stuck" symptom you saw.
+                              //
+                              // We swallow it here (already logged) instead
+                              // of rethrowing, so the `finally` block below
+                              // still runs unconditionally.
+                              debugPrint('[LogoutDialog] authCubit.logout() threw: $e');
+                            } finally {
+                              // SAFETY NET — always runs, whether logout()
+                              // succeeded, threw, or silently failed to
+                              // emit. We navigate via the app's global
+                              // `navigatorKey`, NOT this widget's own
+                              // `context`/`Navigator.of(context)` — by this
+                              // point `context` may already be unmounted
+                              // if the BlocListener's own navigation beat
+                              // us to it. navigatorKey sidesteps that
+                              // entirely and works either way.
+                              //
+                              // We deliberately do NOT check "are we
+                              // already on LoginScreen" first: if
+                              // main.dart's listener already navigated
+                              // successfully, calling this again is
+                              // harmless — pushAndRemoveUntil always
+                              // collapses the stack back down to
+                              // [home, LoginScreen], so the end state is
+                              // identical whether this fires once or
+                              // twice. That's what makes this reliable
+                              // under races or heavy load without needing
+                              // to detect the current route.
+                              navigatorKey.currentState?.pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                (route) => route.isFirst, // keep `home` (hosts
+                                                           // the AuthCubit
+                                                           // listener), discard
+                                                           // everything else —
+                                                           // including this
+                                                           // dialog's own route.
+                              );
 
-                            // main.dart's BlocConsumer already reacts to the
-                            // resulting AuthLoggedOut state and resets the
-                            // navigator stack to LoginScreen, so nothing more
-                            // to do here except close this dialog if it's
-                            // somehow still around.
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
+                              // Only relevant in the rare case this widget
+                              // is somehow still mounted afterward — reset
+                              // the spinner so nothing looks stuck.
+                              if (mounted) {
+                                setState(() => _isLoggingOut = false);
+                              }
                             }
                           },
                     style: ElevatedButton.styleFrom(

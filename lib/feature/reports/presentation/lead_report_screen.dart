@@ -140,6 +140,22 @@ class _LeadReportContentState extends State<LeadReportContent> {
     return null;
   }
 
+  int _getPriorityValue(String? priority) {
+    if (priority == null) return 5;
+    switch (priority.trim().toLowerCase()) {
+      case 'high':
+        return 1;
+      case 'normal':
+        return 2;
+      case 'low':
+        return 3;
+      case 'negative':
+        return 4;
+      default:
+        return 5;
+    }
+  }
+
   List<AddLeadModel> _applyFilters(List<AddLeadModel> leads) {
     if (_appliedFilters == null) {
       debugPrint(
@@ -342,19 +358,18 @@ final stageNameById = {for (final s in state.stages) s.id: s.name};
             }).toList();
           }
 
-          if (_sortByNewest) {
-            leads.sort((a, b) {
-              if (a.createdAt == null) return 1;
-              if (b.createdAt == null) return -1;
-              return b.createdAt!.compareTo(a.createdAt!);
-            });
-          } else {
-            leads.sort((a, b) {
-              if (a.createdAt == null) return 1;
-              if (b.createdAt == null) return -1;
-              return a.createdAt!.compareTo(b.createdAt!);
-            });
-          }
+          leads.sort((a, b) {
+            final aPrio = _getPriorityValue(a.priority);
+            final bPrio = _getPriorityValue(b.priority);
+            if (aPrio != bPrio) {
+              return aPrio.compareTo(bPrio);
+            }
+            if (a.createdAt == null) return 1;
+            if (b.createdAt == null) return -1;
+            return _sortByNewest
+                ? b.createdAt!.compareTo(a.createdAt!)
+                : a.createdAt!.compareTo(b.createdAt!);
+          });
 
           final String currentSignature =
               '${widget.reportType}_${_sortByNewest}_${_appliedFilters?.fromDate}_${_appliedFilters?.toDate}_${_searchController.text}_${leads.length}_${leads.isNotEmpty ? leads.first.id : ''}_${leads.isNotEmpty ? leads.last.id : ''}';

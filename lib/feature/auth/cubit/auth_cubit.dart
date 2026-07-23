@@ -219,56 +219,83 @@ Future<void> login({
   required PermissionCubit permissionCubit,
   bool forceLogin = false,
 }) async {
+  log('[AuthCubit] Entering login(forceLogin: $forceLogin) | phoneNo: "$phoneNo", password: "${password.isNotEmpty ? '********' : 'EMPTY'}"');
+  log('[AuthCubit] Current _pendingLoginUser: ${_pendingLoginUser?.id}');
+
   if (phoneNo.trim().isEmpty || password.isEmpty) {
+    log('[AuthCubit] Validation failed: phoneNo or password empty');
     emit(AuthError(message: 'Phone number and password are required.'));
     return;
   }
+  log('[AuthCubit] Emitting AuthLoading');
   emit(AuthLoading());
   try {
     // Reuse the already-verified user if this is a confirmed force-login,
     // otherwise verify credentials fresh.
+    log('[AuthCubit] User verification step starting');
     final user = (forceLogin && _pendingLoginUser != null)
         ? _pendingLoginUser!
         : await _authService.login(phoneNo: phoneNo.trim(), password: password);
 
-    log('[AuthCubit] Login success: ${user.phone} | designation: ${user.designation}');
+    log('[AuthCubit] User verification step done. User: ${user.phone} (${user.id})');
 
     // ── NEW: check for an existing active session before proceeding ──
     if (!forceLogin) {
+      log('[AuthCubit] Checking for existing session for user: ${user.id}');
       final existingSessionId = await _staffRepository.getSessionId(user.id!);
+      log('[AuthCubit] Existing session ID: $existingSessionId');
       if (existingSessionId != null && existingSessionId.isNotEmpty) {
+        log('[AuthCubit] Existing session detected! Setting _pendingLoginUser: ${user.id}');
         _pendingLoginUser = user; // remember so "Continue" doesn't re-auth
+        log('[AuthCubit] Emitting AuthAlreadyLoggedIn');
         emit(AuthAlreadyLoggedIn(user: user));
         return;
       }
     }
 
+    log('[AuthCubit] Clearing _pendingLoginUser');
     _pendingLoginUser = null;
 
+    log('[AuthCubit] Saving local session');
     await _sessionService.saveSession(user);
 
     final newSessionId = const Uuid().v4();
+    log('[AuthCubit] Creating new session ID: $newSessionId');
+    
+    log('[AuthCubit] Updating Firestore session ID');
     await _staffRepository.updateSessionId(user.id!, newSessionId);
+    
+    log('[AuthCubit] Saving local session ID');
     await _sessionService.saveSessionId(newSessionId);
 
+    log('[AuthCubit] Registering FCM token');
     await NotificationService.registerTokenAfterLogin(user.id!);
+    
+    log('[AuthCubit] Starting session watcher');
     _startSessionWatcher(user.id!);
 
-   await permissionCubit.loadPermissions(user.designationId);
+    log('[AuthCubit] Loading permissions');
+    await permissionCubit.loadPermissions(user.designationId);
 
+    log('[AuthCubit] Emitting Authenticated');
     emit(Authenticated(user: user));
   } on AuthException catch (e) {
+    log('[AuthCubit] AuthException caught: ${e.message}');
     emit(AuthError(message: e.message));
   } on FirebaseException catch (e) {
+    log('[AuthCubit] FirebaseException caught: ${e.message}');
     emit(AuthError(message: 'Login failed: ${e.message}'));
   } catch (e) {
+    log('[AuthCubit] Exception caught: $e');
     emit(AuthError(message: 'Login failed. Please try again.'));
   }
 }
 
 // Called if the user taps "Cancel" on the already-logged-in dialog.
 void cancelForceLogin() {
+  log('[AuthCubit] cancelForceLogin() called. Clearing _pendingLoginUser');
   _pendingLoginUser = null;
+  log('[AuthCubit] Emitting AuthLoggedOut');
   emit(AuthLoggedOut());
 }
 
