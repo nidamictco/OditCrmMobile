@@ -613,25 +613,25 @@ void selectLeadTag(String? value) {
     }
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // // ── Delete ────────────────────────────────────────────────────────────────
 
-  Future<void> deleteLead(String id, AddLeadModel lead) async {
-    if (state.isDeleting) return;
-    emit(state.copyWith(isDeleting: true, clearError: true));
-    try {
-      await _leadRepository.moveToDeleted(lead);
-      final updated = state.leads.where((l) => l.id != id).toList();
-      emit(
-        state.copyWith(
-          isDeleting: false,
-          leads: updated,
-          successMessage: 'Lead deleted successfully.',
-        ),
-      );
-    } catch (e) {
-      emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
-    }
-  }
+  // Future<void> deleteLead(String id, AddLeadModel lead) async {
+  //   if (state.isDeleting) return;
+  //   emit(state.copyWith(isDeleting: true, clearError: true));
+  //   try {
+  //     await _leadRepository.moveToDeleted(lead);
+  //     final updated = state.leads.where((l) => l.id != id).toList();
+  //     emit(
+  //       state.copyWith(
+  //         isDeleting: false,
+  //         leads: updated,
+  //         successMessage: 'Lead deleted successfully.',
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
+  //   }
+  // }
 
   // ── Update ────────────────────────────────────────────────────────────────
 
@@ -902,21 +902,37 @@ void selectLeadTag(String? value) {
   ///--------------deleted leads-------------
   ///---------------------------------------------
 
-  Future<void> restoreLead(AddLeadModel lead) async {
-    emit(state.copyWith(isUpdating: true, clearError: true));
-    try {
-      await _leadRepository.restoreLead(lead);
-      emit(
-        state.copyWith(
-          isUpdating: false,
-          successMessage: 'Lead restored successfully.',
-        ),
-      );
-      await fetchDeletedLeads();
-    } catch (e) {
-      emit(state.copyWith(isUpdating: false, errorMessage: _friendlyError(e)));
-    }
+  // Future<void> restoreLead(AddLeadModel lead) async {
+  //   emit(state.copyWith(isUpdating: true, clearError: true));
+  //   try {
+  //     await _leadRepository.restoreLead(lead);
+  //     emit(
+  //       state.copyWith(
+  //         isUpdating: false,
+  //         successMessage: 'Lead restored successfully.',
+  //       ),
+  //     );
+  //     await fetchDeletedLeads();
+  //   } catch (e) {
+  //     emit(state.copyWith(isUpdating: false, errorMessage: _friendlyError(e)));
+  //   }
+  // }
+
+   Future<void> restoreLead(AddLeadModel lead) async {
+  emit(state.copyWith(isUpdating: true, clearError: true));
+  try {
+    await _leadRepository.restoreLead(lead.id!);
+    emit(
+      state.copyWith(
+        isUpdating: false,
+        successMessage: 'Lead restored successfully.',
+      ),
+    );
+    await fetchDeletedLeads();
+  } catch (e) {
+    emit(state.copyWith(isUpdating: false, errorMessage: _friendlyError(e)));
   }
+}
 
   Future<void> fetchDeletedLeads() async {
     emit(
@@ -935,23 +951,66 @@ void selectLeadTag(String? value) {
     }
   }
 
-  Future<void> permanentlyDeleteLead(String id) async {
-    emit(state.copyWith(isDeleting: true, clearError: true));
-    try {
-      await _leadRepository.permanentlyDeleteLead(id);
-      final updated = state.leads.where((l) => l.id != id).toList();
-      emit(
-        state.copyWith(
-          isDeleting: false,
-          leads: updated,
-          successMessage: 'Lead deleted successfully.',
-        ),
-      );
-      await fetchDeletedLeads();
-    } catch (e) {
-      emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
+   Future<void> deleteLead(String id, AddLeadModel lead) async {
+  if (state.isDeleting) return;
+  emit(state.copyWith(isDeleting: true, clearError: true));
+  try {
+    if (!lead.isDeleted) {
+      // First delete → hide from active views only.
+      await _leadRepository.softDeleteLead(id);
+    } else {
+      // Second delete → archive with all subcollections, then purge.
+      await _leadRepository.archiveDeletedLead(id);
     }
+    final updated = state.leads.where((l) => l.id != id).toList();
+    emit(
+      state.copyWith(
+        isDeleting: false,
+        leads: updated,
+        successMessage: 'Lead deleted successfully.',
+      ),
+    );
+  } catch (e) {
+    emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
   }
+}
+
+Future<void> permanentlyDeleteLead(String id) async {
+  emit(state.copyWith(isDeleting: true, clearError: true));
+  try {
+    await _leadRepository.archiveDeletedLead(id);
+    final updated = state.leads.where((l) => l.id != id).toList();
+    emit(
+      state.copyWith(
+        isDeleting: false,
+        leads: updated,
+        successMessage: 'Lead deleted successfully.',
+      ),
+    );
+    await fetchDeletedLeads();
+  } catch (e) {
+    emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
+  }
+}
+
+
+  // Future<void> permanentlyDeleteLead(String id) async {
+  //   emit(state.copyWith(isDeleting: true, clearError: true));
+  //   try {
+  //     await _leadRepository.permanentlyDeleteLead(id);
+  //     final updated = state.leads.where((l) => l.id != id).toList();
+  //     emit(
+  //       state.copyWith(
+  //         isDeleting: false,
+  //         leads: updated,
+  //         successMessage: 'Lead deleted successfully.',
+  //       ),
+  //     );
+  //     await fetchDeletedLeads();
+  //   } catch (e) {
+  //     emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
+  //   }
+  // }
 
   // ----------------fetch staff----------------
   Future<void> fetchStaff() async {
@@ -1201,6 +1260,9 @@ void selectLeadTag(String? value) {
     required String fromStaff,
     required String toStaffId,
     required String toStaff,
+    required String leadCategoryId,
+    required String leadSubCategoryId,
+    required String leadStageId,
   }) async {
     if (state.isUpdating) return;
     emit(state.copyWith(isUpdating: true, clearError: true));
@@ -1219,7 +1281,7 @@ void selectLeadTag(String? value) {
         fromStaff: fromStaff,
         toStaffId: toStaffId,
         toStaff: toStaff,
-        transferTime: DateTime.now(),
+        transferTime: DateTime.now(), leadCategoryId: leadCategoryId, leadSubCategoryId: leadSubCategoryId, leadStageId: leadStageId,
       );
 
       await _leadRepository.transferLead(
@@ -1740,6 +1802,7 @@ void selectLeadTag(String? value) {
   //   });
   // }
   // }
+  
   void watchLeadsRealtime() {
     _leadsRealtimeSubscription?.cancel();
     emit(

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odit_crm_mobile/core/constant/firebase_constant.dart';
 import 'package:odit_crm_mobile/core/theme/app_colors.dart';
 import 'package:odit_crm_mobile/core/theme/assets_resources.dart';
+import 'package:odit_crm_mobile/core/utils/bottom_navigation.dart';
 import 'package:odit_crm_mobile/core/utils/launch_phone_and_whatsapp.dart';
 import 'package:odit_crm_mobile/core/utils/lead_name_resolver.dart';
 import 'package:odit_crm_mobile/feature/leads/lead_details/widgets/followup_form_card.dart';
@@ -542,16 +543,63 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
         PopupMenuItem<String>(
           value: 'delete',
           onTap: () {
-            context.read<AddLeadCubit>().deleteLead(_leadData.id!, _leadData);
-            context.read<AddLeadCubit>().fetchLeads();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    LeadManagmentScreen(initialStatus: 'Followup'),
+          //   context.read<AddLeadCubit>().deleteLead(_leadData.id!, _leadData);
+          //   context.read<AddLeadCubit>().fetchLeads();
+          //   Navigator.push(
+          //     context,
+          //     MaterialPageRoute(
+          //       builder: (context) =>
+          //           // LeadManagmentScreen(initialStatus: 'Followup'),
+          //           CustomBottomNavScreen(index: 1,),
+          //     ),
+          //   );
+          // },
+           Future.delayed(Duration.zero, () {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Delete Lead'),
+          content: Text(
+            'Are you sure you want to delete "${_leadData.clientName}"? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // close dialog
+                context.read<AddLeadCubit>().deleteLead(_leadData.id!, _leadData);
+                context.read<AddLeadCubit>().fetchLeads();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CustomBottomNavScreen(index: 1),
+                  ),
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('The lead has been deleted successfully.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
               ),
-            );
-          },
+            ),
+          ],
+        ),
+      );
+    });
+  },
           child: Row(
             children: [
               const Icon(
@@ -606,12 +654,12 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
           }
         });
       } else if (value == 'delete') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The lead has been deleted successfully.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(
+        //     content: Text('The lead has been deleted successfully.'),
+        //     backgroundColor: Colors.red,
+        //   ),
+        // );
       } else if (value == 'transfer') {
         final cubitStaffList = context.read<AddLeadCubit>().state.staffList; // real list, from your cubit
 
@@ -633,7 +681,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
             fromStaffId: _leadData.assignedStaffId,
             fromStaff: _leadData.assignedStaff,
             toStaffId: staffId,
-            toStaff: staffName,
+            toStaff: staffName, leadCategoryId: _leadData.leadCategoryId, leadSubCategoryId: _leadData.leadSubCategoryId, leadStageId: _leadData.leadStageId,
           )
           .then((_) async {
             context.read<AddLeadCubit>().fetchLeads();

@@ -28,9 +28,9 @@ abstract class IAddLeadRepository {
   Future<void> updateLead(String id, AddLeadModel lead);
   Future<void> deleteLead(String id);
   Future<void> moveToDeleted(AddLeadModel lead);
-  Future<List<AddLeadModel>> fetchDeletedLeads();
-  Future<String> restoreLead(AddLeadModel lead);
-  Future<void> permanentlyDeleteLead(String id);
+  // Future<List<AddLeadModel>> fetchDeletedLeads();
+  // Future<String> restoreLead(AddLeadModel lead);
+  // Future<void> permanentlyDeleteLead(String id);
   Future<void> assignStaff(String leadId, String staffId, String staffName);
   Future<AddLeadModel> getLeadById(String leadId);
   Future<void> deleteFollowUp({
@@ -102,6 +102,30 @@ abstract class IAddLeadRepository {
     DateTime? toDate,
   });
   Future<bool> isContactNumberExists(String contactNumber);
+
+  //  Future<List<ActivityModel>> fetchRecentActivities({
+  //   required String staffId,
+  //   required String role,
+  //   int limit = 5,
+  // });
+    Future<void> softDeleteLead(String leadId);
+  Future<void> archiveDeletedLead(String leadId);
+  Future<void> restoreLead(String leadId);
+  Future<void> permanentlyDeleteArchivedLead(String leadId);
+  Future<List<AddLeadModel>> fetchDeletedLeads();
+}
+
+
+
+enum _ArchiveOpType { set, delete }
+
+class _ArchiveOp {
+  final _ArchiveOpType type;
+  final DocumentReference<Map<String, dynamic>> ref;
+  final Map<String, dynamic>? data;
+
+  _ArchiveOp.set(this.ref, this.data) : type = _ArchiveOpType.set;
+  _ArchiveOp.delete(this.ref) : type = _ArchiveOpType.delete, data = null;
 }
 
 class AddLeadRepository implements IAddLeadRepository {
@@ -242,7 +266,7 @@ Stream<List<AddLeadModel>> watchLeads({
         return lead.copyWith(followUp: followUps);
       }),
     );
-    return allLeads;
+    return allLeads.where((lead) => !lead.isDeleted).toList();
   });
 }
 
@@ -285,7 +309,7 @@ Stream<List<AddLeadModel>> watchLeads({
           return lead.copyWith(followUp: followUps);
         }),
       );
-      return allLeads;
+      return allLeads.where((lead) => !lead.isDeleted).toList();
     } on FirebaseException catch (e) {
       debugPrint('[fetchLeads] Firebase error: ${e.code} — ${e.message}');
       rethrow;
@@ -319,7 +343,7 @@ Stream<List<AddLeadModel>> watchLeads({
       final allLeads = snap.docs
           .map((d) => AddLeadModel.fromFirestore(d.data(), d.id))
           .toList();
-
+       final activeLeads = allLeads.where((lead) => !lead.isDeleted).toList();
       /// ---------------- DATE FILTER HELPER ----------------
 
       bool isSameDay(DateTime? date) {
@@ -335,37 +359,37 @@ Stream<List<AddLeadModel>> watchLeads({
       switch (fromCard.toUpperCase()) {
         /// NEW LEADS
         case 'NEW':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return isSameDay(lead.createdAt);
           }).toList();
 
         /// FOLLOWUP LEADS
         case 'FOLLOWUP':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return isSameDay(lead.followUpDate);
           }).toList();
 
         /// CLOSED LEADS
         case 'CLOSED':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return lead.leadStage.toUpperCase() == 'CLOSED';
           }).toList();
 
         /// TOTAL CALLED
         case 'TOTAL':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return isSameDay(lead.calledDate);
           }).toList();
 
         /// MISSED / REJECTED
         case 'MISSED':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return lead.leadStage.toUpperCase() == 'REJECTED';
           }).toList();
 
         /// TRANSFERRED LEADS
         case 'TRANSFERRED':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             if (lead.transferLeads == null || lead.transferLeads!.isEmpty) {
               return false;
             }
@@ -392,7 +416,7 @@ Stream<List<AddLeadModel>> watchLeads({
           }).toList();
 
         default:
-          return allLeads;
+          return activeLeads;
       }
     } catch (e) {
       log("error in fetchDashboardLeads ::: $e");
@@ -450,6 +474,9 @@ Stream<List<AddLeadModel>> watchLeads({
       //       date.day == selectedDate.day;
       // }
 
+
+ final activeLeads = allLeads.where((lead) => !lead.isDeleted).toList();
+
       final effectiveTo = toDate ?? DateTime.now(); //selectedDate ??
       final DateTime? fromDay = selectedDate != null
           ? DateTime(selectedDate.year, selectedDate.month, selectedDate.day)
@@ -488,7 +515,7 @@ Stream<List<AddLeadModel>> watchLeads({
       switch (fromCard.toUpperCase()) {
         /// NEW LEADS
         case 'NEW':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return isInRange(lead.createdAt) &&
                 lead.leadStage.toUpperCase() == 'NEW' &&
                 // lead.followUp!.isEmpty;
@@ -497,7 +524,7 @@ Stream<List<AddLeadModel>> watchLeads({
 
         /// FOLLOWUP LEADS
         case 'FOLLOWUP':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return isInRange(lead.followUpDate) &&
                 lead.leadStage.toUpperCase() == 'FOLLOWUP'; // &&
             // lead.leadStage.toUpperCase() != 'CLOSED'&&
@@ -506,7 +533,7 @@ Stream<List<AddLeadModel>> watchLeads({
 
         /// CLOSED LEADS
         case 'CLOSED':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return lead.leadStage.toUpperCase() == 'CLOSED' &&
                 isInRange(lead.calledDate);
           }).toList();
@@ -514,7 +541,7 @@ Stream<List<AddLeadModel>> watchLeads({
         /// TOTAL CALLED
         case 'TOTAL':
           final List<AddLeadModel> result = [];
-          for (final lead in allLeads) {
+          for (final lead in activeLeads) {
             final matchingFollowUps =
                 lead.followUp?.where((fup) {
                   final inRange = isInRange(fup.calledDate);
@@ -553,7 +580,7 @@ Stream<List<AddLeadModel>> watchLeads({
 
         /// MISSED / REJECTED
         case 'MISSED':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             return (lead.leadStage.toUpperCase() == 'FOLLOWUP' ||
                     lead.leadStage.toUpperCase() == 'NEW') &&
                 isbeforeFromDay(lead.followUpDate);
@@ -561,7 +588,7 @@ Stream<List<AddLeadModel>> watchLeads({
 
         /// TRANSFERRED
         case 'TRANSFERRED':
-          return allLeads.where((lead) {
+          return activeLeads.where((lead) {
             if (lead.transferLeads == null || lead.transferLeads!.isEmpty) {
               return false;
             }
@@ -578,7 +605,7 @@ Stream<List<AddLeadModel>> watchLeads({
           }).toList();
 
         default:
-          return allLeads;
+          return activeLeads;
       }
     } catch (e) {
       log("error in fetchDashboardLeads ::: $e");
@@ -669,52 +696,52 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
   await batch.commit();
 }
 
-@override
-Future<String> restoreLead(AddLeadModel lead) async {
-  final leadId = lead.id!;
-  final batch = FirebaseFirestore.instance.batch();
+// @override
+// Future<String> restoreLead(AddLeadModel lead) async {
+//   final leadId = lead.id!;
+//   final batch = FirebaseFirestore.instance.batch();
 
-  batch.set(_collection.doc(leadId), lead.copyWith(deletedAt: null).toFirestore());
+//   batch.set(_collection.doc(leadId), lead.copyWith(deletedAt: null).toFirestore());
 
-  for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
-    final subSnap = await _deletedCollection.doc(leadId).collection(sub).get();
-    for (final doc in subSnap.docs) {
-      batch.set(_collection.doc(leadId).collection(sub).doc(doc.id), doc.data());
-    }
-  }
+//   for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
+//     final subSnap = await _deletedCollection.doc(leadId).collection(sub).get();
+//     for (final doc in subSnap.docs) {
+//       batch.set(_collection.doc(leadId).collection(sub).doc(doc.id), doc.data());
+//     }
+//   }
 
-  await batch.commit();
-  await _deleteWithSubcollections(_deletedCollection.doc(leadId));
+//   await batch.commit();
+//   await _deleteWithSubcollections(_deletedCollection.doc(leadId));
 
-  return leadId;
-}
+//   return leadId;
+// }
 
- @override
-Future<List<AddLeadModel>> fetchDeletedLeads() async {
-  final snap = await _collection
-      .where('isDeleted', isEqualTo: true)
-      .orderBy('deletedAt', descending: true)
-      .get();
-  return snap.docs
-      .map((d) => AddLeadModel.fromFirestore(d.data(), d.id))
-      .toList();
-}
+//  @override
+// Future<List<AddLeadModel>> fetchDeletedLeads() async {
+//   final snap = await _collection
+//       .where('isDeleted', isEqualTo: true)
+//       .orderBy('deletedAt', descending: true)
+//       .get();
+//   return snap.docs
+//       .map((d) => AddLeadModel.fromFirestore(d.data(), d.id))
+//       .toList();
+// }
 
- @override
-Future<void> permanentlyDeleteLead(String id) async {
-  final batch = FirebaseFirestore.instance.batch();
+//  @override
+// Future<void> permanentlyDeleteLead(String id) async {
+//   final batch = FirebaseFirestore.instance.batch();
 
-  for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
-    final subSnap = await _collection.doc(id).collection(sub).get();
-    for (final doc in subSnap.docs) {
-      batch.delete(doc.reference);
-    }
-  }
-  batch.delete(_collection.doc(id));
+//   for (final sub in ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS']) {
+//     final subSnap = await _collection.doc(id).collection(sub).get();
+//     for (final doc in subSnap.docs) {
+//       batch.delete(doc.reference);
+//     }
+//   }
+//   batch.delete(_collection.doc(id));
 
-  await batch.commit();
-  log('[AddLeadRepository] Lead permanently deleted with subcollections: $id');
-}
+//   await batch.commit();
+//   log('[AddLeadRepository] Lead permanently deleted with subcollections: $id');
+// }
 
   @override
   Future<void> assignStaff(
@@ -1031,6 +1058,7 @@ Future<void> permanentlyDeleteLead(String id) async {
 
     for (final doc in snap.docs) {
       final data = doc.data();
+      if (data['isDeleted'] == true) continue;
       final leadStage = (data['leadStage'] ?? '').toString().toUpperCase();
 
       // ── NEW ────────────────────────────────────────────────────────────
@@ -1187,7 +1215,9 @@ Future<void> permanentlyDeleteLead(String id) async {
       final List<AddLeadModel> result = [];
 
       int totalCount = 0;
-      for (final lead in allLeads) {
+      final activeLeads = allLeads.where((lead) => !lead.isDeleted).toList();
+
+      for (final lead in activeLeads) {
         final matchingFollowUps =
             lead.followUp?.where((fup) {
               final inRange = isInRange(fup.calledDate);
@@ -1486,6 +1516,7 @@ Future<void> permanentlyDeleteLead(String id) async {
 
     for (final doc in snap.docs) {
       final data = doc.data();
+      if (data['isDeleted'] == true) continue;
       final stage = (data['leadStage'] ?? '').toString().toUpperCase();
 
       switch (stage) {
@@ -1551,6 +1582,7 @@ Future<void> permanentlyDeleteLead(String id) async {
 
     for (final doc in snapshot.docs) {
       final data = doc.data();
+      if(data['isDeleted'] == true) continue;
       final category = (data['leadCategory'] as String? ?? 'Uncategorized')
           .trim()
           .toUpperCase();
@@ -1840,6 +1872,116 @@ Future<void> permanentlyDeleteLead(String id) async {
         .get();
     return snap.docs.isNotEmpty;
   }
+
+   Future<void> _commitBatchOps(List<_ArchiveOp> ops, {int chunkSize = 450}) async {
+  for (var i = 0; i < ops.length; i += chunkSize) {
+    final end = (i + chunkSize > ops.length) ? ops.length : i + chunkSize;
+    final batch = _firestore.batch();
+    for (var j = i; j < end; j++) {
+      final op = ops[j];
+      if (op.type == _ArchiveOpType.set) {
+        batch.set(op.ref, op.data!);
+      } else {
+        batch.delete(op.ref);
+      }
+    }
+    await batch.commit();
+  }
+}
+
+@override
+Future<void> softDeleteLead(String leadId) async {
+  if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+  await _collection.doc(leadId).update({
+    'isDeleted': true,
+    'deletedAt': FieldValue.serverTimestamp(),
+  });
+  log('[AddLeadRepository] Lead soft-deleted: $leadId');
+}
+
+@override
+Future<void> restoreLead(String leadId) async {
+  if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+  await _collection.doc(leadId).update({
+    'isDeleted': false,
+    'deletedAt': null,
+  });
+  log('[AddLeadRepository] Lead restored: $leadId');
+}
+
+@override
+Future<void> archiveDeletedLead(String leadId) async {
+  if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+
+  final leadRef = _collection.doc(leadId);
+  final archiveRef = _deletedCollection.doc(leadId); // same doc ID, preserved
+
+  final leadSnap = await leadRef.get();
+  if (!leadSnap.exists) {
+    throw Exception('Lead not found. It may already be archived or removed.');
+  }
+  final leadData = Map<String, dynamic>.from(leadSnap.data()!);
+
+  const subcollections = ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS'];
+
+  final writeOps = <_ArchiveOp>[_ArchiveOp.set(archiveRef, leadData)];
+  final deleteOps = <_ArchiveOp>[];
+
+  for (final sub in subcollections) {
+    final subSnap = await leadRef.collection(sub).get();
+    for (final doc in subSnap.docs) {
+      writeOps.add(
+        _ArchiveOp.set(archiveRef.collection(sub).doc(doc.id), doc.data()),
+      );
+      deleteOps.add(_ArchiveOp.delete(leadRef.collection(sub).doc(doc.id)));
+    }
+  }
+
+  // Copy everything FIRST. Only if every archive write succeeds do we
+  // touch the original — a failure here leaves LEADS completely intact.
+  await _commitBatchOps(writeOps);
+
+  deleteOps.add(_ArchiveOp.delete(leadRef)); // delete parent doc last
+  await _commitBatchOps(deleteOps);
+
+  log('[AddLeadRepository] Lead archived + removed from LEADS: $leadId');
+}
+
+@override
+Future<void> permanentlyDeleteArchivedLead(String leadId) async {
+  // Purges an already-archived DELETED_LEADS/{id} doc and its subcollections.
+  // Not currently wired to any button — available if you later want a
+  // separate "empty the archive" admin action.
+  if (leadId.trim().isEmpty) throw ArgumentError('Lead ID cannot be empty.');
+
+  final archiveRef = _deletedCollection.doc(leadId);
+  const subcollections = ['FOLLOW_UPS', 'ACTIVITIES', 'TRANSFER_LEADS'];
+
+  final deleteOps = <_ArchiveOp>[];
+  for (final sub in subcollections) {
+    final subSnap = await archiveRef.collection(sub).get();
+    for (final doc in subSnap.docs) {
+      deleteOps.add(_ArchiveOp.delete(archiveRef.collection(sub).doc(doc.id)));
+    }
+  }
+  deleteOps.add(_ArchiveOp.delete(archiveRef));
+
+  await _commitBatchOps(deleteOps);
+  log('[AddLeadRepository] Archived lead purged permanently: $leadId');
+}
+
+
+@override
+Future<List<AddLeadModel>> fetchDeletedLeads() async {
+  final snap = await _collection
+      .where('isDeleted', isEqualTo: true)
+      .orderBy('deletedAt', descending: true)
+      .get();
+  return snap.docs
+      .map((d) => AddLeadModel.fromFirestore(d.data(), d.id))
+      .toList();
+}
+ 
 }
 
 Future<void> migrateHasFollowUp() async {

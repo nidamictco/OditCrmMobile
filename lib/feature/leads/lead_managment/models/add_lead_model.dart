@@ -34,10 +34,11 @@ class AddLeadModel {
   final String? callResult;
   final List<TransferDetails>? transferLeads;
   final String leadCategoryId;
-final String leadSubCategoryId;
-final String leadSourceId;
-final String leadStageId;
-final String leadTagId;
+  final String leadSubCategoryId;
+  final String leadSourceId;
+  final String leadStageId;
+  final String leadTagId;
+  final bool isDeleted;
 
   const AddLeadModel({
     this.id,
@@ -78,6 +79,7 @@ final String leadTagId;
     this.leadSourceId = '',
     this.leadStageId = '',
     this.leadTagId = '',
+    this.isDeleted = false,
   });
 
   Map<String, dynamic> toFirestore() {
@@ -96,7 +98,7 @@ final String leadTagId;
       'assignedStaff': assignedStaff,
       'assignedStaffId': assignedStaffId,
       'leadCategory': leadCategory.toString().toUpperCase(),
-      'leadSubCategory':leadSubCategory.toString().toUpperCase(),
+      'leadSubCategory': leadSubCategory.toString().toUpperCase(),
       'leadSource': leadSource.toString().toUpperCase(),
       'priority': priority,
       'leadStage': leadStage.toString().toUpperCase(),
@@ -124,7 +126,8 @@ final String leadTagId;
       'leadSubCategoryId': leadSubCategoryId,
       'leadSourceId': leadSourceId,
       'leadStageId': leadStageId,
-      'leadTagId': leadTagId, 
+      'leadTagId': leadTagId,
+      'isDeleted': isDeleted,
     };
   }
 
@@ -177,6 +180,7 @@ final String leadTagId;
       leadSourceId: data['leadSourceId'] ?? '',
       leadStageId: data['leadStageId'] ?? '',
       leadTagId: data['leadTagId'] ?? '',
+      isDeleted: data['isDeleted'] ?? false,
     );
   }
 
@@ -218,6 +222,7 @@ final String leadTagId;
     String? leadSourceId,
     String? leadStageId,
     String? leadTagId,
+    bool? isDeleted,
   }) {
     return AddLeadModel(
       id: id ?? this.id,
@@ -257,6 +262,7 @@ final String leadTagId;
       leadSourceId: leadSourceId ?? this.leadSourceId,
       leadStageId: leadStageId ?? this.leadStageId,
       leadTagId: leadTagId ?? this.leadTagId,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -292,7 +298,7 @@ class FollowUpModel {
 
   final String createdById;
   final DateTime? createdAt;
-  
+
   final String leadCategoryId;
   final String leadSubCategoryId;
   final String leadStageId;
@@ -349,7 +355,7 @@ class FollowUpModel {
       assignedStaffId: data['assignedStaffId'] ?? '',
       createdById: data['createdById'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
-       leadCategoryId: data['leadCategoryId'] ?? '',
+      leadCategoryId: data['leadCategoryId'] ?? '',
       leadSubCategoryId: data['leadSubCategoryId'] ?? '',
       leadStageId: data['leadStageId'] ?? '',
       leadTagId: data['leadTagId'] ?? '',
@@ -368,7 +374,7 @@ class FollowUpModel {
       'calledDate': Timestamp.fromDate(calledDate),
       'leadStage': leadStage,
       'leadCategory': leadCategory,
-      'leadSubCategory':leadSubCategory,
+      'leadSubCategory': leadSubCategory,
       'priority': priority,
       'remarks': remarks,
       'address': adress,
@@ -407,7 +413,7 @@ class FollowUpModel {
     String? assignedStaffId,
     String? createdById,
     DateTime? createdAt,
-      String? leadCategoryId,
+    String? leadCategoryId,
     String? leadSubCategoryId,
     String? leadStageId,
     String? leadTagId,
@@ -447,8 +453,11 @@ class TransferDetails {
   final String leadName;
   final String contactNumber;
   final String leadCategory;
+  final String leadCategoryId;
   final String leadSubCategory;
+  final String leadSubCategoryId;
   final String leadStage;
+  final String leadStageId;
   final String fromStaffId;
   final String fromStaff;
   final String toStaffId;
@@ -461,8 +470,11 @@ class TransferDetails {
     required this.leadName,
     required this.contactNumber,
     required this.leadCategory,
+    required this.leadCategoryId,
     required this.leadSubCategory,
+    required this.leadSubCategoryId,
     required this.leadStage,
+    required this.leadStageId,
     required this.fromStaffId,
     required this.fromStaff,
     required this.toStaffId,
@@ -480,8 +492,11 @@ class TransferDetails {
       leadName: data['leadName'] ?? '',
       contactNumber: data['contactNumber'] ?? '',
       leadCategory: data['leadCategory'] ?? '',
+      leadCategoryId: data['leadCategoryId'] ?? '',
       leadSubCategory: data['leadSubCategory'] ?? '',
+      leadSubCategoryId: data['leadSubCategoryId'] ?? '',
       leadStage: data['leadStage'] ?? '',
+      leadStageId: data['leadStageId'] ?? '',
       fromStaffId: data['fromStaffId'] ?? '',
       fromStaff: data['fromStaff'] ?? '',
       toStaffId: data['toStaffId'] ?? '',
@@ -497,8 +512,11 @@ class TransferDetails {
       'leadName': leadName,
       'contactNumber': contactNumber,
       'leadCategory': leadCategory,
-      'leadSubCategory':leadSubCategory,
+      'leadCategoryId': leadCategoryId,
+      'leadSubCategory': leadSubCategory,
+      'leadSubCategoryId': leadSubCategoryId,
       'leadStage': leadStage,
+      'leadStageId': leadStageId,
       'fromStaffId': fromStaffId,
       'fromStaff': fromStaff,
       'toStaffId': toStaffId,
@@ -515,8 +533,11 @@ class TransferDetails {
     String? leadName,
     String? contactNumber,
     String? leadCategory,
-    String? leadStage,
+    String? leadCategoryId,
     String? leadSubCategory,
+    String? leadSubCategoryId,
+    String? leadStage,
+    String? leadStageId,
     String? fromStaffId,
     String? fromStaff,
     String? toStaffId,
@@ -529,8 +550,11 @@ class TransferDetails {
       leadName: leadName ?? this.leadName,
       contactNumber: contactNumber ?? this.contactNumber,
       leadCategory: leadCategory ?? this.leadCategory,
+      leadCategoryId: leadCategoryId ?? this.leadCategoryId,
       leadSubCategory: leadSubCategory ?? this.leadSubCategory,
+      leadSubCategoryId: leadSubCategoryId ?? this.leadSubCategoryId,
       leadStage: leadStage ?? this.leadStage,
+      leadStageId: leadStageId ?? this.leadStageId,
       fromStaffId: fromStaffId ?? this.fromStaffId,
       fromStaff: fromStaff ?? this.fromStaff,
       toStaffId: toStaffId ?? this.toStaffId,
