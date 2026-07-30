@@ -18,6 +18,7 @@ class StaffModel {
   final bool accessCallLog;
   final bool hasSalaryAccount;
   final bool hasPettyCash;
+  final bool isPurged;
   final String? imageUrl;
   final String? documentName;
   final String? documentUrl;
@@ -46,6 +47,7 @@ class StaffModel {
     this.accessCallLog = false,
     this.hasSalaryAccount = true,
     this.hasPettyCash = false,
+    this.isPurged = false,
     this.imageUrl,
     this.documentName,
     this.documentUrl,
@@ -77,6 +79,7 @@ class StaffModel {
     bool? accessCallLog,
     bool? hasSalaryAccount,
     bool? hasPettyCash,
+    bool? isPurged,
     String? imageUrl,
     String? documentName,
     String? documentUrl,
@@ -105,6 +108,7 @@ class StaffModel {
       accessCallLog: accessCallLog ?? this.accessCallLog,
       hasSalaryAccount: hasSalaryAccount ?? this.hasSalaryAccount,
       hasPettyCash: hasPettyCash ?? this.hasPettyCash,
+      isPurged: isPurged ?? this.isPurged,
       imageUrl: imageUrl ?? this.imageUrl,
       documentName: documentName ?? this.documentName,
       documentUrl: documentUrl ?? this.documentUrl,
@@ -123,7 +127,8 @@ class StaffModel {
     final map = doc.data()!;
     final isUsersCollection = doc.reference.parent.path == 'USERS';
     final companyIdVal = map['companyId'] as String?;
-    final resolvedId = (isUsersCollection && companyIdVal != null && companyIdVal.isNotEmpty)
+    final resolvedId =
+        (isUsersCollection && companyIdVal != null && companyIdVal.isNotEmpty)
         ? "admin-$companyIdVal"
         : doc.id;
     return StaffModel(
@@ -134,7 +139,8 @@ class StaffModel {
       email: map['email'],
       designationId: map['designationId'],
       designation: map['designation'],
-      staffType: map['staffType'] ??
+      staffType:
+          map['staffType'] ??
           map['role'] ??
           (isUsersCollection ? 'Admin' : null),
       joiningDate: map['joiningDate'],
@@ -146,6 +152,7 @@ class StaffModel {
       accessCallLog: map['accessCallLog'] ?? false,
       hasSalaryAccount: map['hasSalaryAccount'] ?? true,
       hasPettyCash: map['hasPettyCash'] ?? false,
+      isPurged: map['isPurged'] ?? false,
       imageUrl: map['imageUrl'],
       documentName: map['documentName'],
       documentUrl: map['documentUrl'],
@@ -168,6 +175,7 @@ class StaffModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'password': password,
       'phone': phone,
@@ -184,6 +192,7 @@ class StaffModel {
       'accessCallLog': accessCallLog,
       'hasSalaryAccount': hasSalaryAccount,
       'hasPettyCash': hasPettyCash,
+      'isPurged': isPurged,
       'imageUrl': imageUrl,
       'documentName': documentName,
       'documentUrl': documentUrl,
@@ -216,6 +225,7 @@ class StaffModel {
       'accessCallLog': accessCallLog,
       'hasSalaryAccount': hasSalaryAccount,
       'hasPettyCash': hasPettyCash,
+      'isPurged': isPurged,
       'imageUrl': imageUrl,
       'documentName': documentName,
       'documentUrl': documentUrl,
@@ -247,6 +257,7 @@ class StaffModel {
       accessCallLog: map['accessCallLog'] ?? false,
       hasSalaryAccount: map['hasSalaryAccount'] ?? true,
       hasPettyCash: map['hasPettyCash'] ?? false,
+      isPurged: map['isPurged'] ?? false,
       imageUrl: map['imageUrl'],
       documentName: map['documentName'],
       documentUrl: map['documentUrl'],

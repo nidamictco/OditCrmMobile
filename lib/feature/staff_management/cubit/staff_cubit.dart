@@ -13,20 +13,10 @@ class StaffCubit extends Cubit<StaffState> {
       : _repository = repository ?? StaffRepository(),
         super(StaffInitial());
 
-//   // ─── Add ──────────────────────────────────────────────────────────────────
 
   // ─── Update status ────────────────────────────────────────────────────────
 
-  // Future<void> updateStatus(String staffId, String newStatus) async {
-  //   try {
-  //     await _repository.updateStaffField(staffId, {'status': newStatus});
-  //     log('[StaffCubit] Status updated: $staffId → $newStatus');
-  //     await getStaff(staffId);
-  //   } catch (e, st) {
-  //     log('[StaffCubit] UpdateStatus error: $e', stackTrace: st);
-  //     emit(StaffError(e.toString()));
-  //   }
-  // }
+ 
   Future<void> updateStatus(String staffId, String newStatus) async {
   try {
     await _repository.updateStaffField(staffId, {'status': newStatus});
@@ -116,29 +106,7 @@ class StaffCubit extends Cubit<StaffState> {
   }
 }
 
-  // // ─── Restore deleted staff ────────────────────────────────────────────────
-
-  // Future<void> restoreStaff(
-  //   StaffModel staff, {
-  //   File? imageFile,
-  //   File? documentFile,
-  // }) async {
-  //   emit(StaffSaving());
-  //   try {
-  //     final docId = await _repository.restoreStaff(
-  //       staff,
-  //       imageFile: imageFile,
-  //       documentFile: documentFile,
-  //     );
-  //     log('[StaffCubit] Staff restored: $docId');
-  //     emit(StaffSaved(docId));
-  //     await fetchDeletedStaff();
-  //   } catch (e, st) {
-  //     log('[StaffCubit] Restore error: $e', stackTrace: st);
-  //     emit(StaffError(e.toString()));
-  //   }
-  // }
-
+ 
   // ─── Fetch deleted staff ──────────────────────────────────────────────────
 
   Future<void> fetchDeletedStaff() async {
@@ -167,42 +135,7 @@ class StaffCubit extends Cubit<StaffState> {
     }
   }
 
-  // // ─── Notes ────────────────────────────────────────────────────────────────
-
-  // Future<void> addNotes(String staffId, List<NoteModel> notes) async {
-  //   try {
-  //     for (final note in notes) {
-  //       await _repository.addNote(staffId, note);
-  //     }
-  //     log('[StaffCubit] All notes saved: $staffId');
-  //     emit(NoteSaved());
-  //   } catch (e, st) {
-  //     log('[StaffCubit] AddNotes error: $e', stackTrace: st);
-  //     emit(StaffError(e.toString()));
-  //   }
-  // }
-
-  // Future<void> fetchNotes(String staffId) async {
-  //   emit(NotesLoading());
-  //   try {
-  //     final notes = await _repository.fetchNotes(staffId);
-  //     emit(NotesLoaded(notes));
-  //   } catch (e, st) {
-  //     log('[StaffCubit] FetchNotes error: $e', stackTrace: st);
-  //     emit(StaffError(e.toString()));
-  //   }
-  // }
-
-  // Future<void> deleteNote(String staffId, String noteId) async {
-  //   try {
-  //     await _repository.deleteNote(staffId, noteId);
-  //     log('[StaffCubit] Note deleted: $noteId');
-  //     await fetchNotes(staffId);
-  //   } catch (e, st) {
-  //     log('[StaffCubit] DeleteNote error: $e', stackTrace: st);
-  //     emit(StaffError(e.toString()));
-  //   }
-  // }
+ 
 
   // ─── Update field ─────────────────────────────────────────────────────────
 

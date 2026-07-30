@@ -9,7 +9,6 @@ import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class FirebaseAuthService {
   FirebaseAuthService({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -49,6 +48,14 @@ class FirebaseAuthService {
           throw AuthException('Incorrect password.');
         }
 
+        final staffStatus = (data['status'] as String? ?? 'ACTIVE')
+            .toUpperCase();
+        if (staffStatus == 'INACTIVE') {
+          throw const AuthException(
+            'Your account has been deactivated.\nPlease contact your administrator.',
+          );
+        }
+
         userModel = StaffModel.fromFirestore(doc);
         if (userModel.companyId != null && userModel.companyId!.isNotEmpty) {
           FirestorePath.initializeCompany(userModel.companyId!);
@@ -68,7 +75,6 @@ class FirebaseAuthService {
             .get();
 
         if (staffQuery.docs.isEmpty) {
-          
           throw AuthException('No account found.');
         }
 
@@ -77,6 +83,14 @@ class FirebaseAuthService {
 
         if ((data['password'] ?? '') != password) {
           throw AuthException('Incorrect password.');
+        }
+
+        final staffStatus = (data['status'] as String? ?? 'ACTIVE')
+            .toUpperCase();
+        if (staffStatus == 'INACTIVE') {
+          throw const AuthException(
+            'Your account has been deactivated.\nPlease contact your administrator.',
+          );
         }
 
         // ====================================================
@@ -128,7 +142,6 @@ class FirebaseAuthService {
       rethrow;
     }
   }
-
 
   // Future<StaffModel> login({
   //   required String phoneNo,

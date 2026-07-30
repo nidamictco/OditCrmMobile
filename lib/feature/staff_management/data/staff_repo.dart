@@ -79,6 +79,9 @@ class StaffRepository {
   }
 
 
+
+
+
 Future<String?> getSessionId(String staffId) async {
   final doc = await FirestorePath.companyCollection('STAFF').doc(staffId).get();
   return doc.data()?['sessionId'] as String?;
@@ -98,8 +101,8 @@ Future<String?> getSessionId(String staffId) async {
   // ─── Permanently delete ───────────────────────────────────────────────────
 
   Future<void> deleteStaffPermanently(String id) async {
-    await _deletedCollection.doc(id).delete();
-    log('[StaffRepository] Staff deleted permanently: $id');
+    await _deletedCollection.doc(id).update({'isPurged': true});
+    log('[StaffRepository] Staff purged (kept in Firestore, hidden from UI): $id');
   }
 // --------------------------------------------------
 Future<void> updateSessionId(String staffId, String sessionId) async {

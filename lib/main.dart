@@ -206,7 +206,7 @@ class _MyAppState extends State<MyApp> {
                     }
                   });
                 }
-                 if (state is AuthLoggedOut || state is AuthError) {
+                 if (state is AuthLoggedOut) {
                 navigatorKey.currentState?.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
                   (route) => route.isFirst,

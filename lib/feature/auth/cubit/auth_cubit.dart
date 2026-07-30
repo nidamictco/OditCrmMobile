@@ -29,6 +29,7 @@ class AuthCubit extends Cubit<AuthState> {
   final StaffRepository _staffRepository;
 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sessionSub;
+  bool _isForceLoggingOut = false;
 
   // ─── Session guard ────────────────────────────────────────────────────────
 
@@ -48,9 +49,24 @@ class AuthCubit extends Cubit<AuthState> {
   // }
   void _startSessionWatcher(String staffId) {
   _sessionSub?.cancel();
+   _isForceLoggingOut = false;
   _sessionSub = _staffRepository.watchStaffDoc(staffId).listen(
     (snap) async {
       log('[AuthCubit] session watcher tick for $staffId — doc exists: ${snap.exists}');
+     
+      if (_isForceLoggingOut) return; // already handling a logout this tick
+
+        final data = snap.data();
+
+        // ── Priority 1: account deactivated ──
+        if (_isStaffDeactivated(data)) {
+          log('[AuthCubit] Staff status changed to INACTIVE — forcing logout');
+          await _forceLogout(
+            message: 'Your account has been deactivated by the administrator.',
+          );
+          return;
+        }
+     
       final remoteSessionId = snap.data()?['sessionId'] as String?;
       final localSessionId = await _sessionService.getSessionId();
 
@@ -75,39 +91,35 @@ class AuthCubit extends Cubit<AuthState> {
   );
 }
 
-  // Future<void> _forceLogout() async {
-  //   await _sessionSub?.cancel();
-  //   _sessionSub = null;
-
-  //   final user = await _sessionService.getSavedUser();
-  //   if (user?.id != null && user!.id!.isNotEmpty) {
-  //     await NotificationService.clearTokenOnLogout(user.id!);
-  //   }
-
-  //   await _sessionService.clearSessionId();
-  //   await _sessionService.clearSession(); // prefs.clear() — wipes sessionId key too
-  //   FirestorePath.clear();
-
-  //   emit(AuthForceLoggedOut());
-  // }
-  Future<void> _forceLogout() async {
-  await _sessionSub?.cancel();
-  _sessionSub = null;
-
-  // Emit FIRST so navigation starts immediately, before anything
-  // that reads FirestorePath.companyId is invalidated.
-  emit(AuthForceLoggedOut());
-
-  // Cleanup now happens after the UI has already been told to leave.
-  final user = await _sessionService.getSavedUser();
-  if (user?.id != null && user!.id!.isNotEmpty) {
-    await NotificationService.clearTokenOnLogout(user.id!);
+  bool _isStaffDeactivated(Map<String, dynamic>? data) {
+    final status = (data?['status'] as String?)?.toUpperCase();
+    return status == 'INACTIVE';
   }
 
-  await _sessionService.clearSessionId();
-  await _sessionService.clearSession();
-  FirestorePath.clear();
-}
+ 
+  Future<void> _forceLogout({
+    String message = 'You were logged out because your account signed in on another device.',
+  }) async {
+    if (_isForceLoggingOut) return;
+    _isForceLoggingOut = true;
+
+    await _sessionSub?.cancel();
+    _sessionSub = null;
+
+    // Emit first so navigation happens immediately.
+    emit(AuthForceLoggedOut(message: message));
+
+    final user = await _sessionService.getSavedUser();
+    if (user?.id != null && user!.id!.isNotEmpty) {
+      await NotificationService.clearTokenOnLogout(user.id!);
+    }
+
+    await _sessionService.clearSessionId();
+    await _sessionService.clearSession();
+    FirestorePath.clear();
+
+    _isForceLoggingOut = false;
+  }
 
   // ─── Check saved session on app start ────────────────────────────────────
 
@@ -143,8 +155,21 @@ class AuthCubit extends Cubit<AuthState> {
           // ── Session-guard check BEFORE restoring Authenticated: has
           // another device taken over while this app was closed? ──
           final staffDoc = await _staffRepository.watchStaffDoc(user.id!).first;
+          final remoteData = staffDoc.data();
           final remoteSessionId = staffDoc.data()?['sessionId'] as String?;
           final localSessionId = await _sessionService.getSessionId();
+
+
+if (_isStaffDeactivated(remoteData)) {
+  await _sessionService.clearSessionId();
+  await _sessionService.clearSession();
+  FirestorePath.clear();
+  emit(AuthForceLoggedOut(
+    message: 'Your account has been deactivated by the administrator.',
+  ));
+  return;
+}
+
 
           if (remoteSessionId != null &&
               localSessionId != null &&

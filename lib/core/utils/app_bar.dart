@@ -9,12 +9,10 @@ import 'package:odit_crm_mobile/feature/notification/screen/notification_screen.
 import 'package:sizer/sizer.dart';
 import 'package:odit_crm_mobile/feature/staff_management/model/staff_model.dart';
 
-class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CommonAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? avatarImagePath;
-
   final VoidCallback? onAvatarTap;
   final VoidCallback? onMoreTap;
-
   final int notificationCount;
 
   const CommonAppBar({
@@ -29,9 +27,27 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(80);
 
   @override
+  State<CommonAppBar> createState() => _CommonAppBarState();
+}
+
+class _CommonAppBarState extends State<CommonAppBar> {
+
+  late final Future<StaffModel?> _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = SessionService().getSavedUser();
+  }
+
+  // @override
+  // Size get preferredSize => const Size.fromHeight(80);
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<StaffModel?>(
-      future: SessionService().getSavedUser(),
+      // future: SessionService().getSavedUser(),
+      future: _userFuture,
       builder: (context, snapshot) {
         final String displayName;
         final String displayRole;
@@ -61,8 +77,8 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                     children: [
                       // ── Avatar ──────────────────────────────
                       GestureDetector(
-                        onTap: onAvatarTap,
-                        child: _Avatar(imagePath: avatarImagePath),
+                        onTap: widget.onAvatarTap,
+                        child: _Avatar(imagePath: widget.avatarImagePath),
                       ),
                       const SizedBox(width: 12),
 
@@ -109,7 +125,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           );
                         },
-                        badgeCount: notificationCount,
+                        badgeCount: widget.notificationCount,
                       ),
                       SizedBox(width: 4),
                       _AppBarIconButton(
