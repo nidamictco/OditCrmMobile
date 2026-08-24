@@ -369,7 +369,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
   }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
-  void _submitFollowup() {
+  void _submitFollowup(AddLeadState state) {
     debugPrint('=== FOLLOWUP SUBMISSION START ===');
     debugPrint('Lead ID: ${_leadData.id}');
     debugPrint('Lead Name: ${_leadData.clientName}');
@@ -410,7 +410,7 @@ class _LeadDetailsScreenState extends State<LeadDetailsScreen> {
         return;
       }
     }
-    if (_selectedTag == null && _selectedLeadStage == 'REJECTED') {
+    if (_selectedTag == null && state.tagMandatory) {
       _showError('Please select Lead Tag');
       return;
     }
@@ -1356,7 +1356,7 @@ cubit.selectSubCategory(_selectedSubCategory);
                                     child: ElevatedButton(
                                       onPressed: state.isSubmitting
                                           ? null
-                                          : _submitFollowup,
+                                          : () => _submitFollowup(state),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
                                             AppColors.bottomNavBlue,

@@ -239,6 +239,7 @@ class FollowupFormCard extends StatelessWidget {
                   isRequired: tagManditory,
                   items: leadTagOptions,
                   onChanged: onTagChanged,
+                  
                 ),
                 SizedBox(height: 1.h),
               ],
