@@ -991,14 +991,18 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
     // ✅ Validate all form fields first
     if (!_formKey.currentState!.validate()) return;
 
+    final normalizedStage = _selectedStage?.trim().toUpperCase() == 'FOLLOW UP'
+        ? 'FOLLOWUP'
+        : _selectedStage;
+
     if (widget.from != 'EDIT') {
-      if (_selectedStage == 'FOLLOWUP' || _selectedStage == 'REJECTED') {
+      if (normalizedStage == 'FOLLOWUP' || normalizedStage == 'REJECTED') {
         if ((_selectedCallStatus ?? '').isEmpty) {
           _showError('Call Status is required');
           return;
         }
       }
-      if (_selectedStage == 'FOLLOWUP') {
+      if (normalizedStage == 'FOLLOWUP') {
         if (_nextFollowupDate == null) {
           _showError('Next Followup Date is required');
           return;
@@ -1064,7 +1068,7 @@ class _CreateLeadScreenBodyState extends State<CreateLeadScreenBody> {
         assignedStaffId:
             state.assignedStaffId ?? widget.lead?.assignedStaffId ?? '',
         assignedStaff: _selectedStaff ?? widget.lead?.assignedStaff ?? '',
-        leadStage: _selectedStage ?? widget.lead?.leadStage ?? 'NEW',
+        leadStage: normalizedStage ?? widget.lead?.leadStage ?? 'NEW',
         createdBy: widget.lead!.createdBy,
         createdById: widget.lead!.createdById,
         createdAt: widget.lead!.createdAt,

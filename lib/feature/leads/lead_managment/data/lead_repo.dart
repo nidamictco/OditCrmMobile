@@ -768,8 +768,12 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
         .doc(followUpId)
         .set(followUp.toFirestore());
 
+    final resolvedStage = followUp.leadStage.trim().toUpperCase() == 'FOLLOW UP'
+        ? 'FOLLOWUP'
+        : followUp.leadStage;
+
     await _collection.doc(leadId).update({
-      'leadStage': followUp.leadStage,
+      'leadStage': resolvedStage,
       'priority': followUp.priority,
       'leadCategory': followUp.leadCategory,
       'nextFollowUpDate': followUp.nextFollowUpDate,
@@ -818,8 +822,12 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
     //   'updatedAt': FieldValue.serverTimestamp(),
     //   // 'remarks' : followUp.remarks,
     // });
+    final resolvedStage = followUp.leadStage.trim().toUpperCase() == 'FOLLOW UP'
+        ? 'FOLLOWUP'
+        : followUp.leadStage;
+
    final Map<String, dynamic> leadUpdates = {
-      'leadStage': followUp.leadStage,
+      'leadStage': resolvedStage,
       'leadStageId':followUp.leadStageId,
       'priority': followUp.priority,
       'leadCategory': followUp.leadCategory,
@@ -880,7 +888,7 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
     // 4. Log status change only if it actually changed
     if (previousStage != null &&
         previousStage.isNotEmpty &&
-        previousStage != followUp.leadStage) {
+        previousStage != resolvedStage) {
       logActivity(
         ActivityModel(
           id: '',
@@ -889,9 +897,9 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
           changedById: changedById,
           changedAt: now,
           previousValue: previousStage,
-          newValue: followUp.leadStage,
+          newValue: resolvedStage,
           description:
-              'Status changed from $previousStage to ${followUp.leadStage}.',
+              'Status changed from $previousStage to $resolvedStage.',
         ),
       );
     }
@@ -1303,6 +1311,10 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
     required String priority,
     required String leadCategory,
   }) async {
+    final resolvedStage = leadStage.trim().toUpperCase() == 'FOLLOW UP'
+        ? 'FOLLOWUP'
+        : leadStage;
+
     await _logActivity(
       leadId,
       ActivityModel(
@@ -1312,10 +1324,10 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
         changedById: createdById,
         changedAt: DateTime.now(),
         previousValue: null,
-        newValue: leadStage,
+        newValue: resolvedStage,
         description:
             'Lead created. Assigned to $assignedTo.'
-            '${leadStage.isNotEmpty ? ' Stage: $leadStage.' : ''}'
+            '${resolvedStage.isNotEmpty ? ' Stage: $resolvedStage.' : ''}'
             '${priority.isNotEmpty ? ' Priority: $priority.' : ''}'
             '${leadCategory.isNotEmpty ? ' Category: $leadCategory.' : ''}',
       ),
@@ -1828,8 +1840,12 @@ Future<void> _deleteWithSubcollections(DocumentReference<Map<String, dynamic>> d
         remaining.docs.first.id,
       );
 
+      final resolvedLatestStage = latest.leadStage.trim().toUpperCase() == 'FOLLOW UP'
+          ? 'FOLLOWUP'
+          : latest.leadStage;
+
       await leadRef.update({
-        'leadStage': latest.leadStage,
+        'leadStage': resolvedLatestStage,
         'leadStageId':latest.leadStageId,
         'priority': latest.priority,
         'leadCategory': latest.leadCategory,

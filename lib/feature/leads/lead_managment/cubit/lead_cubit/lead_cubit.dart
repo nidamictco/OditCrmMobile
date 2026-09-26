@@ -748,6 +748,11 @@ void selectLeadTag(String? value) {
           ? now
           : null;
 
+      final resolvedLeadStage =
+          (state.selectedLeadStage?.trim().toUpperCase() == 'FOLLOW UP')
+              ? 'FOLLOWUP'
+              : (state.selectedLeadStage ?? '');
+
       final String leadId = _generateDateId('LEAD');
 
       final lead = AddLeadModel(
@@ -771,7 +776,7 @@ void selectLeadTag(String? value) {
             '', 
         leadSource: state.selectedSource ?? '',
         priority: state.selectedPriority ?? '',
-        leadStage: state.selectedLeadStage ?? '',
+        leadStage: resolvedLeadStage,
         remarks: remarks,
         createdBy: user?.name ?? '',
         createdById: user?.id ?? '',
@@ -828,7 +833,7 @@ void selectLeadTag(String? value) {
           leadTag: state.selectedLeadTag ?? '',
           calledStatus: state.selectedCallResult ?? '',
           calledDate: calledDate!,
-          leadStage: state.selectedLeadStage.toString(),
+          leadStage: resolvedLeadStage,
           leadCategory: state.selectedCategory ?? '',
           leadSubCategory: state.selectedSubCategory ?? '',
           priority: state.selectedPriority ?? '',
@@ -1082,6 +1087,11 @@ Future<void> permanentlyDeleteLead(String id) async {
     try {
       final user = await SessionService().getSavedUser();
 
+      final resolvedLeadStage =
+          (state.selectedLeadStage?.trim().toUpperCase() == 'FOLLOW UP')
+              ? 'FOLLOWUP'
+              : (state.selectedLeadStage ?? '');
+
       final followUp = FollowUpModel(
         leadId: leadId,
         leadName: leadName,
@@ -1091,7 +1101,7 @@ Future<void> permanentlyDeleteLead(String id) async {
         nextFollowUpDate: nextFollowUpDate,
         leadTag: state.selectedLeadTag ?? '',
         calledStatus: calledStatus,
-        leadStage: state.selectedLeadStage ?? '',
+        leadStage: resolvedLeadStage,
         leadCategory: state.selectedCategory ?? '',
         leadSubCategory: state.selectedSubCategory ?? '',
         priority: state.selectedPriority ?? '',
@@ -1183,6 +1193,11 @@ Future<void> permanentlyDeleteLead(String id) async {
       log("state.selectedLeadStage : ${state.selectedLeadStage}");
       log("state.selectedLeadTag : ${state.selectedLeadTag}");
 
+      final resolvedLeadStage =
+          (state.selectedLeadStage?.trim().toUpperCase() == 'FOLLOW UP')
+              ? 'FOLLOWUP'
+              : (state.selectedLeadStage ?? '');
+
        final followUp = FollowUpModel(
         id: id,
         leadId: leadId,
@@ -1193,7 +1208,7 @@ Future<void> permanentlyDeleteLead(String id) async {
         nextFollowUpDate: nextFollowUpDate,
         calledStatus: calledStatus,
         leadTag: state.selectedLeadTag ?? '',
-        leadStage: state.selectedLeadStage ?? '',
+        leadStage: resolvedLeadStage,
         leadCategory: state.selectedCategory ?? '',
         leadSubCategory: state.selectedSubCategory ?? '',
         priority: state.selectedPriority ?? '',

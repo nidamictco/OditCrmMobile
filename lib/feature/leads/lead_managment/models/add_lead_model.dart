@@ -84,6 +84,7 @@ class AddLeadModel {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'id': id,
       'clientName': clientName.trim(),
       'contactNumber': contactNumber.trim(),
       'contactDialCode': contactDialCode,
@@ -101,7 +102,9 @@ class AddLeadModel {
       'leadSubCategory': leadSubCategory.toString().toUpperCase(),
       'leadSource': leadSource.toString().toUpperCase(),
       'priority': priority,
-      'leadStage': leadStage.toString().toUpperCase(),
+      'leadStage': leadStage.toString().trim().toUpperCase() == 'FOLLOW UP'
+          ? 'FOLLOWUP'
+          : leadStage.toString().toUpperCase(),
       'remarks': remarks.trim(),
       'createdBy': createdBy,
       'createdById': createdById,
@@ -372,7 +375,9 @@ class FollowUpModel {
       'leadTag': leadTag,
       'calledStatus': calledStatus,
       'calledDate': Timestamp.fromDate(calledDate),
-      'leadStage': leadStage,
+      'leadStage': leadStage.trim().toUpperCase() == 'FOLLOW UP'
+          ? 'FOLLOWUP'
+          : leadStage,
       'leadCategory': leadCategory,
       'leadSubCategory': leadSubCategory,
       'priority': priority,
@@ -515,7 +520,9 @@ class TransferDetails {
       'leadCategoryId': leadCategoryId,
       'leadSubCategory': leadSubCategory,
       'leadSubCategoryId': leadSubCategoryId,
-      'leadStage': leadStage,
+      'leadStage': leadStage.trim().toUpperCase() == 'FOLLOW UP'
+          ? 'FOLLOWUP'
+          : leadStage,
       'leadStageId': leadStageId,
       'fromStaffId': fromStaffId,
       'fromStaff': fromStaff,
