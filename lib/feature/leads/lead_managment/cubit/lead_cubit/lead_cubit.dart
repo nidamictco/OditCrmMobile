@@ -22,8 +22,6 @@ import 'package:odit_crm_mobile/feature/leads/lead_managment/models/dashboard_co
 import 'package:odit_crm_mobile/feature/notification/data/notification_repo.dart';
 import 'package:odit_crm_mobile/feature/staff_management/data/staff_repo.dart';
 
-
-
 // class AddLeadCubit extends Cubit<AddLeadState> {
 //   final IAddLeadRepository _leadRepository;
 //   final ILeadCategoryRepository _categoryRepository;
@@ -82,7 +80,7 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   StreamSubscription? _subCategorySubscription;
   StreamSubscription? _leadTagSubscription;
   GeneralSettingsRepository? _settingsRepo;
-   StreamSubscription<List<AddLeadModel>>? _leadsRealtimeSubscription;
+  StreamSubscription<List<AddLeadModel>>? _leadsRealtimeSubscription;
 
   AddLeadCubit({
     IAddLeadRepository? leadRepository,
@@ -104,7 +102,6 @@ class AddLeadCubit extends Cubit<AddLeadState> {
            additionalFieldsRepo ?? AdditionalFieldsRepositoryImpl(),
        _staffRepository = staffRepository ?? StaffRepository(),
        super(const AddLeadState());
-
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -130,17 +127,17 @@ class AddLeadCubit extends Cubit<AddLeadState> {
   }
 
   // NEW — ensures Category and Lead Stage streams are running even if the
-// Add Lead form's initialize() hasn't executed yet this session. Safe to
-// call repeatedly (no-op once loaded). Deliberately does NOT touch
-// selectedPriority/selectedLeadStage/staff name/additional fields the way
-// initialize() does, so it can't clobber an in-progress Add Lead form
-// sharing the same cubit instance.
-void ensureLeadDropdownDataLoaded() {
-  if (FirestorePath.companyId == null) return;
-  if (state.categories.isEmpty) _watchCategories();
-  if (state.stages.isEmpty) _watchLeadStages();
-  if (state.sources.isEmpty) _watchSources();
-}
+  // Add Lead form's initialize() hasn't executed yet this session. Safe to
+  // call repeatedly (no-op once loaded). Deliberately does NOT touch
+  // selectedPriority/selectedLeadStage/staff name/additional fields the way
+  // initialize() does, so it can't clobber an in-progress Add Lead form
+  // sharing the same cubit instance.
+  void ensureLeadDropdownDataLoaded() {
+    if (FirestorePath.companyId == null) return;
+    if (state.categories.isEmpty) _watchCategories();
+    if (state.stages.isEmpty) _watchLeadStages();
+    if (state.sources.isEmpty) _watchSources();
+  }
 
   void resetStatus() {
     emit(
@@ -208,34 +205,40 @@ void ensureLeadDropdownDataLoaded() {
   //   }, onError: (_) {});
   // }
 
-   void _watchCategories() {
+  void _watchCategories() {
     _categorySubscription?.cancel();
-    _categorySubscription = _categoryRepository.watchCategories().listen((
-      cats,
-    ) {
-      if (isClosed) return;
-      emit(state.copyWith(categories: [...cats]));
+    _categorySubscription = _categoryRepository.watchCategories().listen(
+      (cats) {
+        if (isClosed) return;
+        emit(state.copyWith(categories: [...cats]));
 
-      // ── Edit-mode race condition fix ────────────────────────────────────────
-      // selectCategory() may have been called (via _prefillIfEditing) before
-      // this stream fired its first event.  If a category is already recorded
-      // in state but no sub-category subscription is running yet, start it now.
-      final alreadySelected = state.selectedCategory;
-      if (alreadySelected != null && alreadySelected.isNotEmpty &&
-          _subCategorySubscription == null) {
-        log('[AddLeadCubit] _watchCategories: auto-starting subCat watcher '
-            'for already-selected category="$alreadySelected"');
-        final match = cats.where((c) => c.name == alreadySelected);
-        if (match.isNotEmpty && match.first.id.isNotEmpty) {
-          _watchSubCategoriesForCategory(match.first.id);
-        } else {
-          log('[AddLeadCubit] _watchCategories: no match found for '
-              'selectedCategory="$alreadySelected" in loaded cats=${cats.map((c) => c.name).toList()}');
+        // ── Edit-mode race condition fix ────────────────────────────────────────
+        // selectCategory() may have been called (via _prefillIfEditing) before
+        // this stream fired its first event.  If a category is already recorded
+        // in state but no sub-category subscription is running yet, start it now.
+        final alreadySelected = state.selectedCategory;
+        if (alreadySelected != null &&
+            alreadySelected.isNotEmpty &&
+            _subCategorySubscription == null) {
+          log(
+            '[AddLeadCubit] _watchCategories: auto-starting subCat watcher '
+            'for already-selected category="$alreadySelected"',
+          );
+          final match = cats.where((c) => c.name == alreadySelected);
+          if (match.isNotEmpty && match.first.id.isNotEmpty) {
+            _watchSubCategoriesForCategory(match.first.id);
+          } else {
+            log(
+              '[AddLeadCubit] _watchCategories: no match found for '
+              'selectedCategory="$alreadySelected" in loaded cats=${cats.map((c) => c.name).toList()}',
+            );
+          }
         }
-      }
-    }, onError: (e) {
-      log('[AddLeadCubit] _watchCategories error: $e');
-    });
+      },
+      onError: (e) {
+        log('[AddLeadCubit] _watchCategories error: $e');
+      },
+    );
   }
 
   void _watchSources() {
@@ -253,20 +256,22 @@ void ensureLeadDropdownDataLoaded() {
     ) {
       if (isClosed) return;
       emit(state.copyWith(stages: [...stages]));
-       if (state.selectedLeadStage == null) {
-      selectLeadStage('NEW');
-    }
+      if (state.selectedLeadStage == null) {
+        selectLeadStage('NEW');
+      }
     }, onError: (_) {});
   }
 
   // ── Sub Category watcher — depends on a resolved categoryId ───────────────
- // ── Sub Category watcher — depends on a resolved categoryId ───────────────
+  // ── Sub Category watcher — depends on a resolved categoryId ───────────────
   // ── Sub Category watcher — depends on a resolved categoryId ───────────────
   void _watchSubCategoriesForCategory(
     String categoryId, {
     String? pendingSubCategoryName,
   }) {
-    log('[AddLeadCubit] _watchSubCategoriesForCategory: categoryId="$categoryId"');
+    log(
+      '[AddLeadCubit] _watchSubCategoriesForCategory: categoryId="$categoryId"',
+    );
     _subCategorySubscription?.cancel();
     _subCategorySubscription = null;
 
@@ -276,70 +281,81 @@ void ensureLeadDropdownDataLoaded() {
 
     _subCategorySubscription = _subCategoryRepository!
         .watchSubCategories()
-        .listen((subs) {
-          log('[AddLeadCubit] subCategories received: ${subs.length} items');
-          if (isClosed) return;
-          emit(state.copyWith(subCategories: [...subs]));
+        .listen(
+          (subs) {
+            log('[AddLeadCubit] subCategories received: ${subs.length} items');
+            if (isClosed) return;
+            emit(state.copyWith(subCategories: [...subs]));
 
-          // Resolve a pending sub-category selection once the list arrives.
-          if (pendingSubCategoryName != null &&
-              pendingSubCategoryName.isNotEmpty) {
-            final match = subs.where((s) => s.name == pendingSubCategoryName);
-            if (match.isNotEmpty) {
-              log('[AddLeadCubit] auto-resolved pending subCategory '
-                  '"$pendingSubCategoryName" -> id="${match.first.id}"');
-              emit(
-                state.copyWith(
-                  selectedSubCategory: pendingSubCategoryName,
-                  selectedSubCategoryId: match.first.id,
-                ),
-              );
-            } else {
-              log('[AddLeadCubit] pending subCategory "$pendingSubCategoryName" '
-                  'not found in loaded subs=${subs.map((s) => s.name).toList()}');
+            // Resolve a pending sub-category selection once the list arrives.
+            if (pendingSubCategoryName != null &&
+                pendingSubCategoryName.isNotEmpty) {
+              final match = subs.where((s) => s.name == pendingSubCategoryName);
+              if (match.isNotEmpty) {
+                log(
+                  '[AddLeadCubit] auto-resolved pending subCategory '
+                  '"$pendingSubCategoryName" -> id="${match.first.id}"',
+                );
+                emit(
+                  state.copyWith(
+                    selectedSubCategory: pendingSubCategoryName,
+                    selectedSubCategoryId: match.first.id,
+                  ),
+                );
+              } else {
+                log(
+                  '[AddLeadCubit] pending subCategory "$pendingSubCategoryName" '
+                  'not found in loaded subs=${subs.map((s) => s.name).toList()}',
+                );
+              }
             }
-          }
-        }, onError: (e) {
-          log('[AddLeadCubit] _watchSubCategoriesForCategory error: $e');
-        });
+          },
+          onError: (e) {
+            log('[AddLeadCubit] _watchSubCategoriesForCategory error: $e');
+          },
+        );
   }
 
- void _watchLeadTagForLeadStage(
-    String leadTagId, {
-    String? pendingTagName,
-  }) {
+  void _watchLeadTagForLeadStage(String leadTagId, {String? pendingTagName}) {
     log('[AddLeadCubit] _watchLeadTagForLeadStage: stageId="$leadTagId"');
     _leadTagSubscription?.cancel();
     _leadTagRepository = _leadTagRepositoryFactory != null
         ? _leadTagRepositoryFactory!(leadTagId)
         : LeadTagRepository(tagId: leadTagId);
-    _leadTagSubscription = _leadTagRepository!.watchLeadTags().listen((
-      leadTags,
-    ) {
-      log('[AddLeadCubit] leadTags received: ${leadTags.length} items for stageId="$leadTagId"');
-      if (isClosed) return;
-      emit(state.copyWith(leadTag: [...leadTags]));
+    _leadTagSubscription = _leadTagRepository!.watchLeadTags().listen(
+      (leadTags) {
+        log(
+          '[AddLeadCubit] leadTags received: ${leadTags.length} items for stageId="$leadTagId"',
+        );
+        if (isClosed) return;
+        emit(state.copyWith(leadTag: [...leadTags]));
 
-      // Resolve a pending tag selection once the list arrives.
-      if (pendingTagName != null && pendingTagName.isNotEmpty) {
-        final match = leadTags.where((t) => t.name == pendingTagName);
-        if (match.isNotEmpty) {
-          log('[AddLeadCubit] auto-resolved pending tag '
-              '"$pendingTagName" -> id="${match.first.id}"');
-          emit(
-            state.copyWith(
-              selectedLeadTag: pendingTagName,
-              selectedLeadTagId: match.first.id,
-            ),
-          );
-        } else {
-          log('[AddLeadCubit] pending tag "$pendingTagName" not found in '
-              'loaded tags=${leadTags.map((t) => t.name).toList()}');
+        // Resolve a pending tag selection once the list arrives.
+        if (pendingTagName != null && pendingTagName.isNotEmpty) {
+          final match = leadTags.where((t) => t.name == pendingTagName);
+          if (match.isNotEmpty) {
+            log(
+              '[AddLeadCubit] auto-resolved pending tag '
+              '"$pendingTagName" -> id="${match.first.id}"',
+            );
+            emit(
+              state.copyWith(
+                selectedLeadTag: pendingTagName,
+                selectedLeadTagId: match.first.id,
+              ),
+            );
+          } else {
+            log(
+              '[AddLeadCubit] pending tag "$pendingTagName" not found in '
+              'loaded tags=${leadTags.map((t) => t.name).toList()}',
+            );
+          }
         }
-      }
-    }, onError: (e) {
-      log('[AddLeadCubit] _watchLeadTagForLeadStage error: $e');
-    });
+      },
+      onError: (e) {
+        log('[AddLeadCubit] _watchLeadTagForLeadStage error: $e');
+      },
+    );
   }
 
   @override
@@ -414,10 +430,11 @@ void ensureLeadDropdownDataLoaded() {
   //   emit(state.copyWith(assignedStaffName: name, assignedStaffId: id));
   // }
 
-
- void selectCategory(String? value, {String? pendingSubCategory}) {
-    log('[AddLeadCubit] selectCategory: value="$value", '
-        'cats loaded=${state.categories.length}');
+  void selectCategory(String? value, {String? pendingSubCategory}) {
+    log(
+      '[AddLeadCubit] selectCategory: value="$value", '
+      'cats loaded=${state.categories.length}',
+    );
     emit(state.copyWith(selectedCategory: value, clearCategory: value == null));
 
     // Reset sub-category selection + list + stream whenever the category changes
@@ -430,9 +447,11 @@ void ensureLeadDropdownDataLoaded() {
     // Resolve the Firestore doc ID of the chosen category from already-loaded list.
     final match = state.categories.where((c) => c.name == value);
     if (match.isEmpty) {
-      log('[AddLeadCubit] selectCategory: no match for "$value" in '
-          'categories=${state.categories.map((c) => c.name).toList()} — '
-          'sub-category watcher NOT started (stream not yet loaded?)');
+      log(
+        '[AddLeadCubit] selectCategory: no match for "$value" in '
+        'categories=${state.categories.map((c) => c.name).toList()} — '
+        'sub-category watcher NOT started (stream not yet loaded?)',
+      );
       return;
     }
 
@@ -444,46 +463,55 @@ void ensureLeadDropdownDataLoaded() {
       pendingSubCategoryName: pendingSubCategory,
     );
   }
-void selectCategoryDirect({required String name, required String id}) {
-  emit(state.copyWith(selectedCategory: name, selectedCategoryId: id));
-  _watchSubCategoriesForCategory(id);
-}
 
+  void selectCategoryDirect({required String name, required String id}) {
+    emit(state.copyWith(selectedCategory: name, selectedCategoryId: id));
+    _watchSubCategoriesForCategory(id);
+  }
 
-
-void selectSourceDirect({required String name, required String id}) {
-  emit(state.copyWith(selectedSource: name, selectedSourceId: id));
-}
+  void selectSourceDirect({required String name, required String id}) {
+    emit(state.copyWith(selectedSource: name, selectedSourceId: id));
+  }
 
   // void selectSubCategory(String? value) => emit(
   //   state.copyWith(selectedSubCategory: value, clearSubCategory: value == null),
   // );
   void selectSubCategory(String? value) {
-  emit(state.copyWith(selectedSubCategory: value, clearSubCategory: value == null));
-  if (value == null) return;
-  final match = state.subCategories.where((s) => s.name == value);
-  if (match.isNotEmpty) {
-    emit(state.copyWith(selectedSubCategoryId: match.first.id));
+    emit(
+      state.copyWith(
+        selectedSubCategory: value,
+        clearSubCategory: value == null,
+      ),
+    );
+    if (value == null) return;
+    final match = state.subCategories.where((s) => s.name == value);
+    if (match.isNotEmpty) {
+      emit(state.copyWith(selectedSubCategoryId: match.first.id));
+    }
   }
-}
-
 
   // void selectSource(String? value) =>
   //     emit(state.copyWith(selectedSource: value, clearSource: value == null));
-void selectSource(String? value) {
-  emit(state.copyWith(selectedSource: value, clearSource: value == null));
-  if (value == null) return;
-  final match = state.sources.where((s) => s.name == value);
-  if (match.isNotEmpty) {
-    emit(state.copyWith(selectedSourceId: match.first.id));
+  void selectSource(String? value) {
+    emit(state.copyWith(selectedSource: value, clearSource: value == null));
+    if (value == null) return;
+    final match = state.sources.where((s) => s.name == value);
+    if (match.isNotEmpty) {
+      emit(state.copyWith(selectedSourceId: match.first.id));
+    }
   }
-}
- 
 
- void selectLeadStage(String? value, {String? pendingTag}) {
-    log('[AddLeadCubit] selectLeadStage: value="$value", '
-        'stages loaded=${state.stages.length}');
-    emit(state.copyWith(selectedLeadStage: value, clearLeadStage: value == null));
+  void selectLeadStage(String? value, {String? pendingTag}) {
+    log(
+      '[AddLeadCubit] selectLeadStage: value="$value", '
+      'stages loaded=${state.stages.length}',
+    );
+    if (value != null && value.toUpperCase() == "FOLLOW UP") {
+      value = 'FOLLOWUP';
+    }
+    emit(
+      state.copyWith(selectedLeadStage: value, clearLeadStage: value == null),
+    );
 
     if (value == null) {
       _leadTagSubscription?.cancel();
@@ -493,31 +521,35 @@ void selectSource(String? value) {
 
     final match = state.stages.where((s) => s.name == value);
     if (match.isEmpty) {
-      log('[AddLeadCubit] selectLeadStage: no match for "$value" in '
-          'stages=${state.stages.map((s) => s.name).toList()} — '
-          'tag watcher NOT started');
+      log(
+        '[AddLeadCubit] selectLeadStage: no match for "$value" in '
+        'stages=${state.stages.map((s) => s.name).toList()} — '
+        'tag watcher NOT started',
+      );
       _leadTagSubscription?.cancel();
       emit(state.copyWith(leadTag: [], tagMandatory: false));
       return;
     }
 
     emit(state.copyWith(selectedLeadStageId: match.first.id));
-    log('[AddLeadCubit] selectLeadStage: matched stage id="${match.first.id}", '
-        'tagMandatory=${match.first.tagMandatory}');
+    log(
+      '[AddLeadCubit] selectLeadStage: matched stage id="${match.first.id}", '
+      'tagMandatory=${match.first.tagMandatory}',
+    );
     _watchLeadTagForLeadStage(match.first.id, pendingTagName: pendingTag);
     emit(state.copyWith(tagMandatory: match.first.tagMandatory));
   }
 
   // void selectLeadTag(String? value) =>
   //     emit(state.copyWith(selectedLeadTag: value, clearLeadTag: value == null));
-void selectLeadTag(String? value) {
-  emit(state.copyWith(selectedLeadTag: value, clearLeadTag: value == null));
-  if (value == null) return;
-  final match = state.leadTag.where((t) => t.name == value);
-  if (match.isNotEmpty) {
-    emit(state.copyWith(selectedLeadTagId: match.first.id));
+  void selectLeadTag(String? value) {
+    emit(state.copyWith(selectedLeadTag: value, clearLeadTag: value == null));
+    if (value == null) return;
+    final match = state.leadTag.where((t) => t.name == value);
+    if (match.isNotEmpty) {
+      emit(state.copyWith(selectedLeadTagId: match.first.id));
+    }
   }
-}
 
   void selectPriority(String? value) => emit(
     state.copyWith(selectedPriority: value, clearPriority: value == null),
@@ -551,7 +583,6 @@ void selectLeadTag(String? value) {
   void selectAssignedStaff({required String name, required String id}) {
     emit(state.copyWith(assignedStaffName: name, assignedStaffId: id));
   }
-
 
   // ── Fetch list ────────────────────────────────────────────────────────────
 
@@ -680,7 +711,6 @@ void selectLeadTag(String? value) {
     }
   }
 
-
   String _generateDateId(String prefix) {
     final now = DateTime.now();
     final datePart = DateFormat('yyyyMMdd').format(now);
@@ -750,8 +780,8 @@ void selectLeadTag(String? value) {
 
       final resolvedLeadStage =
           (state.selectedLeadStage?.trim().toUpperCase() == 'FOLLOW UP')
-              ? 'FOLLOWUP'
-              : (state.selectedLeadStage ?? '');
+          ? 'FOLLOWUP'
+          : (state.selectedLeadStage ?? '');
 
       final String leadId = _generateDateId('LEAD');
 
@@ -771,9 +801,7 @@ void selectLeadTag(String? value) {
         assignedStaff: resolvedStaffName,
         assignedStaffId: resolvedStaffId,
         leadCategory: state.selectedCategory ?? '',
-        leadSubCategory:
-            state.selectedSubCategory ??
-            '', 
+        leadSubCategory: state.selectedSubCategory ?? '',
         leadSource: state.selectedSource ?? '',
         priority: state.selectedPriority ?? '',
         leadStage: resolvedLeadStage,
@@ -785,7 +813,7 @@ void selectLeadTag(String? value) {
         followUpDate: nextFollowUpDate,
         additionalFields: additionalFieldValues,
         calledDate: calledDate,
-         leadCategoryId: state.selectedCategoryId ?? '',
+        leadCategoryId: state.selectedCategoryId ?? '',
         leadSubCategoryId: state.selectedSubCategoryId ?? '',
         leadSourceId: state.selectedSourceId ?? '',
         leadStageId: state.selectedLeadStageId ?? '',
@@ -813,7 +841,7 @@ void selectLeadTag(String? value) {
       //   title: 'New Lead Added',
       //   message: 'Name: ${lead.clientName} Phone No: ${lead.contactNumber}',
       //   excludeStaffId: user?.id,
-      // ); 
+      // );
       notificationRepo.createForAdmins(
         title: 'New Lead Added',
         message: 'Name: ${lead.clientName} Phone No: ${lead.contactNumber}',
@@ -923,21 +951,21 @@ void selectLeadTag(String? value) {
   //   }
   // }
 
-   Future<void> restoreLead(AddLeadModel lead) async {
-  emit(state.copyWith(isUpdating: true, clearError: true));
-  try {
-    await _leadRepository.restoreLead(lead.id!);
-    emit(
-      state.copyWith(
-        isUpdating: false,
-        successMessage: 'Lead restored successfully.',
-      ),
-    );
-    await fetchDeletedLeads();
-  } catch (e) {
-    emit(state.copyWith(isUpdating: false, errorMessage: _friendlyError(e)));
+  Future<void> restoreLead(AddLeadModel lead) async {
+    emit(state.copyWith(isUpdating: true, clearError: true));
+    try {
+      await _leadRepository.restoreLead(lead.id!);
+      emit(
+        state.copyWith(
+          isUpdating: false,
+          successMessage: 'Lead restored successfully.',
+        ),
+      );
+      await fetchDeletedLeads();
+    } catch (e) {
+      emit(state.copyWith(isUpdating: false, errorMessage: _friendlyError(e)));
+    }
   }
-}
 
   Future<void> fetchDeletedLeads() async {
     emit(
@@ -956,48 +984,47 @@ void selectLeadTag(String? value) {
     }
   }
 
-   Future<void> deleteLead(String id, AddLeadModel lead) async {
-  if (state.isDeleting) return;
-  emit(state.copyWith(isDeleting: true, clearError: true));
-  try {
-    if (!lead.isDeleted) {
-      // First delete → hide from active views only.
-      await _leadRepository.softDeleteLead(id);
-    } else {
-      // Second delete → archive with all subcollections, then purge.
-      await _leadRepository.archiveDeletedLead(id);
+  Future<void> deleteLead(String id, AddLeadModel lead) async {
+    if (state.isDeleting) return;
+    emit(state.copyWith(isDeleting: true, clearError: true));
+    try {
+      if (!lead.isDeleted) {
+        // First delete → hide from active views only.
+        await _leadRepository.softDeleteLead(id);
+      } else {
+        // Second delete → archive with all subcollections, then purge.
+        await _leadRepository.archiveDeletedLead(id);
+      }
+      final updated = state.leads.where((l) => l.id != id).toList();
+      emit(
+        state.copyWith(
+          isDeleting: false,
+          leads: updated,
+          successMessage: 'Lead deleted successfully.',
+        ),
+      );
+    } catch (e) {
+      emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
     }
-    final updated = state.leads.where((l) => l.id != id).toList();
-    emit(
-      state.copyWith(
-        isDeleting: false,
-        leads: updated,
-        successMessage: 'Lead deleted successfully.',
-      ),
-    );
-  } catch (e) {
-    emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
   }
-}
 
-Future<void> permanentlyDeleteLead(String id) async {
-  emit(state.copyWith(isDeleting: true, clearError: true));
-  try {
-    await _leadRepository.archiveDeletedLead(id);
-    final updated = state.leads.where((l) => l.id != id).toList();
-    emit(
-      state.copyWith(
-        isDeleting: false,
-        leads: updated,
-        successMessage: 'Lead deleted successfully.',
-      ),
-    );
-    await fetchDeletedLeads();
-  } catch (e) {
-    emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
+  Future<void> permanentlyDeleteLead(String id) async {
+    emit(state.copyWith(isDeleting: true, clearError: true));
+    try {
+      await _leadRepository.archiveDeletedLead(id);
+      final updated = state.leads.where((l) => l.id != id).toList();
+      emit(
+        state.copyWith(
+          isDeleting: false,
+          leads: updated,
+          successMessage: 'Lead deleted successfully.',
+        ),
+      );
+      await fetchDeletedLeads();
+    } catch (e) {
+      emit(state.copyWith(isDeleting: false, errorMessage: _friendlyError(e)));
+    }
   }
-}
-
 
   // Future<void> permanentlyDeleteLead(String id) async {
   //   emit(state.copyWith(isDeleting: true, clearError: true));
@@ -1022,10 +1049,10 @@ Future<void> permanentlyDeleteLead(String id) async {
     try {
       final list = await _staffRepository.fetchAll();
       emit(state.copyWith(staffList: list));
-    }  on CompanyNotInitializedException {
-    // App is mid-logout/navigating away — nothing to show, don't surface an error.
-    return;
-  } catch (e) {
+    } on CompanyNotInitializedException {
+      // App is mid-logout/navigating away — nothing to show, don't surface an error.
+      return;
+    } catch (e) {
       log('[AddLeadCubit] fetchStaff error: $e');
     }
   }
@@ -1089,8 +1116,8 @@ Future<void> permanentlyDeleteLead(String id) async {
 
       final resolvedLeadStage =
           (state.selectedLeadStage?.trim().toUpperCase() == 'FOLLOW UP')
-              ? 'FOLLOWUP'
-              : (state.selectedLeadStage ?? '');
+          ? 'FOLLOWUP'
+          : (state.selectedLeadStage ?? '');
 
       final followUp = FollowUpModel(
         leadId: leadId,
@@ -1195,10 +1222,10 @@ Future<void> permanentlyDeleteLead(String id) async {
 
       final resolvedLeadStage =
           (state.selectedLeadStage?.trim().toUpperCase() == 'FOLLOW UP')
-              ? 'FOLLOWUP'
-              : (state.selectedLeadStage ?? '');
+          ? 'FOLLOWUP'
+          : (state.selectedLeadStage ?? '');
 
-       final followUp = FollowUpModel(
+      final followUp = FollowUpModel(
         id: id,
         leadId: leadId,
         leadName: leadName,
@@ -1285,7 +1312,7 @@ Future<void> permanentlyDeleteLead(String id) async {
     try {
       final user = await SessionService().getSavedUser();
 
-       final transfer = TransferDetails(
+      final transfer = TransferDetails(
         leadId: leadId,
         leadName: leadName,
         contactNumber: contactNumber,
@@ -1296,7 +1323,10 @@ Future<void> permanentlyDeleteLead(String id) async {
         fromStaff: fromStaff,
         toStaffId: toStaffId,
         toStaff: toStaff,
-        transferTime: DateTime.now(), leadCategoryId: leadCategoryId, leadSubCategoryId: leadSubCategoryId, leadStageId: leadStageId,
+        transferTime: DateTime.now(),
+        leadCategoryId: leadCategoryId,
+        leadSubCategoryId: leadSubCategoryId,
+        leadStageId: leadStageId,
       );
 
       await _leadRepository.transferLead(
@@ -1817,7 +1847,7 @@ Future<void> permanentlyDeleteLead(String id) async {
   //   });
   // }
   // }
-  
+
   void watchLeadsRealtime() {
     _leadsRealtimeSubscription?.cancel();
     emit(
